@@ -1,7 +1,9 @@
 import "dotenv/config";
 
-// If launched via npm run dev or tsx, ensure development mode is active
-if (process.env.npm_lifecycle_event === "dev" || process.argv.some(arg => arg.includes("tsx"))) {
+// Detect launch mode accurately:
+if (process.env.npm_lifecycle_event === "start" || (process.argv[1] && process.argv[1].includes("dist"))) {
+  process.env.NODE_ENV = "production";
+} else if (process.env.npm_lifecycle_event === "dev" || process.argv.some(arg => arg.includes("tsx"))) {
   process.env.NODE_ENV = "development";
 }
 import express from "express";
