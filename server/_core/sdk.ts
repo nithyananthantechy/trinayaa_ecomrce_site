@@ -212,9 +212,13 @@ class SDKServer {
       });
       const { openId, appId, name } = payload as Record<string, unknown>;
 
+      const isAppIdValid = isNonEmptyString(ENV.appId)
+        ? appId === ENV.appId
+        : (!isNonEmptyString(appId) || appId === "trinayaa-ecommerce");
+
       if (
         !isNonEmptyString(openId) ||
-        (!isNonEmptyString(appId) || appId !== ENV.appId) ||
+        !isAppIdValid ||
         typeof name !== "string"
       ) {
         console.warn("[Auth] Session payload missing required fields");

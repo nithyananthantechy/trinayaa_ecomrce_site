@@ -6,14 +6,12 @@ import { trpc } from "@/lib/trpc";
 
 function BrandMark() {
   return (
-    <div className="brand-mark">
-      <div className="brand-leaf">
-        <Leaf size={25} strokeWidth={1.5} />
-      </div>
-      <div>
-        <div className="brand-name">TRINAYAA</div>
-        <div className="brand-tagline">PURE SEEDS · RAW POWDERS · TRUE HERBS</div>
-      </div>
+    <div className="brand-mark" aria-label="Trinayaa home">
+      <img
+        src="/images/brand/trinayaa_logo.png"
+        alt="TRINAYAA"
+        className="h-10 w-auto object-contain"
+      />
     </div>
   );
 }

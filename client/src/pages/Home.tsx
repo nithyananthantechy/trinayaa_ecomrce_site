@@ -30,6 +30,7 @@ import { useEffect, useMemo, useState, FormEvent } from "react";
 import { useLocation, useRoute } from "wouter";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
+import { COOKIE_NAME } from "@shared/const";
 
 type Category = "All" | "Seeds" | "Raw Powders" | "Herbs" | "Health Care" | "Hair Care" | "Skin Care";
 type Product = {
@@ -165,13 +166,15 @@ function formatINR(value: number) {
 function BrandMark({ inverse = false }: { inverse?: boolean }) {
   return (
     <div className={`brand-mark ${inverse ? "brand-mark-inverse" : ""}`} aria-label="Trinayaa home">
-      <div className="brand-leaf" aria-hidden="true">
-        <Leaf size={25} strokeWidth={1.5} />
-      </div>
-      <div>
-        <div className="brand-name">TRINAYAA</div>
-        <div className="brand-tagline">PURE SEEDS · RAW POWDERS · TRUE HERBS</div>
-      </div>
+      <img
+        src={inverse ? "/images/brand/trinayaa_logo_white.png" : "/images/brand/trinayaa_logo.png"}
+        alt="TRINAYAA — Pure Seeds · Raw Powders · True Herbs"
+        className="h-10 md:h-11 w-auto object-contain"
+        onError={(e) => {
+          const target = e.currentTarget;
+          target.style.display = "none";
+        }}
+      />
     </div>
   );
 }
@@ -918,9 +921,16 @@ function AuthModal({
   const loginMutation = trpc.auth.login.useMutation({
     onSuccess: (data) => {
       toast.success(`Welcome back, ${data.user.name}`);
+      try {
+        sessionStorage.setItem("manus-cookie", `${COOKIE_NAME}=${data.token}`);
+        localStorage.setItem("trinayaa_session_token", data.token);
+      } catch (e) {}
       setLoading(false);
       onSuccess();
       onClose();
+      if (data.user.role === "ADMIN" || data.user.role === "SUPER_ADMIN") {
+        window.location.href = "/admin";
+      }
     },
     onError: (err) => {
       toast.error(err.message || "Sign in failed");
@@ -931,6 +941,10 @@ function AuthModal({
   const registerMutation = trpc.auth.register.useMutation({
     onSuccess: (data) => {
       toast.success(`Account created! Welcome, ${data.user.name}`);
+      try {
+        sessionStorage.setItem("manus-cookie", `${COOKIE_NAME}=${data.token}`);
+        localStorage.setItem("trinayaa_session_token", data.token);
+      } catch (e) {}
       setLoading(false);
       onSuccess();
       onClose();
@@ -1443,11 +1457,12 @@ export default function Home() {
         <section className="hero-section">
           <div className="hero-art" style={{ backgroundImage: `url(${IMG.hero})` }} />
           <div className="hero-content container-wide">
-            <span className="eyebrow hero-eyebrow">Natural herbs for a better tomorrow</span>
+            <span className="eyebrow hero-eyebrow">NATURAL HERBS FOR A BETTER TOMORROW</span>
             <h1>Pure Seeds.<br /><em>Raw Powders.</em><br /><span>True Herbs.</span></h1>
+            <p className="hero-tagline">Nature's wisdom, your wellness.</p>
             <p>Carefully sourced natural herbs, pure seeds and raw herbal powders for your everyday wellness journey.</p>
             <button className="dark-button hero-button" onClick={scrollToShop}>
-              Explore Products ({allProducts.length}) <ArrowRight size={17} />
+              Explore Products <ArrowRight size={17} />
             </button>
             <div className="hero-notes">
               <span><Leaf size={17} /> Natural Products</span>

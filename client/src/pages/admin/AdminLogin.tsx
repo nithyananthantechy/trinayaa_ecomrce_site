@@ -3,6 +3,7 @@ import { useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 import { Shield, ArrowRight, Lock, Mail, ArrowLeft, Leaf } from "lucide-react";
+import { COOKIE_NAME } from "@shared/const";
 
 export default function AdminLogin() {
   const [, setLocation] = useLocation();
@@ -15,7 +16,13 @@ export default function AdminLogin() {
       toast.success("Welcome back, Administrator", {
         description: `Signed in as ${data.user.name}`,
       });
-      setLocation("/admin");
+      try {
+        sessionStorage.setItem("manus-cookie", `${COOKIE_NAME}=${data.token}`);
+        localStorage.setItem("trinayaa_session_token", data.token);
+      } catch (e) {
+        // storage unavailable
+      }
+      window.location.href = "/admin";
     },
     onError: (err) => {
       toast.error("Authentication failed", {
