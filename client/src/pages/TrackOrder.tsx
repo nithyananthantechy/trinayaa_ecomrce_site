@@ -165,7 +165,10 @@ export default function TrackOrder() {
                   : "Botanical parcel"}
               </span>
               <span>
-                <Truck size={17} /> Manual Fulfilment Updates · Pan India
+                <Truck size={17} />{" "}
+                {orderData.carrier
+                  ? `${orderData.carrier}${orderData.trackingNumber ? ` · ${orderData.trackingNumber}` : ""}`
+                  : "Manual Fulfilment Updates · Pan India"}
               </span>
             </div>
           </section>

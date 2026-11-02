@@ -94,37 +94,54 @@ async function startServer() {
   });
 
   // ==========================================
-  // RAZORPAY PAYMENT WEBHOOK
+  // RAZORPAY PAYMENT WEBHOOK (IDEMPOTENT)
   // ==========================================
   app.post("/api/webhooks/razorpay", (req, res) => {
     try {
-      const secret = process.env.PAYMENT_GATEWAY_WEBHOOK_SECRET || "PLACEHOLDER_WEBHOOK_SECRET";
+      const secret = process.env.RAZORPAY_WEBHOOK_SECRET || process.env.PAYMENT_GATEWAY_WEBHOOK_SECRET || "placeholder_webhook_secret_value";
       const signature = req.headers["x-razorpay-signature"] as string;
 
       // Verify webhook HMAC
-      if (secret && !secret.includes("PLACEHOLDER") && signature) {
-        const expected = crypto.createHmac("sha256", secret).update(JSON.stringify(req.body)).digest("hex");
+      if (secret && !secret.includes("placeholder") && !secret.includes("PLACEHOLDER") && signature) {
+        const bodyContent = (req as any).rawBody || JSON.stringify(req.body);
+        const expected = crypto.createHmac("sha256", secret).update(bodyContent).digest("hex");
         if (signature !== expected) {
           return res.status(400).json({ error: "Invalid webhook signature" });
         }
       }
 
-      const event = req.body.event;
-      if (event === "order.paid" || event === "payment.captured") {
-        const paymentEntity = req.body.payload?.payment?.entity;
-        const razorpayOrderId = paymentEntity?.order_id;
-        const razorpayPaymentId = paymentEntity?.id;
+      const event = req.body?.event;
+      const paymentEntity = req.body?.payload?.payment?.entity;
+      const razorpayOrderId = paymentEntity?.order_id || req.body?.payload?.order?.entity?.id;
+      const razorpayPaymentId = paymentEntity?.id;
 
-        if (razorpayOrderId) {
-          const dbInstance = db.getDatabase();
-          const order = dbInstance.prepare("SELECT id FROM orders WHERE razorpayOrderId = ?").get(razorpayOrderId) as any;
-          if (order) {
-            db.ordersRepo.updatePayment(order.id, "PAID", razorpayPaymentId);
-          }
-        }
+      if (!razorpayOrderId) {
+        return res.json({ status: "ignored", reason: "No order ID in payload" });
       }
 
-      return res.json({ status: "ok" });
+      const dbInstance = db.getDatabase();
+      const order = dbInstance.prepare("SELECT id, paymentStatus, orderStatus FROM orders WHERE razorpayOrderId = ?").get(razorpayOrderId) as any;
+      if (!order) {
+        return res.json({ status: "ignored", reason: "Order not found" });
+      }
+
+      if (event === "order.paid" || event === "payment.captured") {
+        // Idempotent: confirm payment & deduct stock
+        db.ordersRepo.confirmPayment(order.id, {
+          gatewayPaymentId: razorpayPaymentId,
+          rawResponse: req.body,
+        });
+      } else if (event === "payment.failed") {
+        const errorDesc = paymentEntity?.error_description || "Payment failed at Razorpay gateway";
+        db.ordersRepo.recordPaymentFailure(order.id, {
+          reason: errorDesc,
+          rawResponse: req.body,
+        });
+      } else if (event === "refund.processed") {
+        db.ordersRepo.updateStatus(order.id, "Refunded", "Refund processed via Razorpay Webhook", "Razorpay Webhook");
+      }
+
+      return res.json({ status: "ok", event });
     } catch (err: any) {
       console.error("[Razorpay Webhook Error]:", err);
       return res.status(500).json({ error: err.message });

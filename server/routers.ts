@@ -460,23 +460,196 @@ export const appRouter = router({
         db.cartRepo.mergeGuestCart(input.guestToken, String(ctx.user.id));
         return { success: true };
       }),
+
+    validateCoupon: publicProcedure
+      .input(
+        z.object({
+          code: z.string().min(1),
+          subtotal: z.number().min(0),
+        })
+      )
+      .query(async ({ input }) => {
+        return db.campaignsRepo.validateCoupon(input.code, input.subtotal);
+      }),
+  }),
+
+  // ==========================================
+  // CUSTOMER ADDRESSES ROUTER
+  // ==========================================
+  addresses: router({
+    list: protectedProcedure.query(async ({ ctx }) => {
+      return db.addressesRepo.getByUserId(String(ctx.user.id));
+    }),
+
+    getById: protectedProcedure
+      .input(z.object({ id: z.string() }))
+      .query(async ({ input, ctx }) => {
+        const addr = db.addressesRepo.getById(input.id, String(ctx.user.id));
+        if (!addr) throw new TRPCError({ code: "NOT_FOUND", message: "Address not found." });
+        return addr;
+      }),
+
+    create: protectedProcedure
+      .input(
+        z.object({
+          recipientName: z.string().min(2, "Recipient name must be at least 2 characters"),
+          phone: z.string().regex(/^(?:\+91)?[6-9]\d{9}$/, "Please enter a valid 10-digit Indian mobile number"),
+          addressLine1: z.string().min(3, "Address line 1 is required"),
+          addressLine2: z.string().optional(),
+          street: z.string().optional(),
+          landmark: z.string().optional(),
+          city: z.string().min(2, "City is required"),
+          district: z.string().optional(),
+          state: z.string().min(2, "State is required").default("Tamil Nadu"),
+          pinCode: z.string().regex(/^\d{6}$/, "Please enter a valid 6-digit Indian PIN code"),
+          addressType: z.enum(["Home", "Work", "Other"]).default("Home"),
+          isDefault: z.boolean().optional().default(false),
+          deliveryInstructions: z.string().optional(),
+        })
+      )
+      .mutation(async ({ input, ctx }) => {
+        return db.addressesRepo.create(String(ctx.user.id), input);
+      }),
+
+    update: protectedProcedure
+      .input(
+        z.object({
+          id: z.string(),
+          recipientName: z.string().min(2).optional(),
+          phone: z.string().regex(/^(?:\+91)?[6-9]\d{9}$/).optional(),
+          addressLine1: z.string().min(3).optional(),
+          addressLine2: z.string().optional(),
+          landmark: z.string().optional(),
+          city: z.string().min(2).optional(),
+          district: z.string().optional(),
+          state: z.string().min(2).optional(),
+          pinCode: z.string().regex(/^\d{6}$/).optional(),
+          addressType: z.enum(["Home", "Work", "Other"]).optional(),
+          isDefault: z.boolean().optional(),
+          deliveryInstructions: z.string().optional(),
+        })
+      )
+      .mutation(async ({ input, ctx }) => {
+        const updated = db.addressesRepo.update(input.id, String(ctx.user.id), input);
+        if (!updated) throw new TRPCError({ code: "NOT_FOUND", message: "Address not found or permission denied." });
+        return updated;
+      }),
+
+    delete: protectedProcedure
+      .input(z.object({ id: z.string() }))
+      .mutation(async ({ input, ctx }) => {
+        const deleted = db.addressesRepo.delete(input.id, String(ctx.user.id));
+        if (!deleted) throw new TRPCError({ code: "NOT_FOUND", message: "Address not found or permission denied." });
+        return { success: true };
+      }),
+
+    setDefault: protectedProcedure
+      .input(z.object({ id: z.string() }))
+      .mutation(async ({ input, ctx }) => {
+        const updated = db.addressesRepo.setDefault(input.id, String(ctx.user.id));
+        if (!updated) throw new TRPCError({ code: "NOT_FOUND", message: "Address not found." });
+        return updated;
+      }),
   }),
 
   // ==========================================
   // ORDERS & CHECKOUT ROUTER
   // ==========================================
   orders: router({
+    calculateSummary: publicProcedure
+      .input(
+        z.object({
+          items: z.array(
+            z.object({
+              productId: z.string(),
+              packSize: z.string(),
+              quantity: z.number().min(1),
+            })
+          ).min(1, "Cart cannot be empty"),
+          couponCode: z.string().optional(),
+        })
+      )
+      .query(async ({ input }) => {
+        let subtotal = 0;
+        const calculatedItems: any[] = [];
+        const stockIssues: string[] = [];
+
+        for (const item of input.items) {
+          const product = db.productsRepo.getById(item.productId);
+          if (!product) {
+            throw new TRPCError({
+              code: "BAD_REQUEST",
+              message: `Product ${item.productId} was not found.`,
+            });
+          }
+
+          if (product.stock < item.quantity) {
+            stockIssues.push(`Only ${product.stock} units available for ${product.nameEn}.`);
+          }
+
+          const matchedSize = product.sizes?.find((s: any) => s.label === item.packSize);
+          const unitPrice = matchedSize ? matchedSize.price : product.price;
+          const lineTotal = unitPrice * item.quantity;
+          subtotal += lineTotal;
+
+          calculatedItems.push({
+            productId: product.id,
+            sku: product.sku,
+            nameEn: product.nameEn,
+            nameTa: product.nameTa,
+            packSize: item.packSize,
+            unitPrice,
+            quantity: item.quantity,
+            lineTotal,
+            availableStock: product.stock,
+            image: product.image,
+          });
+        }
+
+        let discountAmount = 0;
+        let couponDetails: any = null;
+
+        if (input.couponCode && input.couponCode.trim()) {
+          const res = db.campaignsRepo.validateCoupon(input.couponCode.trim(), subtotal);
+          couponDetails = res;
+          if (res.valid) {
+            discountAmount = res.discountAmount || 0;
+          }
+        }
+
+        // Free shipping at or above ₹799, otherwise ₹60 standard shipping
+        const shippingFee = subtotal >= 799 ? 0 : 60;
+        const total = Math.max(0, subtotal - discountAmount + shippingFee);
+
+        return {
+          subtotal,
+          discountAmount,
+          shippingFee,
+          total,
+          items: calculatedItems,
+          coupon: couponDetails,
+          stockIssues,
+          canCheckout: stockIssues.length === 0,
+        };
+      }),
+
     create: protectedProcedure
       .input(
         z.object({
-          customerName: z.string().min(2),
-          customerEmail: z.string().email(),
-          customerPhone: z.string().min(10),
+          customerName: z.string().min(2, "Customer name is required"),
+          customerEmail: z.string().email("Valid customer email is required"),
+          customerPhone: z.string().regex(/^(?:\+91)?[6-9]\d{9}$/, "Valid 10-digit mobile number required"),
           shippingAddress: z.object({
-            street: z.string().min(3),
-            city: z.string().min(2),
-            state: z.string().min(2),
-            pinCode: z.string().min(6),
+            addressLine1: z.string().optional(),
+            addressLine2: z.string().optional(),
+            landmark: z.string().optional(),
+            street: z.string().min(3, "Street/Address is required"),
+            city: z.string().min(2, "City is required"),
+            state: z.string().min(2, "State is required").default("Tamil Nadu"),
+            pinCode: z.string().regex(/^\d{6}$/, "Valid 6-digit Indian PIN code required"),
+            district: z.string().optional(),
+            addressType: z.string().optional().default("Home"),
+            deliveryInstructions: z.string().optional(),
           }),
           items: z.array(
             z.object({
@@ -503,8 +676,15 @@ export const appRouter = router({
             });
           }
 
+          if (product.stock < item.quantity) {
+            throw new TRPCError({
+              code: "BAD_REQUEST",
+              message: `Insufficient stock for ${product.nameEn}. Requested: ${item.quantity}, Available: ${product.stock}`,
+            });
+          }
+
           // Find exact variant price
-          const matchedSize = product.sizes.find((s: any) => s.label === item.packSize);
+          const matchedSize = product.sizes?.find((s: any) => s.label === item.packSize);
           const unitPrice = matchedSize ? matchedSize.price : product.price;
 
           subtotal += unitPrice * item.quantity;
@@ -521,10 +701,12 @@ export const appRouter = router({
 
         // 2. Calculate discounts from coupon if provided
         let discountAmount = 0;
-        if (input.couponCode) {
-          const couponResult = db.campaignsRepo.validateCoupon(input.couponCode, subtotal);
+        let appliedCouponCode: string | undefined = undefined;
+        if (input.couponCode && input.couponCode.trim()) {
+          const couponResult = db.campaignsRepo.validateCoupon(input.couponCode.trim(), subtotal);
           if (couponResult.valid) {
             discountAmount = couponResult.discountAmount || 0;
+            appliedCouponCode = input.couponCode.trim().toUpperCase();
           }
         }
 
@@ -532,7 +714,7 @@ export const appRouter = router({
         const shippingFee = subtotal >= 799 ? 0 : 60;
         const total = Math.max(0, subtotal - discountAmount + shippingFee);
 
-        // 4. Create Order
+        // 4. Create Order with snapshot data
         const order = db.ordersRepo.create(
           {
             customerId: String(ctx.user.id),
@@ -544,8 +726,9 @@ export const appRouter = router({
             discountAmount,
             shippingFee,
             total,
+            couponCode: appliedCouponCode,
             paymentMethod: input.paymentMethod,
-            paymentStatus: input.paymentMethod === "COD" ? "PENDING" : "PENDING",
+            paymentStatus: "PENDING",
             orderStatus: input.paymentMethod === "COD" ? "Confirmed" : "Pending Payment",
           },
           orderItemsData
@@ -557,22 +740,28 @@ export const appRouter = router({
     track: publicProcedure
       .input(
         z.object({
-          orderNumber: z.string().min(5),
+          orderNumber: z.string().min(4),
+          phoneOrEmail: z.string().optional(),
           verification: z.string().optional(),
         })
       )
       .query(async ({ input }) => {
-        const tracking = db.ordersRepo.trackOrder(input.orderNumber, input.verification);
+        const queryTerm = input.phoneOrEmail || input.verification;
+        const tracking = db.ordersRepo.trackOrder(input.orderNumber, queryTerm);
         if (!tracking) {
           throw new TRPCError({
             code: "NOT_FOUND",
-            message: "We could not find an order matching that number. Please check your confirmation email.",
+            message: "We could not find an order matching that number. Please verify your order number and contact details.",
           });
         }
         return tracking;
       }),
 
     customerOrders: protectedProcedure.query(async ({ ctx }) => {
+      return db.ordersRepo.getCustomerOrders(String(ctx.user.id));
+    }),
+
+    myOrders: protectedProcedure.query(async ({ ctx }) => {
       return db.ordersRepo.getCustomerOrders(String(ctx.user.id));
     }),
 
@@ -583,7 +772,6 @@ export const appRouter = router({
         if (!order) {
           throw new TRPCError({ code: "NOT_FOUND", message: "Order not found." });
         }
-        // Ensure customer can only view their own order (unless admin)
         const role = (ctx.user.role || "").toUpperCase();
         if (role !== "ADMIN" && role !== "SUPER_ADMIN" && order.customerId !== String(ctx.user.id)) {
           throw new TRPCError({ code: "FORBIDDEN", message: "Access denied." });
@@ -604,15 +792,19 @@ export const appRouter = router({
           throw new TRPCError({ code: "NOT_FOUND", message: "Order not found" });
         }
 
+        const role = (ctx.user.role || "").toUpperCase();
+        if (role !== "ADMIN" && role !== "SUPER_ADMIN" && order.customerId !== String(ctx.user.id)) {
+          throw new TRPCError({ code: "FORBIDDEN", message: "Unauthorized to access this order." });
+        }
+
         const amountInPaise = Math.round(order.total * 100);
-        const razorpayKeyId = process.env.PAYMENT_GATEWAY_KEY_ID || process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || "rzp_test_PLACEHOLDER";
-        const razorpaySecret = process.env.PAYMENT_GATEWAY_KEY_SECRET || "PLACEHOLDER_SECRET";
+        const razorpayKeyId = process.env.RAZORPAY_KEY_ID || process.env.PAYMENT_GATEWAY_KEY_ID || process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || "rzp_test_placeholder_key_id";
+        const razorpaySecret = process.env.RAZORPAY_KEY_SECRET || process.env.PAYMENT_GATEWAY_KEY_SECRET || "placeholder_secret_key_value";
 
-        // Simulated/Test Razorpay Order ID for test environments
-        const rzpOrderId = "order_" + crypto.randomBytes(8).toString("hex");
+        let rzpOrderId = "order_" + crypto.randomBytes(8).toString("hex");
 
-        // If credentials are live, call Razorpay API
-        if (razorpayKeyId && razorpaySecret && !razorpayKeyId.includes("PLACEHOLDER")) {
+        // If credentials are live, call Razorpay REST API
+        if (razorpayKeyId && razorpaySecret && !razorpayKeyId.includes("placeholder") && !razorpayKeyId.includes("PLACEHOLDER")) {
           try {
             const auth = Buffer.from(`${razorpayKeyId}:${razorpaySecret}`).toString("base64");
             const response = await fetch("https://api.razorpay.com/v1/orders", {
@@ -629,20 +821,26 @@ export const appRouter = router({
             });
             if (response.ok) {
               const rzpData = await response.json();
-              return {
-                orderId: order.id,
-                orderNumber: order.orderNumber,
-                razorpayOrderId: rzpData.id,
-                amount: order.total,
-                amountInPaise,
-                currency: "INR",
-                keyId: razorpayKeyId,
-              };
+              rzpOrderId = rzpData.id;
             }
           } catch (err) {
-            console.warn("[Razorpay] Gateway call failed, falling back to test order:", err);
+            console.warn("[Razorpay] Gateway call failed, falling back to simulated order:", err);
           }
         }
+
+        // Save gateway order ID to payments table
+        db.paymentsRepo.create({
+          orderId: order.id,
+          gatewayOrderId: rzpOrderId,
+          amount: order.total,
+          currency: "INR",
+          paymentGateway: "RAZORPAY",
+          status: "PENDING",
+        });
+
+        // Update orders table with razorpayOrderId
+        const dbInstance = db.getDatabase();
+        dbInstance.prepare("UPDATE orders SET razorpayOrderId = ? WHERE id = ?").run(rzpOrderId, order.id);
 
         return {
           orderId: order.id,
@@ -655,6 +853,47 @@ export const appRouter = router({
         };
       }),
 
+    verifyPayment: protectedProcedure
+      .input(
+        z.object({
+          orderId: z.string(),
+          razorpayOrderId: z.string(),
+          razorpayPaymentId: z.string(),
+          razorpaySignature: z.string(),
+        })
+      )
+      .mutation(async ({ input }) => {
+        const secret = process.env.RAZORPAY_KEY_SECRET || process.env.PAYMENT_GATEWAY_KEY_SECRET || "placeholder_secret_key_value";
+
+        // Calculate expected HMAC-SHA256 signature
+        const expectedSignature = crypto
+          .createHmac("sha256", secret)
+          .update(`${input.razorpayOrderId}|${input.razorpayPaymentId}`)
+          .digest("hex");
+
+        const isTestEnv = secret.includes("placeholder") || secret.includes("PLACEHOLDER") || process.env.NODE_ENV !== "production";
+        const verified = isTestEnv || input.razorpaySignature === expectedSignature;
+
+        if (!verified) {
+          // Log failed payment attempt
+          db.ordersRepo.recordPaymentFailure(input.orderId, {
+            reason: "Invalid Razorpay payment signature.",
+          });
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "Payment signature verification failed.",
+          });
+        }
+
+        // Idempotent payment confirmation & inventory deduction
+        const updated = db.ordersRepo.confirmPayment(input.orderId, {
+          gatewayPaymentId: input.razorpayPaymentId,
+          gatewaySignature: input.razorpaySignature,
+        });
+
+        return { success: true, order: updated };
+      }),
+
     verifySignature: protectedProcedure
       .input(
         z.object({
@@ -665,26 +904,45 @@ export const appRouter = router({
         })
       )
       .mutation(async ({ input }) => {
-        const secret = process.env.PAYMENT_GATEWAY_KEY_SECRET || "PLACEHOLDER_SECRET";
+        const secret = process.env.RAZORPAY_KEY_SECRET || process.env.PAYMENT_GATEWAY_KEY_SECRET || "placeholder_secret_key_value";
 
-        // Verify HMAC-SHA256 signature
         const expectedSignature = crypto
           .createHmac("sha256", secret)
           .update(`${input.razorpayOrderId}|${input.razorpayPaymentId}`)
           .digest("hex");
 
-        const isTestEnv = secret.includes("PLACEHOLDER") || process.env.NODE_ENV !== "production";
+        const isTestEnv = secret.includes("placeholder") || secret.includes("PLACEHOLDER") || process.env.NODE_ENV !== "production";
         const verified = isTestEnv || input.razorpaySignature === expectedSignature;
 
         if (!verified) {
+          db.ordersRepo.recordPaymentFailure(input.orderId, {
+            reason: "Invalid signature",
+          });
           throw new TRPCError({
             code: "BAD_REQUEST",
             message: "Payment signature verification failed.",
           });
         }
 
-        // Update database order to Confirmed & PAID
-        const updated = db.ordersRepo.updatePayment(input.orderId, "PAID", input.razorpayPaymentId);
+        const updated = db.ordersRepo.confirmPayment(input.orderId, {
+          gatewayPaymentId: input.razorpayPaymentId,
+          gatewaySignature: input.razorpaySignature,
+        });
+
+        return { success: true, order: updated };
+      }),
+
+    recordFailure: protectedProcedure
+      .input(
+        z.object({
+          orderId: z.string(),
+          errorDescription: z.string().optional(),
+        })
+      )
+      .mutation(async ({ input }) => {
+        const updated = db.ordersRepo.recordPaymentFailure(input.orderId, {
+          reason: input.errorDescription || "Customer cancelled or gateway error",
+        });
         return { success: true, order: updated };
       }),
   }),
@@ -869,14 +1127,25 @@ export const appRouter = router({
         .mutation(async ({ input, ctx }) => {
           let count = 0;
           const errors: Array<{ index: number; sku?: string; error: string }> = [];
+          const seenSkus = new Set<string>();
 
           for (let i = 0; i < input.length; i++) {
             try {
               const row = input[i];
-              if (!row.sku || !row.nameEn || row.sellingPrice === undefined) {
-                errors.push({ index: i, sku: row.sku, error: "Missing required SKU, English Name, or Selling Price." });
+              if (!row.sku || !String(row.sku).trim()) {
+                errors.push({ index: i, error: "Missing required SKU." });
                 continue;
               }
+              const sku = String(row.sku).trim();
+              if (!row.nameEn || !String(row.nameEn).trim()) {
+                errors.push({ index: i, sku, error: "Missing required Product Name." });
+                continue;
+              }
+              if (seenSkus.has(sku)) {
+                errors.push({ index: i, sku, error: `Duplicate SKU '${sku}' within import batch.` });
+                continue;
+              }
+              seenSkus.add(sku);
               db.productsRepo.create(row);
               count++;
             } catch (err: any) {
@@ -945,17 +1214,54 @@ export const appRouter = router({
           return db.ordersRepo.listAll(input || {});
         }),
 
+      getById: adminProcedure
+        .input(z.object({ id: z.string() }))
+        .query(async ({ input }) => {
+          const order = db.ordersRepo.getById(input.id);
+          if (!order) throw new TRPCError({ code: "NOT_FOUND", message: "Order not found" });
+          const payments = db.paymentsRepo.getByOrderId(input.id);
+          return { ...order, payments };
+        }),
+
       updateStatus: adminProcedure
         .input(
           z.object({
             orderId: z.string(),
             status: z.string(),
             note: z.string().optional(),
+            trackingNumber: z.string().optional(),
+            carrier: z.string().optional(),
           })
         )
         .mutation(async ({ input, ctx }) => {
-          return db.ordersRepo.updateStatus(input.orderId, input.status, input.note, ctx.user.name || "Admin");
+          return db.ordersRepo.updateStatus(
+            input.orderId,
+            input.status,
+            input.note,
+            ctx.user.name || "Admin",
+            { trackingNumber: input.trackingNumber, carrier: input.carrier }
+          );
         }),
+
+      refund: adminProcedure
+        .input(
+          z.object({
+            orderId: z.string(),
+            reason: z.string().optional(),
+          })
+        )
+        .mutation(async ({ input, ctx }) => {
+          return db.ordersRepo.updateStatus(
+            input.orderId,
+            "Refunded",
+            input.reason || "Refund issued by Administrator",
+            ctx.user.name || "Admin"
+          );
+        }),
+
+      exportCsv: adminProcedure.query(async () => {
+        return db.ordersRepo.exportCsv();
+      }),
     }),
 
     // --- CUSTOMERS ---

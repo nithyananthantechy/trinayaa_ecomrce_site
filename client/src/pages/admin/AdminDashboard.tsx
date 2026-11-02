@@ -26,6 +26,7 @@ import {
   ChevronLeft,
   ChevronRight,
   DollarSign,
+  Download,
   X,
   ArrowRight,
   Image as ImageIcon,
@@ -353,6 +354,36 @@ export default function AdminDashboard() {
     },
     onError: (err) => toast.error(err.message),
   });
+
+  const refundOrderMutation = trpc.admin.orders.refund.useMutation({
+    onSuccess: (data) => {
+      toast.success(`Order ${data?.orderNumber} refunded and stock restored.`);
+      refetchOrders();
+      refetchStats();
+      if (selectedOrder && data) {
+        setSelectedOrder(data);
+      }
+    },
+    onError: (err) => toast.error(err.message),
+  });
+
+  const utils = trpc.useUtils();
+  const handleExportOrdersCsv = async () => {
+    try {
+      const csv = await utils.admin.orders.exportCsv.fetch();
+      const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", `trinayaa_orders_${new Date().toISOString().slice(0, 10)}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      toast.success("Orders exported to CSV");
+    } catch (err: any) {
+      toast.error("Failed to export orders: " + err.message);
+    }
+  };
 
   const saveContentMutation = trpc.admin.content.set.useMutation({
     onSuccess: () => {
@@ -1157,7 +1188,14 @@ export default function AdminDashboard() {
                   <option value="Shipped">Shipped</option>
                   <option value="Delivered">Delivered</option>
                   <option value="Cancelled">Cancelled</option>
+                  <option value="Refunded">Refunded</option>
                 </select>
+                <button
+                  onClick={handleExportOrdersCsv}
+                  className="px-3 py-2 bg-[#FBF8F0] border border-[#DEDFD5] text-[#123D28] rounded-md text-xs font-semibold hover:bg-[#DEDFD5]/50 flex items-center gap-1.5 shrink-0"
+                >
+                  <Download size={14} /> Export CSV
+                </button>
               </div>
 
               <div className="bg-[#FFFDF8] border border-[#DEDFD5] rounded-xl shadow-xs overflow-hidden">
@@ -1741,28 +1779,109 @@ export default function AdminDashboard() {
                 </div>
               </div>
 
-              <div className="flex items-center justify-between p-3 bg-[#FBF8F0] rounded-lg border border-[#DEDFD5]">
-                <span className="font-bold">Order Status</span>
-                <select
-                  value={selectedOrder.orderStatus}
-                  onChange={(e) =>
-                    updateOrderStatusMutation.mutate({
-                      orderId: selectedOrder.id,
-                      status: e.target.value,
-                      note: `Updated in modal`,
-                    })
-                  }
-                  className="font-bold py-1 px-2 border rounded bg-white text-[#123D28]"
-                >
-                  <option value="Pending Payment">Pending Payment</option>
-                  <option value="Confirmed">Confirmed</option>
-                  <option value="Processing">Processing</option>
-                  <option value="Packed">Packed</option>
-                  <option value="Shipped">Shipped</option>
-                  <option value="Delivered">Delivered</option>
-                  <option value="Cancelled">Cancelled</option>
-                </select>
+              <div className="flex flex-wrap items-center justify-between gap-3 p-3 bg-[#FBF8F0] rounded-lg border border-[#DEDFD5]">
+                <div className="flex items-center gap-2">
+                  <span className="font-bold">Order Status:</span>
+                  <select
+                    value={selectedOrder.orderStatus}
+                    onChange={(e) =>
+                      updateOrderStatusMutation.mutate({
+                        orderId: selectedOrder.id,
+                        status: e.target.value,
+                        note: `Updated in modal`,
+                      })
+                    }
+                    className="font-bold py-1 px-2 border rounded bg-white text-[#123D28]"
+                  >
+                    <option value="Pending Payment">Pending Payment</option>
+                    <option value="Confirmed">Confirmed</option>
+                    <option value="Processing">Processing</option>
+                    <option value="Packed">Packed</option>
+                    <option value="Shipped">Shipped</option>
+                    <option value="Delivered">Delivered</option>
+                    <option value="Cancelled">Cancelled</option>
+                    <option value="Refunded">Refunded</option>
+                  </select>
+                </div>
+                {selectedOrder.paymentStatus === "PAID" && selectedOrder.orderStatus !== "Refunded" && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (confirm(`Are you sure you want to refund ${selectedOrder.orderNumber}? Product inventory will be automatically restored.`)) {
+                        refundOrderMutation.mutate({ orderId: selectedOrder.id });
+                      }
+                    }}
+                    className="px-3 py-1 bg-rose-50 border border-rose-200 text-rose-800 rounded font-semibold text-xs hover:bg-rose-100"
+                  >
+                    Issue Refund
+                  </button>
+                )}
               </div>
+
+              {/* Tracking Information */}
+              <div className="p-3 bg-white rounded-lg border border-[#DEDFD5] space-y-2">
+                <span className="font-bold text-[#123D28] block">Shipment & Logistics:</span>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="text-[10px] text-[#6C7167] block">Courier Partner</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. DTDC, Delhivery"
+                      defaultValue={selectedOrder.carrier || ""}
+                      onBlur={(e) => {
+                        if (e.target.value !== (selectedOrder.carrier || "")) {
+                          updateOrderStatusMutation.mutate({
+                            orderId: selectedOrder.id,
+                            status: selectedOrder.orderStatus,
+                            carrier: e.target.value,
+                            note: `Updated carrier to ${e.target.value}`,
+                          });
+                        }
+                      }}
+                      className="w-full text-xs p-1.5 border rounded bg-[#FBF8F0]"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] text-[#6C7167] block">AWB / Tracking Number</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. TRK987654321"
+                      defaultValue={selectedOrder.trackingNumber || ""}
+                      onBlur={(e) => {
+                        if (e.target.value !== (selectedOrder.trackingNumber || "")) {
+                          updateOrderStatusMutation.mutate({
+                            orderId: selectedOrder.id,
+                            status: selectedOrder.orderStatus,
+                            trackingNumber: e.target.value,
+                            note: `Updated tracking number to ${e.target.value}`,
+                          });
+                        }
+                      }}
+                      className="w-full text-xs p-1.5 border rounded bg-[#FBF8F0]"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Status History Timeline */}
+              {selectedOrder.history && selectedOrder.history.length > 0 && (
+                <div>
+                  <span className="font-bold text-[#123D28] block mb-1">Status History:</span>
+                  <div className="space-y-1.5 max-h-36 overflow-y-auto border border-[#DEDFD5] rounded-lg p-2.5 bg-[#FBF8F0]">
+                    {selectedOrder.history.map((h: any, idx: number) => (
+                      <div key={idx} className="text-[11px] flex items-start justify-between border-b border-[#DEDFD5]/50 pb-1 last:border-0">
+                        <div>
+                          <strong className="text-[#123D28]">{h.status}</strong>
+                          <span className="text-[#6C7167] block text-[10px]">{h.note}</span>
+                        </div>
+                        <span className="text-[10px] text-[#6C7167] shrink-0">
+                          {new Date(h.createdAt).toLocaleDateString()}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>

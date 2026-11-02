@@ -4,6 +4,7 @@ const DatabaseSync = sqliteModule.DatabaseSync;
 import crypto from "node:crypto";
 import path from "node:path";
 import fs from "node:fs";
+import { notificationsService, type OrderNotificationEvent } from "./notifications.ts";
 
 // Path to SQLite database
 const DB_PATH = process.env.DATABASE_URL?.replace(/^sqlite:/, "") || path.resolve(process.cwd(), "data", "trinayaa.db");
@@ -21,6 +22,11 @@ let _dbInstance: any = null;
 export function getDatabase(): any {
   if (!_dbInstance) {
     _dbInstance = new DatabaseSync(DB_PATH);
+    try {
+      _dbInstance.exec("PRAGMA journal_mode = WAL;");
+      _dbInstance.exec("PRAGMA busy_timeout = 10000;");
+      _dbInstance.exec("PRAGMA foreign_keys = ON;");
+    } catch {}
     initTables(_dbInstance);
   }
   return _dbInstance;
@@ -283,6 +289,29 @@ function initTables(db: any) {
     CREATE INDEX IF NOT EXISTS idx_cart_items_cartId ON cart_items(cartId);
     CREATE INDEX IF NOT EXISTS idx_coupons_code ON coupons(code);
   `);
+
+  // Safe schema migrations for existing database tables
+  const safeAlter = (sql: string) => {
+    try {
+      db.exec(sql);
+    } catch {
+      // Column or index already exists
+    }
+  };
+
+  safeAlter("ALTER TABLE customer_addresses ADD COLUMN addressLine1 TEXT;");
+  safeAlter("ALTER TABLE customer_addresses ADD COLUMN addressLine2 TEXT;");
+  safeAlter("ALTER TABLE customer_addresses ADD COLUMN landmark TEXT;");
+  safeAlter("ALTER TABLE customer_addresses ADD COLUMN district TEXT;");
+  safeAlter("ALTER TABLE customer_addresses ADD COLUMN addressType TEXT DEFAULT 'Home';");
+  safeAlter("ALTER TABLE customer_addresses ADD COLUMN deliveryInstructions TEXT;");
+
+  safeAlter("ALTER TABLE orders ADD COLUMN couponCode TEXT;");
+  safeAlter("ALTER TABLE orders ADD COLUMN trackingNumber TEXT;");
+  safeAlter("ALTER TABLE orders ADD COLUMN carrier TEXT;");
+
+  safeAlter("ALTER TABLE payments ADD COLUMN eventId TEXT;");
+  safeAlter("ALTER TABLE payments ADD COLUMN errorDescription TEXT;");
 
   // Ensure default admin user exists if table is empty
   const adminCheck = db.prepare("SELECT COUNT(*) as count FROM users WHERE role IN ('ADMIN', 'SUPER_ADMIN')").get() as { count: number };
@@ -972,6 +1001,241 @@ export const cartRepo = {
 };
 
 // ==========================================
+// 4B. CUSTOMER ADDRESSES REPOSITORY
+// ==========================================
+export const addressesRepo = {
+  getByUserId(userId: string) {
+    const db = getDatabase();
+    return db.prepare("SELECT * FROM customer_addresses WHERE userId = ? ORDER BY isDefault DESC, createdAt DESC").all(userId) as any[];
+  },
+
+  getById(id: string, userId?: string) {
+    const db = getDatabase();
+    if (userId) {
+      return db.prepare("SELECT * FROM customer_addresses WHERE id = ? AND userId = ?").get(id, userId) as any;
+    }
+    return db.prepare("SELECT * FROM customer_addresses WHERE id = ?").get(id) as any;
+  },
+
+  create(userId: string, data: any) {
+    const db = getDatabase();
+    const id = "addr_" + crypto.randomUUID();
+    const now = new Date().toISOString();
+    let isDefault = data.isDefault ? 1 : 0;
+
+    const countCheck = db.prepare("SELECT COUNT(*) as cnt FROM customer_addresses WHERE userId = ?").get(userId) as { cnt: number };
+    if (!countCheck || countCheck.cnt === 0) {
+      isDefault = 1;
+    }
+
+    if (isDefault) {
+      db.prepare("UPDATE customer_addresses SET isDefault = 0 WHERE userId = ?").run(userId);
+    }
+
+    const street = data.street || [data.addressLine1, data.addressLine2, data.landmark].filter(Boolean).join(", ") || "Address Line";
+
+    db.prepare(`
+      INSERT INTO customer_addresses (
+        id, userId, recipientName, phone, street, city, state, pinCode, isDefault,
+        addressLine1, addressLine2, landmark, district, addressType, deliveryInstructions, createdAt, updatedAt
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(
+      id,
+      userId,
+      data.recipientName,
+      data.phone,
+      street,
+      data.city,
+      data.state || "Tamil Nadu",
+      data.pinCode,
+      isDefault,
+      data.addressLine1 || street,
+      data.addressLine2 || null,
+      data.landmark || null,
+      data.district || null,
+      data.addressType || "Home",
+      data.deliveryInstructions || null,
+      now,
+      now
+    );
+
+    return this.getById(id);
+  },
+
+  update(id: string, userId: string, data: any) {
+    const db = getDatabase();
+    const existing = this.getById(id, userId);
+    if (!existing) return null;
+
+    if (data.isDefault) {
+      db.prepare("UPDATE customer_addresses SET isDefault = 0 WHERE userId = ?").run(userId);
+    }
+
+    const now = new Date().toISOString();
+    const street = data.street || (data.addressLine1 ? [data.addressLine1, data.addressLine2, data.landmark].filter(Boolean).join(", ") : existing.street);
+
+    db.prepare(`
+      UPDATE customer_addresses
+      SET recipientName = COALESCE(?, recipientName),
+          phone = COALESCE(?, phone),
+          street = COALESCE(?, street),
+          city = COALESCE(?, city),
+          state = COALESCE(?, state),
+          pinCode = COALESCE(?, pinCode),
+          isDefault = COALESCE(?, isDefault),
+          addressLine1 = COALESCE(?, addressLine1),
+          addressLine2 = COALESCE(?, addressLine2),
+          landmark = COALESCE(?, landmark),
+          district = COALESCE(?, district),
+          addressType = COALESCE(?, addressType),
+          deliveryInstructions = COALESCE(?, deliveryInstructions),
+          updatedAt = ?
+      WHERE id = ? AND userId = ?
+    `).run(
+      data.recipientName || null,
+      data.phone || null,
+      street,
+      data.city || null,
+      data.state || null,
+      data.pinCode || null,
+      data.isDefault !== undefined ? (data.isDefault ? 1 : 0) : null,
+      data.addressLine1 || null,
+      data.addressLine2 || null,
+      data.landmark || null,
+      data.district || null,
+      data.addressType || null,
+      data.deliveryInstructions || null,
+      now,
+      id,
+      userId
+    );
+
+    return this.getById(id);
+  },
+
+  delete(id: string, userId: string) {
+    const db = getDatabase();
+    const existing = this.getById(id, userId);
+    if (!existing) return false;
+
+    db.prepare("DELETE FROM customer_addresses WHERE id = ? AND userId = ?").run(id, userId);
+
+    if (existing.isDefault) {
+      const remaining = db.prepare("SELECT id FROM customer_addresses WHERE userId = ? ORDER BY createdAt DESC LIMIT 1").get(userId) as any;
+      if (remaining) {
+        db.prepare("UPDATE customer_addresses SET isDefault = 1 WHERE id = ?").run(remaining.id);
+      }
+    }
+    return true;
+  },
+
+  setDefault(id: string, userId: string) {
+    const db = getDatabase();
+    const existing = this.getById(id, userId);
+    if (!existing) return null;
+
+    db.prepare("UPDATE customer_addresses SET isDefault = 0 WHERE userId = ?").run(userId);
+    db.prepare("UPDATE customer_addresses SET isDefault = 1, updatedAt = ? WHERE id = ? AND userId = ?").run(
+      new Date().toISOString(),
+      id,
+      userId
+    );
+
+    return this.getById(id);
+  }
+};
+
+// ==========================================
+// 4C. PAYMENTS REPOSITORY
+// ==========================================
+export const paymentsRepo = {
+  create(data: {
+    orderId: string;
+    gatewayOrderId: string;
+    amount: number;
+    currency?: string;
+    paymentGateway?: string;
+    status?: string;
+    rawResponse?: string;
+  }) {
+    const db = getDatabase();
+    const id = "pay_" + crypto.randomUUID();
+    const now = new Date().toISOString();
+
+    db.prepare(`
+      INSERT INTO payments (
+        id, orderId, paymentGateway, gatewayOrderId, amount, currency, status, rawResponse, createdAt
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(
+      id,
+      data.orderId,
+      data.paymentGateway || "RAZORPAY",
+      data.gatewayOrderId,
+      data.amount,
+      data.currency || "INR",
+      data.status || "PENDING",
+      data.rawResponse || null,
+      now
+    );
+
+    return this.getById(id);
+  },
+
+  getById(id: string) {
+    const db = getDatabase();
+    return db.prepare("SELECT * FROM payments WHERE id = ?").get(id) as any;
+  },
+
+  getByOrderId(orderId: string) {
+    const db = getDatabase();
+    return db.prepare("SELECT * FROM payments WHERE orderId = ? ORDER BY createdAt DESC").all(orderId) as any[];
+  },
+
+  getByGatewayOrderId(gatewayOrderId: string) {
+    const db = getDatabase();
+    return db.prepare("SELECT * FROM payments WHERE gatewayOrderId = ?").get(gatewayOrderId) as any;
+  },
+
+  getByEventId(eventId: string) {
+    const db = getDatabase();
+    return db.prepare("SELECT * FROM payments WHERE eventId = ?").get(eventId) as any;
+  },
+
+  updateStatus(
+    id: string,
+    status: string,
+    details?: {
+      gatewayPaymentId?: string;
+      gatewaySignature?: string;
+      rawResponse?: string;
+      errorDescription?: string;
+      eventId?: string;
+    }
+  ) {
+    const db = getDatabase();
+    db.prepare(`
+      UPDATE payments
+      SET status = ?,
+          gatewayPaymentId = COALESCE(?, gatewayPaymentId),
+          gatewaySignature = COALESCE(?, gatewaySignature),
+          rawResponse = COALESCE(?, rawResponse),
+          errorDescription = COALESCE(?, errorDescription),
+          eventId = COALESCE(?, eventId)
+      WHERE id = ?
+    `).run(
+      status,
+      details?.gatewayPaymentId || null,
+      details?.gatewaySignature || null,
+      details?.rawResponse || null,
+      details?.errorDescription || null,
+      details?.eventId || null,
+      id
+    );
+    return this.getById(id);
+  }
+};
+
+// ==========================================
 // 5. ORDERS & TRACKING REPOSITORY
 // ==========================================
 export const ordersRepo = {
@@ -986,8 +1250,8 @@ export const ordersRepo = {
         id, orderNumber, customerId, customerName, customerEmail, customerPhone,
         shippingAddress, subtotal, discountAmount, shippingFee, total,
         paymentMethod, paymentStatus, razorpayOrderId, razorpayPaymentId,
-        orderStatus, internalNotes, createdAt, updatedAt
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        orderStatus, internalNotes, couponCode, trackingNumber, carrier, createdAt, updatedAt
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
       id,
       orderNumber,
@@ -1006,6 +1270,9 @@ export const ordersRepo = {
       orderData.razorpayPaymentId || null,
       orderData.orderStatus || "Pending Payment",
       orderData.internalNotes || "",
+      orderData.couponCode || null,
+      orderData.trackingNumber || null,
+      orderData.carrier || null,
       now,
       now
     );
@@ -1044,7 +1311,23 @@ export const ordersRepo = {
       now
     );
 
-    return this.getById(id);
+    const created = this.getById(id);
+
+    try {
+      notificationsService.dispatch("ORDER_CREATED", {
+        orderId: created.id,
+        orderNumber: created.orderNumber,
+        customerName: created.customerName,
+        customerEmail: created.customerEmail,
+        customerPhone: created.customerPhone,
+        total: created.total,
+        items: created.items,
+        shippingAddress: created.shippingAddress,
+        timestamp: now,
+      });
+    } catch {}
+
+    return created;
   },
 
   getById(id: string) {
@@ -1062,6 +1345,285 @@ export const ordersRepo = {
     return this.enrichOrder(order);
   },
 
+  getByRazorpayOrderId(rzpOrderId: string) {
+    const db = getDatabase();
+    const order = db.prepare("SELECT * FROM orders WHERE razorpayOrderId = ?").get(rzpOrderId) as any;
+    if (!order) return null;
+    return this.enrichOrder(order);
+  },
+
+  confirmPayment(
+    orderId: string,
+    paymentDetails: {
+      gatewayPaymentId?: string;
+      gatewaySignature?: string;
+      rawResponse?: any;
+    }
+  ) {
+    const db = getDatabase();
+    const order = this.getById(orderId);
+    if (!order) throw new Error(`Order ${orderId} not found`);
+
+    // Idempotent: If order is ALREADY Confirmed and paymentStatus is PAID, do not deduct inventory again!
+    if (order.paymentStatus === "PAID" && (order.orderStatus === "Confirmed" || order.orderStatus === "Processing")) {
+      return order;
+    }
+
+    const now = new Date().toISOString();
+
+    db.prepare(`
+      UPDATE orders
+      SET paymentStatus = 'PAID',
+          orderStatus = 'Confirmed',
+          razorpayPaymentId = COALESCE(?, razorpayPaymentId),
+          updatedAt = ?
+      WHERE id = ?
+    `).run(paymentDetails.gatewayPaymentId || null, now, orderId);
+
+    // Update payment records
+    db.prepare(`
+      UPDATE payments
+      SET status = 'CAPTURED',
+          gatewayPaymentId = COALESCE(?, gatewayPaymentId),
+          gatewaySignature = COALESCE(?, gatewaySignature),
+          rawResponse = COALESCE(?, rawResponse)
+      WHERE orderId = ?
+    `).run(
+      paymentDetails.gatewayPaymentId || null,
+      paymentDetails.gatewaySignature || null,
+      paymentDetails.rawResponse ? (typeof paymentDetails.rawResponse === "string" ? paymentDetails.rawResponse : JSON.stringify(paymentDetails.rawResponse)) : null,
+      orderId
+    );
+
+    // Log status history
+    db.prepare(`
+      INSERT INTO order_status_history (id, orderId, status, note, updatedBy, createdAt)
+      VALUES (?, ?, 'Confirmed', 'Payment verified via Razorpay. Order confirmed.', 'Razorpay Gateway', ?)
+    `).run("osh_" + crypto.randomUUID(), orderId, now);
+
+    // Atomically deduct inventory for each order item
+    for (const item of order.items) {
+      if (item.productId) {
+        try {
+          inventoryRepo.adjustStock(
+            item.productId,
+            null,
+            -item.quantity,
+            "SALE",
+            order.orderNumber,
+            `Order confirmed (${order.orderNumber})`,
+            "Payment Gateway"
+          );
+        } catch (err) {
+          console.error(`[Inventory Error] Failed to deduct stock for product ${item.productId}:`, err);
+        }
+      }
+    }
+
+    // Increment coupon usage count if used
+    if (order.couponCode) {
+      try {
+        db.prepare("UPDATE campaigns SET usageCount = usageCount + 1 WHERE code = ?").run(order.couponCode);
+        db.prepare("UPDATE coupons SET usageCount = usageCount + 1 WHERE code = ?").run(order.couponCode);
+      } catch {}
+    }
+
+    const updated = this.getById(orderId);
+
+    try {
+      notificationsService.dispatch("PAYMENT_CONFIRMED", {
+        orderId: updated.id,
+        orderNumber: updated.orderNumber,
+        customerName: updated.customerName,
+        customerEmail: updated.customerEmail,
+        customerPhone: updated.customerPhone,
+        total: updated.total,
+        items: updated.items,
+        shippingAddress: updated.shippingAddress,
+        timestamp: now,
+      });
+    } catch {}
+
+    return updated;
+  },
+
+  recordPaymentFailure(orderId: string, errorDetails: { reason?: string; rawResponse?: any }) {
+    const db = getDatabase();
+    const order = this.getById(orderId);
+    if (!order) throw new Error(`Order ${orderId} not found`);
+
+    const now = new Date().toISOString();
+    const reason = errorDetails?.reason || "Payment transaction failed or cancelled by user";
+
+    db.prepare(`
+      UPDATE orders
+      SET paymentStatus = 'FAILED',
+          updatedAt = ?
+      WHERE id = ?
+    `).run(now, orderId);
+
+    db.prepare(`
+      UPDATE payments
+      SET status = 'FAILED',
+          errorDescription = ?,
+          rawResponse = COALESCE(?, rawResponse)
+      WHERE orderId = ?
+    `).run(reason, errorDetails.rawResponse ? (typeof errorDetails.rawResponse === "string" ? errorDetails.rawResponse : JSON.stringify(errorDetails.rawResponse)) : null, orderId);
+
+    db.prepare(`
+      INSERT INTO order_status_history (id, orderId, status, note, updatedBy, createdAt)
+      VALUES (?, ?, 'Payment Failed', ?, 'Razorpay Gateway', ?)
+    `).run("osh_" + crypto.randomUUID(), orderId, `Payment failed: ${reason}`, now);
+
+    try {
+      notificationsService.dispatch("PAYMENT_FAILED", {
+        orderId: order.id,
+        orderNumber: order.orderNumber,
+        customerName: order.customerName,
+        customerEmail: order.customerEmail,
+        customerPhone: order.customerPhone,
+        total: order.total,
+        items: order.items,
+        reason,
+        timestamp: now,
+      });
+    } catch {}
+
+    return this.getById(orderId);
+  },
+
+  updateStatus(
+    orderId: string,
+    status: string,
+    note?: string,
+    updatedBy = "Admin",
+    trackingDetails?: { trackingNumber?: string; carrier?: string }
+  ) {
+    const db = getDatabase();
+    const order = this.getById(orderId);
+    if (!order) throw new Error("Order not found");
+
+    const validStatuses = [
+      "Pending Payment",
+      "Confirmed",
+      "Processing",
+      "Packed",
+      "Shipped",
+      "Out for Delivery",
+      "Delivered",
+      "Cancelled",
+      "Refunded"
+    ];
+
+    if (!validStatuses.includes(status)) {
+      throw new Error(`Invalid order status: ${status}. Allowed: ${validStatuses.join(", ")}`);
+    }
+
+    // Terminal checks
+    if (order.orderStatus === "Delivered" && status === "Pending Payment") {
+      throw new Error("Delivered orders cannot be moved back to Pending Payment.");
+    }
+    if ((order.orderStatus === "Cancelled" || order.orderStatus === "Refunded") && status !== order.orderStatus) {
+      throw new Error(`Order is already ${order.orderStatus} and cannot transition to ${status}.`);
+    }
+
+    const now = new Date().toISOString();
+
+    // Restore inventory if cancelling or refunding a previously paid / confirmed order
+    if ((status === "Cancelled" || status === "Refunded") && (order.paymentStatus === "PAID" || order.orderStatus === "Confirmed" || order.orderStatus === "Processing")) {
+      for (const item of order.items) {
+        if (item.productId) {
+          try {
+            inventoryRepo.adjustStock(
+              item.productId,
+              null,
+              item.quantity,
+              "RESTOCK",
+              order.orderNumber,
+              `Order ${status.toLowerCase()} by ${updatedBy}`,
+              updatedBy
+            );
+          } catch (err) {
+            console.error(`[Inventory Error] Failed to restore stock for ${item.productId}:`, err);
+          }
+        }
+      }
+    }
+
+    const paymentStatus = status === "Refunded" ? "REFUNDED" : order.paymentStatus;
+    const trackingNumber = trackingDetails?.trackingNumber !== undefined ? trackingDetails.trackingNumber : (order.trackingNumber || null);
+    const carrier = trackingDetails?.carrier !== undefined ? trackingDetails.carrier : (order.carrier || null);
+
+    db.prepare(`
+      UPDATE orders
+      SET orderStatus = ?,
+          paymentStatus = ?,
+          trackingNumber = ?,
+          carrier = ?,
+          updatedAt = ?
+      WHERE id = ?
+    `).run(status, paymentStatus, trackingNumber, carrier, now, orderId);
+
+    db.prepare(`
+      INSERT INTO order_status_history (id, orderId, status, note, updatedBy, createdAt)
+      VALUES (?, ?, ?, ?, ?, ?)
+    `).run(
+      "osh_" + crypto.randomUUID(),
+      orderId,
+      status,
+      note || `Status updated to ${status}`,
+      updatedBy,
+      now
+    );
+
+    const updated = this.getById(orderId);
+
+    try {
+      let notifEvent: OrderNotificationEvent | null = null;
+      if (status === "Shipped") notifEvent = "ORDER_SHIPPED";
+      else if (status === "Out for Delivery") notifEvent = "OUT_FOR_DELIVERY";
+      else if (status === "Delivered") notifEvent = "ORDER_DELIVERED";
+      else if (status === "Cancelled") notifEvent = "ORDER_CANCELLED";
+      else if (status === "Refunded") notifEvent = "ORDER_REFUNDED";
+
+      if (notifEvent) {
+        notificationsService.dispatch(notifEvent, {
+          orderId: updated.id,
+          orderNumber: updated.orderNumber,
+          customerName: updated.customerName,
+          customerEmail: updated.customerEmail,
+          customerPhone: updated.customerPhone,
+          total: updated.total,
+          items: updated.items,
+          trackingNumber: updated.trackingNumber,
+          carrier: updated.carrier,
+          shippingAddress: updated.shippingAddress,
+          reason: note,
+          timestamp: now,
+        });
+      }
+    } catch {}
+
+    return updated;
+  },
+
+  updatePayment(orderId: string, paymentStatus: string, razorpayPaymentId?: string) {
+    if (paymentStatus === "PAID") {
+      return this.confirmPayment(orderId, { gatewayPaymentId: razorpayPaymentId });
+    }
+    if (paymentStatus === "FAILED") {
+      return this.recordPaymentFailure(orderId, { reason: "Payment marked failed" });
+    }
+    const db = getDatabase();
+    const now = new Date().toISOString();
+    db.prepare(`
+      UPDATE orders
+      SET paymentStatus = ?, razorpayPaymentId = COALESCE(?, razorpayPaymentId), updatedAt = ?
+      WHERE id = ?
+    `).run(paymentStatus, razorpayPaymentId || null, now, orderId);
+    return this.getById(orderId);
+  },
+
   trackOrder(orderNumber: string, verificationPhoneOrEmail?: string) {
     const db = getDatabase();
     const cleanNumber = orderNumber.trim().toUpperCase();
@@ -1070,63 +1632,49 @@ export const ordersRepo = {
 
     if (verificationPhoneOrEmail && verificationPhoneOrEmail.trim()) {
       const ver = verificationPhoneOrEmail.trim().toLowerCase();
-      query += " AND (LOWER(customerEmail) = ? OR customerPhone LIKE ?)";
-      params.push(ver, `%${ver.replace(/\D/g, "")}%`);
+      const digitsOnly = ver.replace(/\D/g, "");
+      if (digitsOnly.length >= 6) {
+        query += " AND (LOWER(customerEmail) = ? OR REPLACE(REPLACE(REPLACE(customerPhone, ' ', ''), '-', ''), '+', '') LIKE ?)";
+        params.push(ver, `%${digitsOnly.slice(-10)}%`);
+      } else {
+        query += " AND LOWER(customerEmail) = ?";
+        params.push(ver);
+      }
     }
 
     const order = db.prepare(query).get(...params) as any;
     if (!order) return null;
 
-    // Return sanitized tracking details preserving privacy
-    const history = db.prepare("SELECT status, note, createdAt FROM order_status_history WHERE orderId = ? ORDER BY createdAt ASC").all(order.id) as any[];
-    const items = db.prepare("SELECT productNameEn, packSize, quantity, image FROM order_items WHERE orderId = ?").all(order.id) as any[];
+    const history = db.prepare("SELECT status, note, updatedBy, createdAt FROM order_status_history WHERE orderId = ? ORDER BY createdAt ASC").all(order.id) as any[];
+    const items = db.prepare("SELECT productNameEn, productNameTa, packSize, quantity, price, image FROM order_items WHERE orderId = ?").all(order.id) as any[];
+
+    let addressSummary: any = {};
+    try {
+      const parsed = JSON.parse(order.shippingAddress);
+      addressSummary = {
+        city: parsed.city,
+        state: parsed.state,
+        pinCode: parsed.pinCode,
+      };
+    } catch {
+      addressSummary = { city: "India" };
+    }
 
     return {
       orderNumber: order.orderNumber,
       orderStatus: order.orderStatus,
       paymentStatus: order.paymentStatus,
+      trackingNumber: order.trackingNumber,
+      carrier: order.carrier,
+      subtotal: order.subtotal,
+      shippingFee: order.shippingFee,
+      discountAmount: order.discountAmount,
+      total: order.total,
       createdAt: order.createdAt,
       updatedAt: order.updatedAt,
       items,
       history,
     };
-  },
-
-  updateStatus(orderId: string, status: string, note?: string, updatedBy = "Admin") {
-    const db = getDatabase();
-    const now = new Date().toISOString();
-    db.prepare("UPDATE orders SET orderStatus = ?, updatedAt = ? WHERE id = ?").run(status, now, orderId);
-
-    db.prepare(`
-      INSERT INTO order_status_history (id, orderId, status, note, updatedBy, createdAt)
-      VALUES (?, ?, ?, ?, ?, ?)
-    `).run("osh_" + crypto.randomUUID(), orderId, status, note || `Status changed to ${status}`, updatedBy, now);
-
-    return this.getById(orderId);
-  },
-
-  updatePayment(orderId: string, paymentStatus: string, razorpayPaymentId?: string) {
-    const db = getDatabase();
-    const now = new Date().toISOString();
-    let orderStatus = "Pending Payment";
-    if (paymentStatus === "PAID") {
-      orderStatus = "Confirmed";
-    } else if (paymentStatus === "FAILED") {
-      orderStatus = "Failed payment";
-    }
-
-    db.prepare(`
-      UPDATE orders
-      SET paymentStatus = ?, orderStatus = ?, razorpayPaymentId = COALESCE(?, razorpayPaymentId), updatedAt = ?
-      WHERE id = ?
-    `).run(paymentStatus, orderStatus, razorpayPaymentId || null, now, orderId);
-
-    db.prepare(`
-      INSERT INTO order_status_history (id, orderId, status, note, updatedBy, createdAt)
-      VALUES (?, ?, ?, ?, 'Razorpay Gateway', ?)
-    `).run("osh_" + crypto.randomUUID(), orderId, orderStatus, `Payment verified: ${paymentStatus}`, now);
-
-    return this.getById(orderId);
   },
 
   listAll(options: { status?: string; search?: string; limit?: number; offset?: number } = {}) {
@@ -1177,6 +1725,65 @@ export const ordersRepo = {
       shippingAddress = { street: order.shippingAddress };
     }
     return { ...order, items, history, shippingAddress };
+  },
+
+  exportCsv(): string {
+    const orders = this.listAll({ limit: 10000 });
+    const headers = [
+      "Order Number",
+      "Date",
+      "Customer Name",
+      "Customer Email",
+      "Customer Phone",
+      "City",
+      "State",
+      "PIN Code",
+      "Items Count",
+      "Subtotal",
+      "Discount",
+      "Shipping Fee",
+      "Total",
+      "Payment Method",
+      "Payment Status",
+      "Order Status",
+      "Carrier",
+      "Tracking Number"
+    ];
+
+    const escapeCsv = (str: any) => {
+      const s = String(str || "");
+      if (s.includes(",") || s.includes('"') || s.includes("\n")) {
+        return `"${s.replace(/"/g, '""')}"`;
+      }
+      return s;
+    };
+
+    const rows = orders.map((o: any) => {
+      const addr = o.shippingAddress || {};
+      const itemCount = (o.items || []).reduce((acc: number, it: any) => acc + (it.quantity || 1), 0);
+      return [
+        escapeCsv(o.orderNumber),
+        escapeCsv(o.createdAt),
+        escapeCsv(o.customerName),
+        escapeCsv(o.customerEmail),
+        escapeCsv(o.customerPhone),
+        escapeCsv(addr.city || ""),
+        escapeCsv(addr.state || ""),
+        escapeCsv(addr.pinCode || ""),
+        itemCount,
+        o.subtotal,
+        o.discountAmount,
+        o.shippingFee,
+        o.total,
+        escapeCsv(o.paymentMethod),
+        escapeCsv(o.paymentStatus),
+        escapeCsv(o.orderStatus),
+        escapeCsv(o.carrier || ""),
+        escapeCsv(o.trackingNumber || "")
+      ].join(",");
+    });
+
+    return [headers.join(","), ...rows].join("\n");
   }
 };
 
@@ -1187,6 +1794,11 @@ export const campaignsRepo = {
   getAll() {
     const db = getDatabase();
     return db.prepare("SELECT * FROM campaigns ORDER BY createdAt DESC").all() as any[];
+  },
+
+  getById(id: string) {
+    const db = getDatabase();
+    return db.prepare("SELECT * FROM campaigns WHERE id = ?").get(id) as any;
   },
 
   getActive() {
@@ -1205,12 +1817,15 @@ export const campaignsRepo = {
     if (!campaign) {
       return { valid: false, message: "Coupon code not found." };
     }
-    if (!campaign.isActive) {
-      return { valid: false, message: "This offer is no longer active." };
-    }
     const now = new Date().toISOString();
-    if (now < campaign.startDate || now > campaign.endDate) {
+    if (campaign.endDate && now > campaign.endDate) {
       return { valid: false, message: "This promotional campaign has expired." };
+    }
+    if (campaign.startDate && now < campaign.startDate) {
+      return { valid: false, message: "This promotional campaign is not active yet." };
+    }
+    if (campaign.isActive === 0 || campaign.isActive === false) {
+      return { valid: false, message: "This offer is no longer active." };
     }
     if (campaign.usageLimit && campaign.usageCount >= campaign.usageLimit) {
       return { valid: false, message: "This coupon usage limit has been reached." };
@@ -1260,7 +1875,7 @@ export const campaignsRepo = {
       data.maxDiscount || 1000,
       data.startDate,
       data.endDate,
-      data.isActive ? 1 : 0,
+      data.isActive === false || data.isActive === 0 ? 0 : 1,
       data.bannerText || "",
       data.bannerImage || "",
       JSON.stringify(data.eligibleCategories || []),
@@ -1515,6 +2130,42 @@ export const inventoryRepo = {
 
     auditLogsRepo.log(updatedBy, "STOCK_UPDATE", `Updated ${prod.sku} stock from ${oldStock} to ${newStock}. Reason: ${reason || "Manual adjustment"}`);
     return { success: true, oldStock, newStock, availability };
+  },
+
+  adjustStock(
+    productId: string,
+    variantId: string | null,
+    delta: number,
+    changeType: string,
+    referenceId?: string,
+    reason?: string,
+    actor = "System"
+  ) {
+    const db = getDatabase();
+    const prod = db.prepare("SELECT * FROM products WHERE id = ?").get(productId) as any;
+    if (!prod) throw new Error(`Product not found: ${productId}`);
+
+    const oldStock = prod.stock;
+    const newStock = Math.max(0, oldStock + delta);
+    const availability = newStock > 0 ? (newStock <= 10 ? "Low Stock" : "In Stock") : "Out of Stock";
+    const now = new Date().toISOString();
+
+    db.prepare("UPDATE products SET stock = ?, stockAvailability = ?, updatedAt = ? WHERE id = ?")
+      .run(newStock, availability, now, productId);
+
+    db.prepare(`
+      INSERT INTO inventory (id, productId, sku, stockQuantity, lowStockThreshold, reorderQuantity, updatedAt)
+      VALUES (?, ?, ?, ?, 10, 50, ?)
+      ON CONFLICT(id) DO UPDATE SET stockQuantity = excluded.stockQuantity, updatedAt = excluded.updatedAt
+    `).run(`inv_${productId}`, productId, prod.sku, newStock, now);
+
+    auditLogsRepo.log(
+      actor,
+      `STOCK_${changeType || "ADJUST"}`,
+      `Adjusted ${prod.sku} stock by ${delta} (${oldStock} -> ${newStock}). Ref: ${referenceId || "N/A"}. Reason: ${reason || "Inventory adjustment"}`
+    );
+
+    return { productId, oldStock, newStock, delta, availability };
   }
 };
 

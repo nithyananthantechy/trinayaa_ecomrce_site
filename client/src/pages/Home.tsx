@@ -438,6 +438,13 @@ function CheckoutModal({
   const [address, setAddress] = useState("");
   const [city, setCity] = useState("Erode");
   const [pinCode, setPinCode] = useState("638002");
+  const [selectedAddressId, setSelectedAddressId] = useState<string>("new");
+  const [saveAddressForFuture, setSaveAddressForFuture] = useState(false);
+
+  const { data: savedAddresses = [], refetch: refetchAddresses } = trpc.addresses.list.useQuery(undefined, {
+    enabled: Boolean(currentUser),
+  });
+  const saveAddressMutation = trpc.addresses.create.useMutation();
 
   const subtotal = cart.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0);
 
@@ -473,6 +480,20 @@ function CheckoutModal({
     }
   }, [open, currentUser]);
 
+  useEffect(() => {
+    if (savedAddresses && savedAddresses.length > 0 && selectedAddressId === "new") {
+      const defaultAddr = savedAddresses.find((a: any) => a.isDefault) || savedAddresses[0];
+      if (defaultAddr) {
+        setSelectedAddressId(defaultAddr.id);
+        setAddress(defaultAddr.street || defaultAddr.addressLine1 || "");
+        setCity(defaultAddr.city || "Erode");
+        setPinCode(defaultAddr.pinCode || "638002");
+        if (defaultAddr.phone) setPhone(defaultAddr.phone);
+        if (defaultAddr.recipientName) setName(defaultAddr.recipientName);
+      }
+    }
+  }, [savedAddresses]);
+
   if (!open) return null;
 
   const handleSubmit = async (e: FormEvent) => {
@@ -487,18 +508,50 @@ function CheckoutModal({
       return;
     }
 
+    // Clean phone number: remove spaces and dashes
+    const cleanPhone = phone.replace(/[\s-]/g, "");
+    if (!/^(?:\+91)?[6-9]\d{9}$/.test(cleanPhone)) {
+      toast.error("Please enter a valid 10-digit Indian mobile number (e.g. 9876543210)");
+      return;
+    }
+
+    // Clean PIN code
+    const cleanPin = pinCode.trim();
+    if (!/^\d{6}$/.test(cleanPin)) {
+      toast.error("Please enter a valid 6-digit Indian PIN code");
+      return;
+    }
+
     setIsSubmitting(true);
     try {
+      // If user chose to save new address
+      if (selectedAddressId === "new" && saveAddressForFuture) {
+        try {
+          await saveAddressMutation.mutateAsync({
+            recipientName: name,
+            phone: cleanPhone,
+            addressLine1: address,
+            city,
+            state: "Tamil Nadu",
+            pinCode: cleanPin,
+            isDefault: savedAddresses.length === 0,
+          });
+          refetchAddresses();
+        } catch (addrErr) {
+          console.warn("Could not save address to address book:", addrErr);
+        }
+      }
+
       // 1. Create order on server
       const order = await createOrderMutation.mutateAsync({
         customerName: name,
         customerEmail: email,
-        customerPhone: phone,
+        customerPhone: cleanPhone,
         shippingAddress: {
           street: address,
           city,
           state: "Tamil Nadu",
-          pinCode,
+          pinCode: cleanPin,
         },
         items: cart.map((it) => ({
           productId: it.id,
@@ -574,12 +627,52 @@ function CheckoutModal({
                   </div>
                 </div>
                 <div className="form-section">
-                  <h3>Delivery address</h3>
+                  <div className="flex items-center justify-between">
+                    <h3>Delivery address</h3>
+                    {savedAddresses.length > 0 && (
+                      <select
+                        value={selectedAddressId}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setSelectedAddressId(val);
+                          if (val !== "new") {
+                            const found = savedAddresses.find((a: any) => a.id === val);
+                            if (found) {
+                              setAddress(found.street || found.addressLine1 || "");
+                              setCity(found.city || "Erode");
+                              setPinCode(found.pinCode || "638002");
+                              if (found.phone) setPhone(found.phone);
+                              if (found.recipientName) setName(found.recipientName);
+                            }
+                          }
+                        }}
+                        className="text-[11px] py-1 px-2 border border-[#DEDFD5] rounded bg-[#FBF8F0] text-[#123D28]"
+                      >
+                        {savedAddresses.map((a: any) => (
+                          <option key={a.id} value={a.id}>
+                            {a.recipientName} ({a.city} - {a.pinCode}) {a.isDefault ? "★ Default" : ""}
+                          </option>
+                        ))}
+                        <option value="new">+ Add new delivery address</option>
+                      </select>
+                    )}
+                  </div>
                   <div className="form-grid">
                     <label className="full-field">Address<input required value={address} onChange={(e) => setAddress(e.target.value)} placeholder="House / street / area" /></label>
                     <label>City<input required value={city} onChange={(e) => setCity(e.target.value)} placeholder="Erode" /></label>
                     <label>PIN code<input required inputMode="numeric" value={pinCode} onChange={(e) => setPinCode(e.target.value)} placeholder="638000" /></label>
                   </div>
+                  {currentUser && selectedAddressId === "new" && (
+                    <label className="flex items-center gap-2 mt-2 text-xs text-[#6C7167] cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={saveAddressForFuture}
+                        onChange={(e) => setSaveAddressForFuture(e.target.checked)}
+                        className="rounded accent-[#123D28]"
+                      />
+                      Save this address to my account for future orders
+                    </label>
+                  )}
                 </div>
                 <div className="form-section">
                   <h3>Festival Coupons</h3>
@@ -986,6 +1079,9 @@ function AccountModal({
   const { data: myOrders = [] } = trpc.orders.customerOrders.useQuery(undefined, {
     enabled: open && Boolean(currentUser),
   });
+  const { data: myAddresses = [] } = trpc.addresses.list.useQuery(undefined, {
+    enabled: open && Boolean(currentUser),
+  });
 
   if (!open || !currentUser) return null;
 
@@ -1042,6 +1138,30 @@ function AccountModal({
                     >
                       Track
                     </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div>
+            <h3 className="font-serif font-bold text-base text-[#123D28] mb-2">Saved Addresses</h3>
+            {myAddresses.length === 0 ? (
+              <p className="text-[#6C7167] py-2 text-center text-xs">No saved addresses yet. Save one during checkout.</p>
+            ) : (
+              <div className="space-y-2 max-h-44 overflow-y-auto">
+                {myAddresses.map((a: any) => (
+                  <div key={a.id} className="p-2.5 border border-[#DEDFD5] rounded-md bg-white text-xs">
+                    <div className="flex items-center justify-between">
+                      <strong className="text-[#123D28]">{a.recipientName}</strong>
+                      {a.isDefault ? (
+                        <span className="text-[10px] font-bold text-emerald-800 bg-emerald-50 px-1.5 py-0.5 rounded">Default</span>
+                      ) : null}
+                    </div>
+                    <div className="text-[11px] text-[#6C7167] mt-0.5">
+                      {a.street}, {a.city}, {a.state} - {a.pinCode}
+                    </div>
+                    <div className="text-[10px] text-[#6C7167]">Phone: {a.phone}</div>
                   </div>
                 ))}
               </div>
