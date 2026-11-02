@@ -7,13 +7,14 @@ import { publicPlatformScript } from "./publicConfig";
 import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
-import { handleTelegramUpdate } from "../telegram";
+import { handleTelegramUpdate, initTelegramNotifications } from "../telegram";
 import * as db from "../db";
 import path from "node:path";
 import fs from "node:fs";
 import crypto from "node:crypto";
 
 async function startServer() {
+  initTelegramNotifications();
   const app = express();
   const server = createServer(app);
 
@@ -85,6 +86,13 @@ async function startServer() {
   // ==========================================
   app.post("/api/webhooks/telegram", async (req, res) => {
     try {
+      const secret = process.env.TELEGRAM_WEBHOOK_SECRET;
+      if (secret && !secret.includes("placeholder") && !secret.includes("PLACEHOLDER")) {
+        const headerToken = req.headers["x-telegram-bot-api-secret-token"];
+        if (headerToken !== secret) {
+          return res.status(401).json({ ok: false, error: "Unauthorized: Invalid webhook secret token" });
+        }
+      }
       const result = await handleTelegramUpdate(req.body);
       return res.json(result);
     } catch (err: any) {

@@ -1972,11 +1972,25 @@ export const telegramRepo = {
     const db = getDatabase();
     const cleanId = String(telegramId).trim();
     // Also check env allowlist
-    const envAdmins = (process.env.TELEGRAM_ADMIN_IDS || "").split(",").map((s) => s.trim()).filter(Boolean);
+    const envAdmins = [
+      ...(process.env.TELEGRAM_ALLOWED_ADMIN_IDS || "").split(","),
+      ...(process.env.TELEGRAM_ADMIN_IDS || "").split(","),
+    ].map((s) => s.trim()).filter(Boolean);
     if (envAdmins.includes(cleanId)) return true;
 
     const row = db.prepare("SELECT * FROM telegram_allowed_admins WHERE telegramId = ?").get(cleanId);
     return Boolean(row);
+  },
+
+  getAllAllowedIds(): string[] {
+    const db = getDatabase();
+    const envAdmins = [
+      ...(process.env.TELEGRAM_ALLOWED_ADMIN_IDS || "").split(","),
+      ...(process.env.TELEGRAM_ADMIN_IDS || "").split(","),
+    ].map((s) => s.trim()).filter(Boolean);
+    const dbAdmins = db.prepare("SELECT telegramId FROM telegram_allowed_admins").all() as { telegramId: string }[];
+    const set = new Set([...envAdmins, ...dbAdmins.map((d) => String(d.telegramId).trim())]);
+    return Array.from(set).filter(Boolean);
   },
 
   logAudit(telegramUserId: string, command: string, details?: string) {

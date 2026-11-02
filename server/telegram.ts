@@ -1,6 +1,428 @@
+/**
+ * TRINAYAA ENTERPRISES — TELEGRAM ADMIN BOT & ADVANCED WORKFLOWS (PHASE 6)
+ *
+ * Full-featured, secure Telegram management bot connecting to TRINAYAA's
+ * live database, inventory repository, campaigns repository, orders lifecycle,
+ * and multi-channel notifications service.
+ */
+
 import * as db from "./db";
+import { notificationsService, DispatchedNotification } from "./notifications";
+
+// ==========================================
+// 1. DATA MASKING & PRIVACY UTILITIES
+// ==========================================
+
+export function maskPhone(phone?: string | null): string {
+  if (!phone) return "N/A";
+  const cleaned = phone.trim();
+  if (cleaned.length <= 5) return cleaned;
+  return cleaned.slice(0, 5) + "*".repeat(Math.max(3, cleaned.length - 5));
+}
+
+export function maskEmail(email?: string | null): string {
+  if (!email || !email.includes("@")) return "N/A";
+  const [local, domain] = email.trim().split("@");
+  if (local.length <= 1) return `*@${domain}`;
+  return `${local[0]}***@${domain}`;
+}
+
+export function maskAddress(address?: any): string {
+  if (!address) return "Standard Delivery";
+  if (typeof address === "string") {
+    try {
+      address = JSON.parse(address);
+    } catch {
+      return "Tamil Nadu, India";
+    }
+  }
+  const parts = [address.city, address.state, address.pinCode].filter(Boolean);
+  return parts.length > 0 ? parts.join(", ") : "Tamil Nadu, India";
+}
+
+// ==========================================
+// 2. SECURITY, RATE LIMITING & SESSIONS
+// ==========================================
+
+const userRateLimits = new Map<string, { count: number; resetAt: number }>();
+
+export function checkRateLimit(userId: string): boolean {
+  const now = Date.now();
+  const entry = userRateLimits.get(userId);
+  if (!entry || now > entry.resetAt) {
+    userRateLimits.set(userId, { count: 1, resetAt: now + 60000 });
+    return true;
+  }
+  if (entry.count >= 20) {
+    return false;
+  }
+  entry.count++;
+  return true;
+}
+
+export function resetRateLimits() {
+  userRateLimits.clear();
+}
+
+export interface ConversationSession {
+  command: string;
+  step: number;
+  data: any;
+  expiresAt: number;
+}
+
+const conversationSessions = new Map<string, ConversationSession>();
+
+export function getSession(userId: string): ConversationSession | null {
+  const session = conversationSessions.get(userId);
+  if (!session) return null;
+  if (Date.now() > session.expiresAt) {
+    conversationSessions.delete(userId);
+    return null;
+  }
+  return session;
+}
+
+export function setSession(userId: string, session: { command: string; step: number; data: any }) {
+  conversationSessions.set(userId, {
+    command: session.command,
+    step: session.step,
+    data: session.data,
+    expiresAt: Date.now() + 15 * 60 * 1000, // 15-minute TTL
+  });
+}
+
+export function clearSession(userId: string) {
+  conversationSessions.delete(userId);
+}
+
+// Duplicate callback query execution protection (1-hour window)
+const processedCallbackQueries = new Map<string, number>();
+
+export function isCallbackProcessed(id: string): boolean {
+  const now = Date.now();
+  for (const [key, ts] of processedCallbackQueries.entries()) {
+    if (now - ts > 3600000) processedCallbackQueries.delete(key);
+  }
+  if (processedCallbackQueries.has(id)) return true;
+  processedCallbackQueries.set(id, now);
+  return false;
+}
+
+export function clearProcessedCallbacks() {
+  processedCallbackQueries.clear();
+}
+
+// ==========================================
+// 3. TELEGRAM API CLIENT & MESSAGING
+// ==========================================
+
+export async function sendTelegramMessage(chatId: string | number, text: string, replyMarkup?: any) {
+  const token = process.env.TELEGRAM_BOT_TOKEN;
+  if (!token || token.includes("PLACEHOLDER") || token.includes("placeholder")) {
+    console.log(`[Telegram Bot Simulation -> Chat ${chatId}]:\n${text}\n${replyMarkup ? JSON.stringify(replyMarkup) : ""}`);
+    return { ok: true, result: { message_id: Math.floor(Math.random() * 10000) } };
+  }
+
+  try {
+    const payload: any = {
+      chat_id: chatId,
+      text,
+      parse_mode: "Markdown",
+    };
+    if (replyMarkup) {
+      payload.reply_markup = replyMarkup;
+    }
+    const response = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    return await response.json();
+  } catch (error) {
+    console.error("[Telegram Send Error]:", error);
+    return { ok: false, error };
+  }
+}
+
+export async function answerCallbackQuery(callbackQueryId: string, text?: string) {
+  const token = process.env.TELEGRAM_BOT_TOKEN;
+  if (!token || token.includes("PLACEHOLDER") || token.includes("placeholder")) {
+    return { ok: true };
+  }
+
+  try {
+    const payload: any = { callback_query_id: callbackQueryId };
+    if (text) payload.text = text;
+    const response = await fetch(`https://api.telegram.org/bot${token}/answerCallbackQuery`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    return await response.json();
+  } catch (error) {
+    console.error("[Telegram answerCallbackQuery Error]:", error);
+    return { ok: false, error };
+  }
+}
+
+// ==========================================
+// 4. NOTIFICATION SUBSCRIBER
+// ==========================================
+
+let isListenerRegistered = false;
+
+export function initTelegramNotifications() {
+  if (isListenerRegistered) return;
+  isListenerRegistered = true;
+
+  notificationsService.on("notification", async (notif: DispatchedNotification) => {
+    try {
+      const allowedIds = db.telegramRepo.getAllAllowedIds();
+      if (!allowedIds || allowedIds.length === 0) return;
+
+      const maskedEmail = maskEmail(notif.recipientEmail);
+      const maskedPhone = maskPhone(notif.recipientPhone);
+
+      let icon = "🔔";
+      switch (notif.event) {
+        case "ORDER_CREATED": icon = "🛍️"; break;
+        case "PAYMENT_CONFIRMED": icon = "💰"; break;
+        case "PAYMENT_FAILED": icon = "⚠️"; break;
+        case "ORDER_SHIPPED": icon = "🚚"; break;
+        case "OUT_FOR_DELIVERY": icon = "🛵"; break;
+        case "ORDER_DELIVERED": icon = "🎉"; break;
+        case "ORDER_CANCELLED": icon = "❌"; break;
+        case "ORDER_REFUNDED": icon = "💸"; break;
+      }
+
+      const text = `${icon} *ADMIN ALERT: ${notif.event}*\n\n` +
+        `• *Order:* \`${notif.orderNumber}\`\n` +
+        `• *Customer:* ${maskedPhone} (${maskedEmail})\n` +
+        `• *Subject:* ${notif.subject}\n` +
+        `• *Time:* ${new Date(notif.dispatchedAt).toLocaleTimeString()}`;
+
+      for (const adminId of allowedIds) {
+        await sendTelegramMessage(adminId, text);
+      }
+    } catch (err) {
+      console.error("[Telegram Notification Broadcast Error]:", err);
+    }
+  });
+}
+
+// ==========================================
+// 5. CALLBACK QUERY HANDLER
+// ==========================================
+
+async function handleCallbackQuery(cb: any) {
+  const userId = String(cb.from.id);
+  const userName = cb.from.username || cb.from.first_name || "Admin";
+  const chatId = cb.message?.chat?.id || cb.from.id;
+  const data = cb.data || "";
+
+  // 1. Authorization
+  if (!db.telegramRepo.isAllowed(userId)) {
+    db.telegramRepo.logAudit(userId, "UNAUTHORIZED_CALLBACK", `User @${userName} tried callback: ${data}`);
+    await answerCallbackQuery(cb.id, "Access Denied");
+    await sendTelegramMessage(chatId, `⛔ *Access Denied*\nYour Telegram ID \`${userId}\` is not authorized.`);
+    return { ok: true };
+  }
+
+  // 2. Duplicate callback execution protection
+  if (isCallbackProcessed(cb.id)) {
+    await answerCallbackQuery(cb.id, "Action already processed");
+    return { ok: true };
+  }
+
+  await answerCallbackQuery(cb.id);
+
+  // 3. Process actions
+  const [action, ...params] = data.split(":");
+
+  switch (action) {
+    case "view_order": {
+      const orderNumber = params[0];
+      const order = db.ordersRepo.getByOrderNumber(orderNumber);
+      if (!order) {
+        await sendTelegramMessage(chatId, `❌ Order \`${orderNumber}\` not found.`);
+        return { ok: true };
+      }
+      const detail = formatOrderDetails(order);
+      const keyboard = {
+        inline_keyboard: [
+          [{ text: "🔄 Update Status", callback_data: `status_menu:${order.orderNumber}` }],
+          [{ text: "📦 View Recent Orders", callback_data: "cmd_orders" }]
+        ]
+      };
+      await sendTelegramMessage(chatId, detail, keyboard);
+      db.telegramRepo.logAudit(userId, "CALLBACK_VIEW_ORDER", orderNumber);
+      break;
+    }
+
+    case "status_menu": {
+      const orderNumber = params[0];
+      const order = db.ordersRepo.getByOrderNumber(orderNumber);
+      if (!order) {
+        await sendTelegramMessage(chatId, `❌ Order \`${orderNumber}\` not found.`);
+        return { ok: true };
+      }
+      const keyboard = getOrderStatusKeyboard(order);
+      await sendTelegramMessage(chatId, `🔄 *Select New Status for Order ${order.orderNumber}:*\nCurrent Status: *${order.orderStatus}*`, keyboard);
+      break;
+    }
+
+    case "set_status": {
+      const [orderNumber, newStatus] = params;
+      const order = db.ordersRepo.getByOrderNumber(orderNumber);
+      if (!order) {
+        await sendTelegramMessage(chatId, `❌ Order \`${orderNumber}\` not found.`);
+        return { ok: true };
+      }
+
+      // Payment safety check: Cannot transition to Confirmed unless paymentStatus === 'PAID'
+      if (newStatus === "Confirmed" && order.paymentStatus !== "PAID") {
+        await sendTelegramMessage(
+          chatId,
+          `⚠️ *Action Blocked*: Cannot manually confirm an unpaid order. Payment must be verified by the Razorpay gateway or marked paid in the Admin Portal.`
+        );
+        return { ok: true };
+      }
+
+      // Permitted transitions
+      const errorMsg = validateStatusTransition(order.orderStatus, newStatus);
+      if (errorMsg) {
+        await sendTelegramMessage(chatId, `❌ *Transition Error*: ${errorMsg}`);
+        return { ok: true };
+      }
+
+      try {
+        db.ordersRepo.updateStatus(order.id, newStatus, `Status updated via Telegram Bot by @${userName}`, `Telegram:@${userName}`);
+        await sendTelegramMessage(chatId, `✅ Order *${order.orderNumber}* status updated from *${order.orderStatus}* to *${newStatus}*!`);
+        db.telegramRepo.logAudit(userId, "/updateorder", `Updated ${order.orderNumber} from ${order.orderStatus} to ${newStatus}`);
+      } catch (err: any) {
+        await sendTelegramMessage(chatId, `❌ Failed to update status: ${err.message}`);
+      }
+      break;
+    }
+
+    case "view_product": {
+      const sku = params[0];
+      const prod = db.productsRepo.getBySku(sku);
+      if (!prod) {
+        await sendTelegramMessage(chatId, `❌ Product \`${sku}\` not found.`);
+        return { ok: true };
+      }
+      const detail = formatProductDetails(prod);
+      const keyboard = {
+        inline_keyboard: [
+          [
+            { text: "📊 Quick Stock (+10)", callback_data: `stock_adjust:${sku}:10` },
+            { text: "📊 Quick Stock (-10)", callback_data: `stock_adjust:${sku}:-10` }
+          ],
+          [
+            { text: "📦 Adjust Stock Menu", callback_data: `stock_menu:${sku}` }
+          ]
+        ]
+      };
+      await sendTelegramMessage(chatId, detail, keyboard);
+      db.telegramRepo.logAudit(userId, "CALLBACK_VIEW_PRODUCT", sku);
+      break;
+    }
+
+    case "stock_menu": {
+      const sku = params[0];
+      const prod = db.productsRepo.getBySku(sku);
+      if (!prod) {
+        await sendTelegramMessage(chatId, `❌ Product \`${sku}\` not found.`);
+        return { ok: true };
+      }
+      const keyboard = {
+        inline_keyboard: [
+          [
+            { text: "➕ 10", callback_data: `stock_adjust:${sku}:10` },
+            { text: "➕ 50", callback_data: `stock_adjust:${sku}:50` },
+            { text: "➖ 10", callback_data: `stock_adjust:${sku}:-10` },
+            { text: "➖ 50", callback_data: `stock_adjust:${sku}:-50` }
+          ],
+          [{ text: "❌ Cancel", callback_data: "cancel_action" }]
+        ]
+      };
+      await sendTelegramMessage(chatId, `📦 *Adjust Stock for ${prod.nameEn}* (\`${sku}\`)\nCurrent Stock: *${prod.stock} units*`, keyboard);
+      break;
+    }
+
+    case "stock_adjust": {
+      const sku = params[0];
+      const delta = parseInt(params[1], 10);
+      const prod = db.productsRepo.getBySku(sku);
+      if (!prod) {
+        await sendTelegramMessage(chatId, `❌ Product \`${sku}\` not found.`);
+        return { ok: true };
+      }
+      const changeType = delta > 0 ? "RESTOCK" : "ADJUSTMENT";
+      const result = db.inventoryRepo.adjustStock(
+        prod.id,
+        null,
+        delta,
+        changeType,
+        "Telegram",
+        `Quick adjustment (${delta > 0 ? `+${delta}` : delta}) via Telegram Bot`,
+        `Telegram:@${userName}`
+      );
+      await sendTelegramMessage(
+        chatId,
+        `✅ Stock updated for *${prod.nameEn}* (\`${sku}\`):\n` +
+        `• Previous: ${result.oldStock} units\n` +
+        `• Change: ${delta > 0 ? `+${delta}` : delta} units\n` +
+        `• New Stock: *${result.newStock} units* (${result.availability})`
+      );
+      db.telegramRepo.logAudit(userId, "STOCK_ADJUST", `Adjusted ${sku} by ${delta}`);
+      break;
+    }
+
+    case "cmd_orders": {
+      const orders = db.ordersRepo.listAll({ limit: 5 });
+      if (orders.length === 0) {
+        await sendTelegramMessage(chatId, "No orders found in database.");
+        return { ok: true };
+      }
+      let reply = `📦 *RECENT ORDERS:*\n\n`;
+      const buttons: any[] = [];
+      for (const o of orders) {
+        reply += `• *${o.orderNumber}* — ₹${o.total} (${o.orderStatus})\n` +
+                 `  Customer: ${o.customerName} (${maskPhone(o.customerPhone)})\n` +
+                 `  Payment: ${o.paymentStatus} via ${o.paymentMethod}\n\n`;
+        buttons.push([{ text: `View ${o.orderNumber}`, callback_data: `view_order:${o.orderNumber}` }]);
+      }
+      await sendTelegramMessage(chatId, reply, { inline_keyboard: buttons });
+      break;
+    }
+
+    case "cancel_action": {
+      await sendTelegramMessage(chatId, "🚫 Action cancelled.");
+      break;
+    }
+
+    default:
+      await sendTelegramMessage(chatId, `Unknown action \`${action}\`.`);
+  }
+
+  return { ok: true };
+}
+
+// ==========================================
+// 6. MAIN UPDATE DISPATCHER
+// ==========================================
 
 export async function handleTelegramUpdate(update: any) {
+  if (!update) return { ok: true };
+
+  // Handle inline keyboard callback queries
+  if (update.callback_query) {
+    return await handleCallbackQuery(update.callback_query);
+  }
+
   const message = update.message || update.edited_message;
   if (!message || !message.text) return { ok: true };
 
@@ -13,11 +435,34 @@ export async function handleTelegramUpdate(update: any) {
   const isAllowed = db.telegramRepo.isAllowed(userId);
   if (!isAllowed) {
     db.telegramRepo.logAudit(userId, "UNAUTHORIZED_ATTEMPT", `User @${userName} tried to execute: ${text}`);
-    await sendTelegramMessage(chatId, `⛔ *Access Denied*\n\nYour Telegram ID \`${userId}\` is not authorized to manage TRINAYAA store.\nPlease contact the administrator to grant access.`);
+    await sendTelegramMessage(
+      chatId,
+      `⛔ *Access Denied*\n\nYour Telegram ID \`${userId}\` is not authorized to manage TRINAYAA store.\nPlease contact the administrator to grant access.`
+    );
     return { ok: true };
   }
 
-  // 2. Parse command
+  // 2. Rate limiting check (20 commands/minute)
+  if (!checkRateLimit(userId)) {
+    await sendTelegramMessage(chatId, "⚠️ Rate limit exceeded. Please wait a moment before sending more commands.");
+    return { ok: true };
+  }
+
+  // 3. Check for cancellation command
+  if (text.toLowerCase() === "/cancel") {
+    clearSession(userId);
+    await sendTelegramMessage(chatId, "🚫 Active interactive session has been cancelled.");
+    db.telegramRepo.logAudit(userId, "/cancel");
+    return { ok: true };
+  }
+
+  // 4. Check active interactive conversation sessions
+  const activeSession = getSession(userId);
+  if (activeSession) {
+    return await handleActiveSession(chatId, userId, userName, text, activeSession);
+  }
+
+  // 5. Parse command and arguments
   const [cmd, ...args] = text.split(/\s+/);
   const command = cmd.toLowerCase();
 
@@ -27,42 +472,53 @@ export async function handleTelegramUpdate(update: any) {
       case "/help": {
         const helpText = `🌿 *TRINAYAA Enterprise Admin Bot*\n` +
           `Connected to Live Database & Service Layer\n\n` +
-          `*Dashboard & Reports:*\n` +
-          `• \`/stats\` — Store overview, orders & revenue\n` +
-          `• \`/orders\` — View 5 most recent orders\n` +
-          `• \`/order <ID>\` — Search order details (e.g. \`/order TRN-10482\`)\n` +
-          `• \`/status <ID> <Status>\` — Update order status (Confirmed, Processing, Packed, Shipped, Delivered, Cancelled)\n\n` +
-          `*Catalogue & Inventory:*\n` +
-          `• \`/product <SKU/Name>\` — Search product details\n` +
-          `• \`/stock <SKU> <Qty>\` — Update stock level (e.g. \`/stock TRN-1001 150\`)\n` +
-          `• \`/price <SKU> <INR>\` — Update selling price (e.g. \`/price TRN-1001 180\`)\n\n` +
-          `*Marketing & Offers:*\n` +
+          `*📊 Dashboard & Reports:*\n` +
+          `• \`/dashboard\` or \`/stats\` — Store overview, orders & revenue\n` +
+          `• \`/orders\` — View 5 most recent orders with quick actions\n` +
+          `• \`/order <ID>\` — Order details with masked info (e.g. \`/order TRN-10482\`)\n` +
+          `• \`/updateorder <ID> [Status]\` — Update order status\n` +
+          `• \`/customers\` — View customer base summary\n\n` +
+          `*🌿 Catalogue & Inventory:*\n` +
+          `• \`/products\` — Top catalogue products list\n` +
+          `• \`/product <SKU/Name>\` — Search product details & quick stock buttons\n` +
+          `• \`/addproduct\` — Guided wizard to create new product\n` +
+          `• \`/editproduct <SKU>\` — Edit product details\n` +
+          `• \`/updateprice <SKU> <Price> [MRP]\` — Update price in catalogue\n` +
+          `• \`/stock <SKU> [Qty]\` — View stock or set directly\n` +
+          `• \`/stockadd <SKU> <Qty> [Reason]\` — Add inventory (Restock)\n` +
+          `• \`/stocksub <SKU> <Qty> [Reason]\` — Subtract inventory (Adjustment)\n` +
+          `• \`/stockset <SKU> <Qty> [Reason]\` — Overwrite stock quantity\n` +
+          `• \`/uploadimage <SKU> <URL>\` — Attach image to product\n\n` +
+          `*🎉 Marketing & Offers:*\n` +
           `• \`/offers\` — View active festival campaigns\n` +
-          `• \`/toggle_offer <Code> <on|off>\` — Activate/deactivate coupon\n\n` +
-          `*Administration:*\n` +
+          `• \`/createoffer\` — Guided wizard to create festival coupon\n` +
+          `• \`/disableoffer <Code>\` — Deactivate coupon\n\n` +
+          `*👤 Administration:*\n` +
           `• \`/admins\` — List authorized Telegram admins\n` +
-          `• \`/audit\` — View recent admin audit logs`;
+          `• \`/audit\` — View recent admin audit logs\n` +
+          `• \`/cancel\` — Cancel any active guided conversation`;
         await sendTelegramMessage(chatId, helpText);
         db.telegramRepo.logAudit(userId, "/help");
         break;
       }
 
-      case "/stats":
-      case "/dashboard": {
+      case "/dashboard":
+      case "/stats": {
         const stats = db.adminStatsRepo.getOverview();
         const msg = `📊 *TRINAYAA STORE METRICS*\n\n` +
           `📦 *Products:*\n` +
           `• Total: ${stats.totalProducts}\n` +
           `• Active / Published: ${stats.activeProducts}\n` +
-          `• Low-Stock Alerts (<10): *${stats.lowStockProducts}*\n\n` +
+          `• Low-Stock Alerts (<=10): *${stats.lowStockProducts}*\n\n` +
           `🛍️ *Orders:*\n` +
           `• Total Orders: ${stats.totalOrders}\n` +
           `• Pending / In-progress: ${stats.pendingOrders}\n` +
           `• Completed / Delivered: ${stats.completedOrders}\n\n` +
           `💰 *Verified Revenue:* ₹${stats.totalRevenue.toLocaleString("en-IN")}\n` +
-          `🎉 *Active Festival Offers:* ${stats.activeCampaigns}`;
+          `🎉 *Active Festival Offers:* ${stats.activeCampaigns}\n` +
+          `👥 *Registered Customers:* ${stats.totalCustomers}`;
         await sendTelegramMessage(chatId, msg);
-        db.telegramRepo.logAudit(userId, "/stats");
+        db.telegramRepo.logAudit(userId, "/dashboard");
         break;
       }
 
@@ -74,12 +530,14 @@ export async function handleTelegramUpdate(update: any) {
           break;
         }
         let reply = `📦 *RECENT ORDERS:*\n\n`;
+        const buttons: any[] = [];
         for (const o of orders) {
           reply += `• *${o.orderNumber}* — ₹${o.total} (${o.orderStatus})\n` +
-                   `  Customer: ${o.customerName} (${o.customerPhone})\n` +
+                   `  Customer: ${o.customerName} (${maskPhone(o.customerPhone)})\n` +
                    `  Payment: ${o.paymentStatus} via ${o.paymentMethod}\n\n`;
+          buttons.push([{ text: `View ${o.orderNumber}`, callback_data: `view_order:${o.orderNumber}` }]);
         }
-        await sendTelegramMessage(chatId, reply);
+        await sendTelegramMessage(chatId, reply, { inline_keyboard: buttons });
         db.telegramRepo.logAudit(userId, "/orders");
         break;
       }
@@ -94,37 +552,75 @@ export async function handleTelegramUpdate(update: any) {
           await sendTelegramMessage(chatId, `❌ Order \`${args[0]}\` not found.`);
           break;
         }
-        let detail = `📦 *ORDER ${order.orderNumber}*\n\n` +
-          `• Status: *${order.orderStatus}*\n` +
-          `• Payment: *${order.paymentStatus}* (${order.paymentMethod})\n` +
-          `• Customer: ${order.customerName}\n` +
-          `• Phone: ${order.customerPhone}\n` +
-          `• Subtotal: ₹${order.subtotal} | Total: ₹${order.total}\n` +
-          `• Date: ${new Date(order.createdAt).toLocaleString()}\n\n` +
-          `*Items:*\n`;
-        for (const it of order.items) {
-          detail += `  - ${it.productNameEn} (${it.packSize}) × ${it.quantity} = ₹${it.subtotal}\n`;
-        }
-        await sendTelegramMessage(chatId, detail);
+        const detail = formatOrderDetails(order);
+        const keyboard = {
+          inline_keyboard: [
+            [{ text: "🔄 Update Status", callback_data: `status_menu:${order.orderNumber}` }]
+          ]
+        };
+        await sendTelegramMessage(chatId, detail, keyboard);
         db.telegramRepo.logAudit(userId, "/order", `Looked up ${args[0]}`);
         break;
       }
 
-      case "/status": {
-        if (args.length < 2) {
-          await sendTelegramMessage(chatId, "⚠️ Usage: `/status <OrderNumber> <NewStatus>`\nAllowed statuses: Confirmed, Processing, Packed, Shipped, Delivered, Cancelled");
+      case "/status":
+      case "/updateorder": {
+        if (!args[0]) {
+          await sendTelegramMessage(chatId, "⚠️ Usage: `/updateorder <OrderNumber> [NewStatus]`\nExample: `/updateorder TRN-10482 Shipped`");
           break;
         }
-        const [orderNum, ...statusParts] = args;
-        const newStatus = statusParts.join(" ");
+        const orderNum = args[0];
         const order = db.ordersRepo.getByOrderNumber(orderNum);
         if (!order) {
           await sendTelegramMessage(chatId, `❌ Order \`${orderNum}\` not found.`);
           break;
         }
+
+        if (args.length === 1) {
+          // Show status buttons
+          const keyboard = getOrderStatusKeyboard(order);
+          await sendTelegramMessage(chatId, `🔄 *Select New Status for Order ${order.orderNumber}:*\nCurrent Status: *${order.orderStatus}*`, keyboard);
+          break;
+        }
+
+        const newStatus = args.slice(1).join(" ");
+
+        // Payment safety check
+        if (newStatus === "Confirmed" && order.paymentStatus !== "PAID") {
+          await sendTelegramMessage(
+            chatId,
+            `⚠️ *Action Blocked*: Cannot manually confirm an unpaid order. Payment must be verified by the Razorpay gateway or marked paid in the Admin Portal.`
+          );
+          break;
+        }
+
+        const transitionError = validateStatusTransition(order.orderStatus, newStatus);
+        if (transitionError) {
+          await sendTelegramMessage(chatId, `❌ *Transition Error*: ${transitionError}`);
+          break;
+        }
+
         db.ordersRepo.updateStatus(order.id, newStatus, `Updated via Telegram Bot by @${userName}`, `Telegram:@${userName}`);
         await sendTelegramMessage(chatId, `✅ Order *${order.orderNumber}* status updated to *${newStatus}*`);
-        db.telegramRepo.logAudit(userId, "/status", `Updated ${order.orderNumber} to ${newStatus}`);
+        db.telegramRepo.logAudit(userId, "/updateorder", `Updated ${order.orderNumber} to ${newStatus}`);
+        break;
+      }
+
+      case "/products": {
+        const products = db.productsRepo.getAll({ limit: 8 });
+        if (products.length === 0) {
+          await sendTelegramMessage(chatId, "No products found in catalogue.");
+          break;
+        }
+        let reply = `🌿 *TOP CATALOGUE PRODUCTS:*\n\n`;
+        const buttons: any[] = [];
+        for (const p of products) {
+          reply += `• *${p.nameEn}* (\`${p.sku}\`)\n` +
+                   `  Price: ₹${p.price} | Stock: ${p.stock} units (${p.stockAvailability})\n\n`;
+          buttons.push([{ text: `${p.sku} — ${p.nameEn.slice(0, 20)}`, callback_data: `view_product:${p.sku}` }]);
+        }
+        await sendTelegramMessage(chatId, reply, { inline_keyboard: buttons.slice(0, 5) });
+        db.telegramRepo.logAudit(userId, "/products");
         break;
       }
 
@@ -143,58 +639,265 @@ export async function handleTelegramUpdate(update: any) {
           await sendTelegramMessage(chatId, `❌ No product found matching "${query}"`);
           break;
         }
-        const reply = `🌿 *${product.nameEn}* (${product.nameTa || ""})\n` +
-          `• SKU: \`${product.sku}\`\n` +
-          `• Category: ${product.category}\n` +
-          `• Selling Price: ₹${product.price} (MRP: ₹${product.compareAt || product.price})\n` +
-          `• Current Stock: *${product.stock} units* (${product.stockAvailability})\n` +
-          `• Status: ${product.status}`;
-        await sendTelegramMessage(chatId, reply);
+        const reply = formatProductDetails(product);
+        const keyboard = {
+          inline_keyboard: [
+            [
+              { text: "➕ 10", callback_data: `stock_adjust:${product.sku}:10` },
+              { text: "➖ 10", callback_data: `stock_adjust:${product.sku}:-10` }
+            ],
+            [{ text: "📦 Adjust Stock Menu", callback_data: `stock_menu:${product.sku}` }]
+          ]
+        };
+        await sendTelegramMessage(chatId, reply, keyboard);
         db.telegramRepo.logAudit(userId, "/product", `Searched ${query}`);
         break;
       }
 
-      case "/stock": {
-        if (args.length < 2) {
-          await sendTelegramMessage(chatId, "⚠️ Usage: `/stock <SKU> <Quantity>` (e.g. `/stock TRN-1001 150`)");
+      case "/addproduct": {
+        // Support one-shot syntax: /addproduct <SKU> <Price> <NameEn>
+        if (args.length >= 3 && !isNaN(Number(args[1]))) {
+          const sku = args[0].toUpperCase();
+          const price = parseFloat(args[1]);
+          const nameEn = args.slice(2).join(" ");
+          const existing = db.productsRepo.getBySku(sku);
+          if (existing) {
+            await sendTelegramMessage(chatId, `❌ Product with SKU \`${sku}\` already exists.`);
+            break;
+          }
+          const defaultCat = db.categoriesRepo.getAll()[0];
+          const newProd = db.productsRepo.create({
+            sku,
+            nameEn,
+            nameTa: nameEn,
+            categoryId: defaultCat?.id || null,
+            sellingPrice: price,
+            mrp: Math.round(price * 1.2),
+            stock: 100,
+            status: "Published",
+          });
+          await sendTelegramMessage(chatId, `✅ Product created successfully!\n\n• Name: *${newProd.nameEn}*\n• SKU: \`${newProd.sku}\`\n• Price: ₹${newProd.price}\n• Stock: ${newProd.stock} units`);
+          db.telegramRepo.logAudit(userId, "/addproduct", `Created product ${sku}`);
           break;
         }
-        const [sku, qtyStr] = args;
-        const qty = parseInt(qtyStr, 10);
-        if (isNaN(qty) || qty < 0) {
-          await sendTelegramMessage(chatId, "❌ Invalid stock quantity. Must be a positive integer.");
-          break;
-        }
-        const product = db.productsRepo.getBySku(sku);
-        if (!product) {
-          await sendTelegramMessage(chatId, `❌ Product with SKU \`${sku}\` not found.`);
-          break;
-        }
-        db.productsRepo.updateStock(product.id, qty);
-        await sendTelegramMessage(chatId, `✅ Stock updated for *${product.nameEn}* (\`${sku}\`): *${qty} units*`);
-        db.telegramRepo.logAudit(userId, "/stock", `Updated stock for ${sku} to ${qty}`);
+
+        // Start guided session
+        setSession(userId, { command: "addproduct", step: 1, data: {} });
+        await sendTelegramMessage(
+          chatId,
+          `🌿 *Add New Product (Step 1/7)*\n\nPlease enter the *English Name* of the botanical product (e.g. Pure Neem Leaf Powder):`
+        );
         break;
       }
 
-      case "/price": {
-        if (args.length < 2) {
-          await sendTelegramMessage(chatId, "⚠️ Usage: `/price <SKU> <NewPrice>` (e.g. `/price TRN-1001 175`)");
+      case "/editproduct": {
+        if (!args[0]) {
+          await sendTelegramMessage(chatId, "⚠️ Usage: `/editproduct <SKU>`\nExample: `/editproduct TRN-1001`");
           break;
         }
-        const [sku, priceStr] = args;
+        const sku = args[0];
+        const product = db.productsRepo.getBySku(sku);
+        if (!product) {
+          await sendTelegramMessage(chatId, `❌ Product \`${sku}\` not found.`);
+          break;
+        }
+        const msg = `🌿 *EDIT PRODUCT ${product.sku}*\n\n` +
+          `• Name: *${product.nameEn}* (${product.nameTa || ""})\n` +
+          `• Selling Price: ₹${product.price} (MRP: ₹${product.compareAt || product.price})\n` +
+          `• Stock: *${product.stock} units*\n\n` +
+          `Quick Commands:\n` +
+          `• Price: \`/updateprice ${sku} <NewPrice> [NewMRP]\`\n` +
+          `• Restock: \`/stockadd ${sku} <Qty>\`\n` +
+          `• Overwrite Stock: \`/stockset ${sku} <Qty>\`\n` +
+          `• Image: \`/uploadimage ${sku} <URL>\``;
+        const keyboard = {
+          inline_keyboard: [
+            [
+              { text: "➕ Add 10", callback_data: `stock_adjust:${sku}:10` },
+              { text: "➕ Add 50", callback_data: `stock_adjust:${sku}:50` }
+            ],
+            [{ text: "📦 Adjust Stock Menu", callback_data: `stock_menu:${sku}` }]
+          ]
+        };
+        await sendTelegramMessage(chatId, msg, keyboard);
+        db.telegramRepo.logAudit(userId, "/editproduct", sku);
+        break;
+      }
+
+      case "/price":
+      case "/updateprice": {
+        if (args.length < 2) {
+          await sendTelegramMessage(chatId, "⚠️ Usage: `/updateprice <SKU> <NewPrice> [NewMRP]`\nExample: `/updateprice TRN-1001 175 200`");
+          break;
+        }
+        const [sku, priceStr, mrpStr] = args;
         const price = parseFloat(priceStr);
         if (isNaN(price) || price <= 0) {
           await sendTelegramMessage(chatId, "❌ Invalid price. Must be a positive number.");
           break;
         }
+        const mrp = mrpStr ? parseFloat(mrpStr) : undefined;
+        if (mrpStr && (isNaN(mrp!) || mrp! <= 0)) {
+          await sendTelegramMessage(chatId, "❌ Invalid MRP. Must be a positive number.");
+          break;
+        }
         const product = db.productsRepo.getBySku(sku);
         if (!product) {
           await sendTelegramMessage(chatId, `❌ Product with SKU \`${sku}\` not found.`);
           break;
         }
-        db.productsRepo.updatePrice(product.id, price);
-        await sendTelegramMessage(chatId, `✅ Price updated for *${product.nameEn}* (\`${sku}\`): *₹${price}*`);
-        db.telegramRepo.logAudit(userId, "/price", `Updated price for ${sku} to ₹${price}`);
+        db.productsRepo.updatePrice(product.id, price, mrp);
+        await sendTelegramMessage(
+          chatId,
+          `✅ Price updated for *${product.nameEn}* (\`${sku}\`):\n• Selling Price: *₹${price}*${mrp ? `\n• MRP: *₹${mrp}*` : ""}`
+        );
+        db.telegramRepo.logAudit(userId, "/updateprice", `Updated price for ${sku} to ₹${price}${mrp ? ` (MRP ₹${mrp})` : ""}`);
+        break;
+      }
+
+      case "/uploadimage": {
+        if (args.length < 2) {
+          await sendTelegramMessage(chatId, "⚠️ Usage: `/uploadimage <SKU> <ImageURL>`\nExample: `/uploadimage TRN-1001 https://example.com/image.jpg`");
+          break;
+        }
+        const [sku, imageUrl] = args;
+        const product = db.productsRepo.getBySku(sku);
+        if (!product) {
+          await sendTelegramMessage(chatId, `❌ Product with SKU \`${sku}\` not found.`);
+          break;
+        }
+        db.productsRepo.update(product.id, { primaryImage: imageUrl });
+        db.imagesRepo.add(product.id, imageUrl, product.nameEn, true);
+        await sendTelegramMessage(chatId, `✅ Primary image updated for *${product.nameEn}* (\`${sku}\`).`);
+        db.telegramRepo.logAudit(userId, "/uploadimage", `Updated image for ${sku}`);
+        break;
+      }
+
+      case "/stock": {
+        if (!args[0]) {
+          await sendTelegramMessage(chatId, "⚠️ Usage: `/stock <SKU> [Quantity]` (e.g. `/stock TRN-1001` or `/stock TRN-1001 150`)");
+          break;
+        }
+        const sku = args[0];
+        const product = db.productsRepo.getBySku(sku);
+        if (!product) {
+          await sendTelegramMessage(chatId, `❌ Product with SKU \`${sku}\` not found.`);
+          break;
+        }
+
+        if (args.length === 1) {
+          // View stock with adjustment buttons
+          const keyboard = {
+            inline_keyboard: [
+              [
+                { text: "➕ 10", callback_data: `stock_adjust:${sku}:10` },
+                { text: "➕ 50", callback_data: `stock_adjust:${sku}:50` },
+                { text: "➖ 10", callback_data: `stock_adjust:${sku}:-10` },
+                { text: "➖ 50", callback_data: `stock_adjust:${sku}:-50` }
+              ]
+            ]
+          };
+          await sendTelegramMessage(
+            chatId,
+            `📦 *INVENTORY FOR ${product.nameEn}* (\`${sku}\`)\n\n` +
+            `• Current Stock: *${product.stock} units*\n` +
+            `• Status: *${product.stockAvailability}*\n` +
+            `• Price: ₹${product.price}\n\n` +
+            `Use buttons below to adjust or type: \`/stockadd ${sku} <Qty>\``,
+            keyboard
+          );
+          break;
+        }
+
+        const qty = parseInt(args[1], 10);
+        if (isNaN(qty) || qty < 0) {
+          await sendTelegramMessage(chatId, "❌ Invalid stock quantity. Must be a non-negative integer.");
+          break;
+        }
+        db.inventoryRepo.updateStock(product.id, qty, "Direct stock update via Telegram", `Telegram:@${userName}`);
+        await sendTelegramMessage(chatId, `✅ Stock set for *${product.nameEn}* (\`${sku}\`): *${qty} units*`);
+        db.telegramRepo.logAudit(userId, "/stock", `Set stock for ${sku} to ${qty}`);
+        break;
+      }
+
+      case "/stockadd": {
+        if (args.length < 2) {
+          await sendTelegramMessage(chatId, "⚠️ Usage: `/stockadd <SKU> <Quantity> [Reason]`\nExample: `/stockadd TRN-1001 50 Batch #204 restock`");
+          break;
+        }
+        const [sku, qtyStr, ...reasonParts] = args;
+        const qty = parseInt(qtyStr, 10);
+        if (isNaN(qty) || qty <= 0) {
+          await sendTelegramMessage(chatId, "❌ Quantity to add must be a positive integer.");
+          break;
+        }
+        const product = db.productsRepo.getBySku(sku);
+        if (!product) {
+          await sendTelegramMessage(chatId, `❌ Product with SKU \`${sku}\` not found.`);
+          break;
+        }
+        const reason = reasonParts.join(" ") || "Batch restock via Telegram";
+        const result = db.inventoryRepo.adjustStock(product.id, null, qty, "RESTOCK", "Telegram", reason, `Telegram:@${userName}`);
+        await sendTelegramMessage(
+          chatId,
+          `✅ Stock added for *${product.nameEn}* (\`${sku}\`):\n` +
+          `• Added: +${qty} units\n` +
+          `• New Stock: *${result.newStock} units* (${result.availability})\n` +
+          `• Reason: ${reason}`
+        );
+        db.telegramRepo.logAudit(userId, "/stockadd", `Added ${qty} to ${sku}`);
+        break;
+      }
+
+      case "/stocksub": {
+        if (args.length < 2) {
+          await sendTelegramMessage(chatId, "⚠️ Usage: `/stocksub <SKU> <Quantity> [Reason]`\nExample: `/stocksub TRN-1001 10 Damaged batch`");
+          break;
+        }
+        const [sku, qtyStr, ...reasonParts] = args;
+        const qty = parseInt(qtyStr, 10);
+        if (isNaN(qty) || qty <= 0) {
+          await sendTelegramMessage(chatId, "❌ Quantity to subtract must be a positive integer.");
+          break;
+        }
+        const product = db.productsRepo.getBySku(sku);
+        if (!product) {
+          await sendTelegramMessage(chatId, `❌ Product with SKU \`${sku}\` not found.`);
+          break;
+        }
+        const reason = reasonParts.join(" ") || "Inventory adjustment via Telegram";
+        const result = db.inventoryRepo.adjustStock(product.id, null, -qty, "ADJUSTMENT", "Telegram", reason, `Telegram:@${userName}`);
+        await sendTelegramMessage(
+          chatId,
+          `✅ Stock subtracted for *${product.nameEn}* (\`${sku}\`):\n` +
+          `• Subtracted: -${qty} units\n` +
+          `• New Stock: *${result.newStock} units* (${result.availability})\n` +
+          `• Reason: ${reason}`
+        );
+        db.telegramRepo.logAudit(userId, "/stocksub", `Subtracted ${qty} from ${sku}`);
+        break;
+      }
+
+      case "/stockset": {
+        if (args.length < 2) {
+          await sendTelegramMessage(chatId, "⚠️ Usage: `/stockset <SKU> <Quantity> [Reason]`\nExample: `/stockset TRN-1001 120 Physical inventory recount`");
+          break;
+        }
+        const [sku, qtyStr, ...reasonParts] = args;
+        const qty = parseInt(qtyStr, 10);
+        if (isNaN(qty) || qty < 0) {
+          await sendTelegramMessage(chatId, "❌ Quantity must be a non-negative integer.");
+          break;
+        }
+        const product = db.productsRepo.getBySku(sku);
+        if (!product) {
+          await sendTelegramMessage(chatId, `❌ Product with SKU \`${sku}\` not found.`);
+          break;
+        }
+        const reason = reasonParts.join(" ") || "Direct inventory count via Telegram";
+        db.inventoryRepo.updateStock(product.id, qty, reason, `Telegram:@${userName}`);
+        await sendTelegramMessage(chatId, `✅ Stock overwritten for *${product.nameEn}* (\`${sku}\`): *${qty} units*`);
+        db.telegramRepo.logAudit(userId, "/stockset", `Overwrote stock for ${sku} to ${qty}`);
         break;
       }
 
@@ -216,6 +919,63 @@ export async function handleTelegramUpdate(update: any) {
         break;
       }
 
+      case "/createoffer": {
+        // One-shot: /createoffer <CODE> <DISCOUNT> [MIN_ORDER] [DAYS]
+        if (args.length >= 2 && !isNaN(Number(args[1]))) {
+          const code = args[0].toUpperCase();
+          const discountVal = parseFloat(args[1]);
+          const minOrder = args[2] ? parseFloat(args[2]) : 499;
+          const days = args[3] ? parseInt(args[3], 10) : 30;
+
+          const now = new Date();
+          const endDate = new Date(now.getTime() + days * 24 * 60 * 60 * 1000);
+
+          const newCamp = db.campaignsRepo.create({
+            name: `${code} Promotion`,
+            code,
+            discountType: "PERCENTAGE",
+            discountValue: discountVal,
+            minOrderValue: minOrder,
+            maxDiscount: 1000,
+            startDate: now.toISOString(),
+            endDate: endDate.toISOString(),
+            isActive: 1,
+            bannerText: `Get ${discountVal}% off on orders above ₹${minOrder}!`,
+          });
+          await sendTelegramMessage(
+            chatId,
+            `✅ Offer created successfully!\n\n• Code: \`${newCamp.code}\`\n• Discount: *${discountVal}%*\n• Min Order: ₹${minOrder}\n• Valid for: ${days} days`
+          );
+          db.telegramRepo.logAudit(userId, "/createoffer", `Created offer ${code}`);
+          break;
+        }
+
+        // Start guided wizard
+        setSession(userId, { command: "createoffer", step: 1, data: {} });
+        await sendTelegramMessage(
+          chatId,
+          `🎉 *Create Festival Offer (Step 1/4)*\n\nPlease enter the coupon code (e.g. DIWALI25, PONGAL20):`
+        );
+        break;
+      }
+
+      case "/disableoffer": {
+        if (!args[0]) {
+          await sendTelegramMessage(chatId, "⚠️ Usage: `/disableoffer <CouponCode>` (e.g. `/disableoffer PONGAL15`)");
+          break;
+        }
+        const code = args[0];
+        const campaign = db.campaignsRepo.getByCode(code);
+        if (!campaign) {
+          await sendTelegramMessage(chatId, `❌ Coupon \`${code}\` not found.`);
+          break;
+        }
+        db.campaignsRepo.toggle(campaign.id, false);
+        await sendTelegramMessage(chatId, `✅ Offer *${campaign.name}* (\`${campaign.code}\`) has been *DEACTIVATED*.`);
+        db.telegramRepo.logAudit(userId, "/disableoffer", `Disabled ${code}`);
+        break;
+      }
+
       case "/toggle_offer": {
         if (args.length < 2) {
           await sendTelegramMessage(chatId, "⚠️ Usage: `/toggle_offer <CouponCode> <on|off>`");
@@ -234,13 +994,43 @@ export async function handleTelegramUpdate(update: any) {
         break;
       }
 
-      case "/admins": {
-        const admins = db.telegramRepo.getAllAdmins();
-        let reply = `👤 *AUTHORIZED TELEGRAM ADMINS:*\n\n`;
-        for (const a of admins) {
-          reply += `• ID: \`${a.telegramId}\` — ${a.name} (${a.role})\n`;
+      case "/customers": {
+        const stats = db.adminStatsRepo.getOverview();
+        const customers = db.usersRepo.listCustomers(5, 0);
+        let reply = `👥 *CUSTOMER SUMMARY*\n\n` +
+          `• Total Registered: *${stats.totalCustomers}*\n\n` +
+          `*Recent Customers:*\n`;
+        for (const c of customers) {
+          reply += `• ${c.name || "Customer"} — ${maskPhone(c.phone)} (${maskEmail(c.email)})\n` +
+                   `  Orders: ${c.totalOrders} | Spent: ₹${c.totalSpent}\n\n`;
         }
         await sendTelegramMessage(chatId, reply);
+        db.telegramRepo.logAudit(userId, "/customers");
+        break;
+      }
+
+      case "/admins": {
+        const admins = db.telegramRepo.getAllAdmins();
+        const envAdmins = [
+          ...(process.env.TELEGRAM_ALLOWED_ADMIN_IDS || "").split(","),
+          ...(process.env.TELEGRAM_ADMIN_IDS || "").split(",")
+        ].map(s => s.trim()).filter(Boolean);
+
+        let reply = `👤 *AUTHORIZED TELEGRAM ADMINS:*\n\n`;
+        if (admins.length > 0) {
+          reply += `*Database Allowlist:*\n`;
+          for (const a of admins) {
+            reply += `• ID: \`${a.telegramId}\` — ${a.name} (${a.role})\n`;
+          }
+        }
+        if (envAdmins.length > 0) {
+          reply += `\n*Environment Allowlist (TELEGRAM_ALLOWED_ADMIN_IDS):*\n`;
+          for (const id of envAdmins) {
+            reply += `• ID: \`${id}\` (System Admin)\n`;
+          }
+        }
+        await sendTelegramMessage(chatId, reply);
+        db.telegramRepo.logAudit(userId, "/admins");
         break;
       }
 
@@ -265,25 +1055,266 @@ export async function handleTelegramUpdate(update: any) {
   return { ok: true };
 }
 
-export async function sendTelegramMessage(chatId: string | number, text: string) {
-  const token = process.env.TELEGRAM_BOT_TOKEN;
-  if (!token || token.includes("PLACEHOLDER")) {
-    console.log(`[Telegram Bot Simulation -> Chat ${chatId}]:\n${text}\n`);
-    return;
+// ==========================================
+// 7. INTERACTIVE SESSION HANDLERS
+// ==========================================
+
+async function handleActiveSession(chatId: string | number, userId: string, userName: string, text: string, session: ConversationSession) {
+  if (session.command === "addproduct") {
+    switch (session.step) {
+      case 1: {
+        session.data.nameEn = text;
+        session.step = 2;
+        setSession(userId, session);
+        await sendTelegramMessage(chatId, `🌿 *Add New Product (Step 2/7)*\nEnter Tamil Name (தமிழ் பெயர், e.g. வேப்பிலை பொடி):`);
+        return { ok: true };
+      }
+      case 2: {
+        session.data.nameTa = text;
+        session.step = 3;
+        setSession(userId, session);
+        await sendTelegramMessage(chatId, `🌿 *Add New Product (Step 3/7)*\nEnter Unique SKU (e.g. TRN-1205):`);
+        return { ok: true };
+      }
+      case 3: {
+        const sku = text.toUpperCase().trim();
+        const existing = db.productsRepo.getBySku(sku);
+        if (existing) {
+          await sendTelegramMessage(chatId, `❌ SKU \`${sku}\` already exists! Please enter a unique SKU:`);
+          return { ok: true };
+        }
+        session.data.sku = sku;
+        session.step = 4;
+        setSession(userId, session);
+        await sendTelegramMessage(chatId, `🌿 *Add New Product (Step 4/7)*\nEnter Category Name (e.g. Health Care, Herbal Powders):`);
+        return { ok: true };
+      }
+      case 4: {
+        const catName = text.trim();
+        const cats = db.categoriesRepo.getAll();
+        const matched = cats.find(c => c.name.toLowerCase().includes(catName.toLowerCase()));
+        session.data.categoryId = matched?.id || cats[0]?.id || null;
+        session.step = 5;
+        setSession(userId, session);
+        await sendTelegramMessage(chatId, `🌿 *Add New Product (Step 5/7)*\nEnter Selling Price in ₹ (e.g. 150):`);
+        return { ok: true };
+      }
+      case 5: {
+        const price = parseFloat(text);
+        if (isNaN(price) || price <= 0) {
+          await sendTelegramMessage(chatId, `❌ Invalid price! Enter a valid positive number in ₹:`);
+          return { ok: true };
+        }
+        session.data.sellingPrice = price;
+        session.step = 6;
+        setSession(userId, session);
+        await sendTelegramMessage(chatId, `🌿 *Add New Product (Step 6/7)*\nEnter MRP in ₹ (e.g. 180):`);
+        return { ok: true };
+      }
+      case 6: {
+        const mrp = parseFloat(text);
+        if (isNaN(mrp) || mrp <= 0) {
+          await sendTelegramMessage(chatId, `❌ Invalid MRP! Enter a valid positive number in ₹:`);
+          return { ok: true };
+        }
+        session.data.mrp = mrp;
+        session.step = 7;
+        setSession(userId, session);
+        await sendTelegramMessage(chatId, `🌿 *Add New Product (Step 7/7)*\nEnter Initial Stock quantity in units (e.g. 100):`);
+        return { ok: true };
+      }
+      case 7: {
+        const stock = parseInt(text, 10);
+        if (isNaN(stock) || stock < 0) {
+          await sendTelegramMessage(chatId, `❌ Invalid stock quantity! Enter a non-negative integer:`);
+          return { ok: true };
+        }
+        session.data.stock = stock;
+
+        // Create product
+        const newProd = db.productsRepo.create({
+          sku: session.data.sku,
+          nameEn: session.data.nameEn,
+          nameTa: session.data.nameTa,
+          categoryId: session.data.categoryId,
+          sellingPrice: session.data.sellingPrice,
+          mrp: session.data.mrp,
+          stock: session.data.stock,
+          status: "Published",
+        });
+
+        clearSession(userId);
+        await sendTelegramMessage(
+          chatId,
+          `🎉 *Product Created Successfully!*\n\n` +
+          `• *Name:* ${newProd.nameEn} (${newProd.nameTa})\n` +
+          `• *SKU:* \`${newProd.sku}\`\n` +
+          `• *Price:* ₹${newProd.price} (MRP: ₹${newProd.compareAt || newProd.price})\n` +
+          `• *Initial Stock:* ${newProd.stock} units\n` +
+          `• *Status:* Published in live store`
+        );
+        db.telegramRepo.logAudit(userId, "/addproduct", `Guided creation of ${newProd.sku}`);
+        return { ok: true };
+      }
+    }
+  } else if (session.command === "createoffer") {
+    switch (session.step) {
+      case 1: {
+        session.data.code = text.toUpperCase().trim();
+        session.step = 2;
+        setSession(userId, session);
+        await sendTelegramMessage(chatId, `🎉 *Create Festival Offer (Step 2/4)*\nEnter Discount percentage (e.g. 15 for 15%):`);
+        return { ok: true };
+      }
+      case 2: {
+        const discountVal = parseFloat(text);
+        if (isNaN(discountVal) || discountVal <= 0 || discountVal > 90) {
+          await sendTelegramMessage(chatId, `❌ Enter a valid discount percentage (between 1 and 90):`);
+          return { ok: true };
+        }
+        session.data.discountValue = discountVal;
+        session.step = 3;
+        setSession(userId, session);
+        await sendTelegramMessage(chatId, `🎉 *Create Festival Offer (Step 3/4)*\nEnter Minimum Cart Value in ₹ (e.g. 499):`);
+        return { ok: true };
+      }
+      case 3: {
+        const minOrder = parseFloat(text);
+        if (isNaN(minOrder) || minOrder < 0) {
+          await sendTelegramMessage(chatId, `❌ Enter a valid minimum cart value:`);
+          return { ok: true };
+        }
+        session.data.minOrderValue = minOrder;
+        session.step = 4;
+        setSession(userId, session);
+        await sendTelegramMessage(chatId, `🎉 *Create Festival Offer (Step 4/4)*\nEnter validity in Days (e.g. 30):`);
+        return { ok: true };
+      }
+      case 4: {
+        const days = parseInt(text, 10);
+        if (isNaN(days) || days <= 0) {
+          await sendTelegramMessage(chatId, `❌ Enter a valid number of days:`);
+          return { ok: true };
+        }
+        const now = new Date();
+        const endDate = new Date(now.getTime() + days * 24 * 60 * 60 * 1000);
+
+        const newCamp = db.campaignsRepo.create({
+          name: `${session.data.code} Special`,
+          code: session.data.code,
+          discountType: "PERCENTAGE",
+          discountValue: session.data.discountValue,
+          minOrderValue: session.data.minOrderValue,
+          maxDiscount: 1000,
+          startDate: now.toISOString(),
+          endDate: endDate.toISOString(),
+          isActive: 1,
+          bannerText: `Enjoy ${session.data.discountValue}% off on botanical wellness!`,
+        });
+
+        clearSession(userId);
+        await sendTelegramMessage(
+          chatId,
+          `🎉 *Festival Offer Created Successfully!*\n\n` +
+          `• *Code:* \`${newCamp.code}\`\n` +
+          `• *Discount:* ${session.data.discountValue}%\n` +
+          `• *Min Order:* ₹${session.data.minOrderValue}\n` +
+          `• *Valid until:* ${endDate.toLocaleDateString()}`
+        );
+        db.telegramRepo.logAudit(userId, "/createoffer", `Guided creation of ${newCamp.code}`);
+        return { ok: true };
+      }
+    }
   }
 
-  try {
-    await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        chat_id: chatId,
-        text,
-        parse_mode: "Markdown",
-      }),
-    });
-  } catch (error) {
-    console.error("[Telegram Send Error]:", error);
-  }
+  return { ok: true };
 }
 
+// ==========================================
+// 8. HELPERS & FORMATTERS
+// ==========================================
+
+function formatOrderDetails(order: any): string {
+  const maskedPhone = maskPhone(order.customerPhone);
+  const maskedEmail = maskEmail(order.customerEmail);
+  const addressPreview = maskAddress(order.shippingAddress);
+
+  let detail = `📦 *ORDER ${order.orderNumber}*\n\n` +
+    `• Status: *${order.orderStatus}*\n` +
+    `• Payment: *${order.paymentStatus}* (${order.paymentMethod})\n` +
+    `• Customer: ${order.customerName}\n` +
+    `• Phone: ${maskedPhone}\n` +
+    `• Email: ${maskedEmail}\n` +
+    `• Destination: ${addressPreview}\n` +
+    `• Subtotal: ₹${order.subtotal} | Shipping: ₹${order.shippingFee} | Total: ₹${order.total}\n` +
+    `• Date: ${new Date(order.createdAt).toLocaleString()}\n\n` +
+    `*Items:*\n`;
+
+  for (const it of order.items || []) {
+    detail += `  - ${it.productNameEn} (${it.packSize}) × ${it.quantity} = ₹${it.subtotal}\n`;
+  }
+
+  return detail;
+}
+
+function formatProductDetails(product: any): string {
+  return `🌿 *${product.nameEn}* (${product.nameTa || ""})\n` +
+    `• SKU: \`${product.sku}\`\n` +
+    `• Category: ${product.category || "Herbs"}\n` +
+    `• Selling Price: ₹${product.price} (MRP: ₹${product.compareAt || product.price})\n` +
+    `• Current Stock: *${product.stock} units* (${product.stockAvailability})\n` +
+    `• Status: ${product.status}`;
+}
+
+function getOrderStatusKeyboard(order: any) {
+  const status = order.orderStatus;
+  const num = order.orderNumber;
+  const buttons: any[] = [];
+
+  if (status === "Pending Payment") {
+    buttons.push([{ text: "❌ Cancel Order", callback_data: `set_status:${num}:Cancelled` }]);
+  } else if (status === "Confirmed") {
+    buttons.push([{ text: "⚙️ Processing", callback_data: `set_status:${num}:Processing` }]);
+    buttons.push([{ text: "❌ Cancel Order", callback_data: `set_status:${num}:Cancelled` }]);
+  } else if (status === "Processing") {
+    buttons.push([{ text: "📦 Packed", callback_data: `set_status:${num}:Packed` }]);
+    buttons.push([{ text: "❌ Cancel Order", callback_data: `set_status:${num}:Cancelled` }]);
+  } else if (status === "Packed") {
+    buttons.push([{ text: "🚚 Shipped", callback_data: `set_status:${num}:Shipped` }]);
+    buttons.push([{ text: "❌ Cancel Order", callback_data: `set_status:${num}:Cancelled` }]);
+  } else if (status === "Shipped") {
+    buttons.push([{ text: "🛵 Out for Delivery", callback_data: `set_status:${num}:Out for Delivery` }]);
+    buttons.push([{ text: "🎉 Delivered", callback_data: `set_status:${num}:Delivered` }]);
+    buttons.push([{ text: "❌ Cancel Order", callback_data: `set_status:${num}:Cancelled` }]);
+  } else if (status === "Out for Delivery") {
+    buttons.push([{ text: "🎉 Delivered", callback_data: `set_status:${num}:Delivered` }]);
+    buttons.push([{ text: "❌ Cancel Order", callback_data: `set_status:${num}:Cancelled` }]);
+  } else {
+    buttons.push([{ text: "ℹ️ Order is terminal (no updates)", callback_data: "cancel_action" }]);
+  }
+
+  buttons.push([{ text: "🚫 Cancel", callback_data: "cancel_action" }]);
+  return { inline_keyboard: buttons };
+}
+
+function validateStatusTransition(currentStatus: string, targetStatus: string): string | null {
+  if (currentStatus === targetStatus) {
+    return `Order is already in ${currentStatus} status.`;
+  }
+  if (currentStatus === "Delivered" || currentStatus === "Cancelled" || currentStatus === "Refunded") {
+    return `Order is ${currentStatus} and cannot be modified.`;
+  }
+  const allowedMap: Record<string, string[]> = {
+    "Pending Payment": ["Cancelled"],
+    "Confirmed": ["Processing", "Packed", "Shipped", "Cancelled"],
+    "Processing": ["Packed", "Shipped", "Cancelled"],
+    "Packed": ["Shipped", "Cancelled"],
+    "Shipped": ["Out for Delivery", "Delivered", "Cancelled"],
+    "Out for Delivery": ["Delivered", "Cancelled"],
+  };
+  const allowed = allowedMap[currentStatus] || [];
+  if (!allowed.includes(targetStatus)) {
+    return `Cannot transition from "${currentStatus}" to "${targetStatus}". Allowed: ${allowed.join(", ")}`;
+  }
+  return null;
+}
