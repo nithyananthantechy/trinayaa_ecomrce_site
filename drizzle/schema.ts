@@ -1,28 +1,266 @@
-import { int, mysqlEnum, mysqlTable, text, timestamp, varchar } from "drizzle-orm/mysql-core";
+import { int, mysqlEnum, mysqlTable, text, timestamp, varchar, double } from "drizzle-orm/mysql-core";
 
-/**
- * Core user table backing auth flow.
- * Extend this file with additional tables as your product grows.
- * Columns use camelCase to match both database fields and generated types.
- */
+// ==========================================
+// 1. USERS & CUSTOMER ACCOUNTS
+// ==========================================
 export const users = mysqlTable("users", {
-  /**
-   * Surrogate primary key. Auto-incremented numeric value managed by the database.
-   * Use this for relations between tables.
-   */
-  id: int("id").autoincrement().primaryKey(),
-  /** Manus OAuth identifier (openId) returned from the OAuth callback. Unique per user. */
-  openId: varchar("openId", { length: 64 }).notNull().unique(),
-  name: text("name"),
-  email: varchar("email", { length: 320 }),
-  loginMethod: varchar("loginMethod", { length: 64 }),
-  role: mysqlEnum("role", ["user", "admin"]).default("user").notNull(),
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
-  lastSignedIn: timestamp("lastSignedIn").defaultNow().notNull(),
+  id: varchar("id", { length: 64 }).primaryKey(),
+  email: varchar("email", { length: 320 }).notNull().unique(),
+  passwordHash: text("passwordHash").notNull(),
+  name: varchar("name", { length: 255 }).notNull(),
+  phone: varchar("phone", { length: 32 }),
+  role: varchar("role", { length: 32 }).default("CUSTOMER").notNull(), // 'CUSTOMER' | 'ADMIN' | 'SUPER_ADMIN'
+  status: varchar("status", { length: 32 }).default("ACTIVE").notNull(),
+  telegramId: varchar("telegramId", { length: 64 }),
+  createdAt: text("createdAt").notNull(),
+  updatedAt: text("updatedAt").notNull(),
 });
 
 export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
 
-// TODO: Add your tables here
+// ==========================================
+// 2. CUSTOMER ADDRESSES
+// ==========================================
+export const customerAddresses = mysqlTable("customer_addresses", {
+  id: varchar("id", { length: 64 }).primaryKey(),
+  userId: varchar("userId", { length: 64 }).notNull(),
+  recipientName: varchar("recipientName", { length: 255 }).notNull(),
+  phone: varchar("phone", { length: 32 }).notNull(),
+  street: text("street").notNull(),
+  city: varchar("city", { length: 128 }).notNull(),
+  state: varchar("state", { length: 128 }).notNull(),
+  pinCode: varchar("pinCode", { length: 16 }).notNull(),
+  isDefault: int("isDefault").default(0).notNull(),
+  createdAt: text("createdAt").notNull(),
+  updatedAt: text("updatedAt").notNull(),
+});
+
+export type CustomerAddress = typeof customerAddresses.$inferSelect;
+export type InsertCustomerAddress = typeof customerAddresses.$inferInsert;
+
+// ==========================================
+// 3. CATEGORIES
+// ==========================================
+export const categories = mysqlTable("categories", {
+  id: varchar("id", { length: 64 }).primaryKey(),
+  name: varchar("name", { length: 255 }).notNull().unique(),
+  slug: varchar("slug", { length: 255 }).notNull().unique(),
+  description: text("description"),
+  image: text("image"),
+  isVisible: int("isVisible").default(1).notNull(),
+  displayOrder: int("displayOrder").default(0).notNull(),
+  parentId: varchar("parentId", { length: 64 }),
+});
+
+export type Category = typeof categories.$inferSelect;
+export type InsertCategory = typeof categories.$inferInsert;
+
+// ==========================================
+// 4. PRODUCTS
+// ==========================================
+export const products = mysqlTable("products", {
+  id: varchar("id", { length: 64 }).primaryKey(),
+  sku: varchar("sku", { length: 64 }).notNull().unique(),
+  nameEn: varchar("nameEn", { length: 255 }).notNull(),
+  nameTa: varchar("nameTa", { length: 255 }).notNull(),
+  slug: varchar("slug", { length: 255 }).notNull().unique(),
+  shortDesc: text("shortDesc"),
+  fullDesc: text("fullDesc"),
+  categoryId: varchar("categoryId", { length: 64 }),
+  productType: varchar("productType", { length: 64 }).default("Whole ingredient").notNull(),
+  primaryImage: text("primaryImage"),
+  gallery: text("gallery").default("[]"), // JSON string array of URLs
+  sellingPrice: double("sellingPrice").notNull(),
+  mrp: double("mrp").notNull(),
+  discountPrice: double("discountPrice").notNull(),
+  stock: int("stock").default(100).notNull(),
+  stockAvailability: varchar("stockAvailability", { length: 64 }).default("In Stock").notNull(),
+  status: varchar("status", { length: 32 }).default("Published").notNull(), // 'Published' | 'Draft' | 'Archived'
+  featured: int("featured").default(0).notNull(),
+  seoTitle: text("seoTitle"),
+  seoDescription: text("seoDescription"),
+  seoKeywords: text("seoKeywords"),
+  createdAt: text("createdAt").notNull(),
+  updatedAt: text("updatedAt").notNull(),
+});
+
+export type Product = typeof products.$inferSelect;
+export type InsertProduct = typeof products.$inferInsert;
+
+// ==========================================
+// 5. PRODUCT VARIANTS & PACK SIZES
+// ==========================================
+export const productVariants = mysqlTable("product_variants", {
+  id: varchar("id", { length: 64 }).primaryKey(),
+  productId: varchar("productId", { length: 64 }).notNull(),
+  packSize: varchar("packSize", { length: 64 }).notNull(),
+  price: double("price").notNull(),
+  mrp: double("mrp").notNull(),
+  stock: int("stock").default(100).notNull(),
+  sku: varchar("sku", { length: 64 }).notNull(),
+});
+
+export type ProductVariant = typeof productVariants.$inferSelect;
+export type InsertProductVariant = typeof productVariants.$inferInsert;
+
+// ==========================================
+// 6. CART & CART ITEMS
+// ==========================================
+export const carts = mysqlTable("cart", {
+  id: varchar("id", { length: 64 }).primaryKey(),
+  userId: varchar("userId", { length: 64 }),
+  guestToken: varchar("guestToken", { length: 128 }),
+  createdAt: text("createdAt").notNull(),
+  updatedAt: text("updatedAt").notNull(),
+});
+
+export const cartItems = mysqlTable("cart_items", {
+  id: varchar("id", { length: 64 }).primaryKey(),
+  cartId: varchar("cartId", { length: 64 }).notNull(),
+  productId: varchar("productId", { length: 64 }).notNull(),
+  packSize: varchar("packSize", { length: 64 }).notNull(),
+  unitPrice: double("unitPrice").notNull(),
+  quantity: int("quantity").default(1).notNull(),
+  createdAt: text("createdAt").notNull(),
+});
+
+export type Cart = typeof carts.$inferSelect;
+export type CartItem = typeof cartItems.$inferSelect;
+
+// ==========================================
+// 7. ORDERS & ORDER ITEMS
+// ==========================================
+export const orders = mysqlTable("orders", {
+  id: varchar("id", { length: 64 }).primaryKey(),
+  orderNumber: varchar("orderNumber", { length: 64 }).notNull().unique(), // e.g. TRN-10482
+  customerId: varchar("customerId", { length: 64 }),
+  customerName: varchar("customerName", { length: 255 }).notNull(),
+  customerEmail: varchar("customerEmail", { length: 320 }).notNull(),
+  customerPhone: varchar("customerPhone", { length: 32 }).notNull(),
+  shippingAddress: text("shippingAddress").notNull(), // JSON with street, city, state, pinCode
+  subtotal: double("subtotal").notNull(),
+  discountAmount: double("discountAmount").default(0).notNull(),
+  shippingFee: double("shippingFee").default(0).notNull(),
+  total: double("total").notNull(),
+  paymentMethod: varchar("paymentMethod", { length: 32 }).default("RAZORPAY").notNull(), // 'RAZORPAY' | 'COD' | 'UPI'
+  paymentStatus: varchar("paymentStatus", { length: 32 }).default("PENDING").notNull(), // 'PENDING' | 'PAID' | 'FAILED' | 'REFUNDED'
+  razorpayOrderId: varchar("razorpayOrderId", { length: 128 }),
+  razorpayPaymentId: varchar("razorpayPaymentId", { length: 128 }),
+  orderStatus: varchar("orderStatus", { length: 32 }).default("Pending Payment").notNull(), // 'Pending Payment' | 'Confirmed' | 'Processing' | 'Packed' | 'Shipped' | 'Delivered' | 'Cancelled' | 'Refund Initiated' | 'Refunded'
+  internalNotes: text("internalNotes"),
+  createdAt: text("createdAt").notNull(),
+  updatedAt: text("updatedAt").notNull(),
+});
+
+export type Order = typeof orders.$inferSelect;
+export type InsertOrder = typeof orders.$inferInsert;
+
+export const orderItems = mysqlTable("order_items", {
+  id: varchar("id", { length: 64 }).primaryKey(),
+  orderId: varchar("orderId", { length: 64 }).notNull(),
+  productId: varchar("productId", { length: 64 }),
+  productNameEn: varchar("productNameEn", { length: 255 }).notNull(),
+  productNameTa: varchar("productNameTa", { length: 255 }).notNull(),
+  packSize: varchar("packSize", { length: 64 }).notNull(),
+  price: double("price").notNull(),
+  quantity: int("quantity").notNull(),
+  subtotal: double("subtotal").notNull(),
+  image: text("image"),
+});
+
+export type OrderItem = typeof orderItems.$inferSelect;
+export type InsertOrderItem = typeof orderItems.$inferInsert;
+
+export const orderStatusHistory = mysqlTable("order_status_history", {
+  id: varchar("id", { length: 64 }).primaryKey(),
+  orderId: varchar("orderId", { length: 64 }).notNull(),
+  status: varchar("status", { length: 64 }).notNull(),
+  note: text("note"),
+  updatedBy: varchar("updatedBy", { length: 128 }).default("System").notNull(),
+  createdAt: text("createdAt").notNull(),
+});
+
+export type OrderStatusHistory = typeof orderStatusHistory.$inferSelect;
+export type InsertOrderStatusHistory = typeof orderStatusHistory.$inferInsert;
+
+// ==========================================
+// 8. PAYMENTS & TRANSACTIONS
+// ==========================================
+export const payments = mysqlTable("payments", {
+  id: varchar("id", { length: 64 }).primaryKey(),
+  orderId: varchar("orderId", { length: 64 }).notNull(),
+  paymentGateway: varchar("paymentGateway", { length: 64 }).default("RAZORPAY").notNull(),
+  gatewayOrderId: varchar("gatewayOrderId", { length: 128 }).notNull(),
+  gatewayPaymentId: varchar("gatewayPaymentId", { length: 128 }),
+  gatewaySignature: text("gatewaySignature"),
+  amount: double("amount").notNull(),
+  currency: varchar("currency", { length: 8 }).default("INR").notNull(),
+  status: varchar("status", { length: 32 }).default("PENDING").notNull(),
+  rawResponse: text("rawResponse"),
+  createdAt: text("createdAt").notNull(),
+});
+
+export type Payment = typeof payments.$inferSelect;
+export type InsertPayment = typeof payments.$inferInsert;
+
+// ==========================================
+// 9. FESTIVAL CAMPAIGNS & COUPONS
+// ==========================================
+export const campaigns = mysqlTable("campaigns", {
+  id: varchar("id", { length: 64 }).primaryKey(),
+  name: varchar("name", { length: 255 }).notNull(),
+  code: varchar("code", { length: 64 }).notNull().unique(), // Coupon code
+  discountType: varchar("discountType", { length: 32 }).default("PERCENTAGE").notNull(), // 'PERCENTAGE' | 'FIXED'
+  discountValue: double("discountValue").notNull(),
+  minOrderValue: double("minOrderValue").default(0).notNull(),
+  maxDiscount: double("maxDiscount").default(1000).notNull(),
+  startDate: text("startDate").notNull(),
+  endDate: text("endDate").notNull(),
+  isActive: int("isActive").default(1).notNull(),
+  bannerText: text("bannerText"),
+  bannerImage: text("bannerImage"),
+  eligibleCategories: text("eligibleCategories").default("[]"), // JSON string array
+  eligibleProducts: text("eligibleProducts").default("[]"), // JSON string array
+  usageLimit: int("usageLimit").default(1000).notNull(),
+  usageCount: int("usageCount").default(0).notNull(),
+  createdAt: text("createdAt").notNull(),
+});
+
+export type Campaign = typeof campaigns.$inferSelect;
+export type InsertCampaign = typeof campaigns.$inferInsert;
+
+// ==========================================
+// 10. SITE CONTENT & PROMOTIONAL BANNERS
+// ==========================================
+export const siteContent = mysqlTable("site_content", {
+  key: varchar("key", { length: 128 }).primaryKey(),
+  value: text("value").notNull(),
+  updatedAt: text("updatedAt").notNull(),
+});
+
+export type SiteContent = typeof siteContent.$inferSelect;
+
+// ==========================================
+// 11. TELEGRAM ADMIN ALLOWLIST & AUDIT LOGS
+// ==========================================
+export const telegramAllowedAdmins = mysqlTable("telegram_allowed_admins", {
+  id: varchar("id", { length: 64 }).primaryKey(),
+  telegramId: varchar("telegramId", { length: 64 }).notNull().unique(),
+  name: varchar("name", { length: 255 }).notNull(),
+  role: varchar("role", { length: 32 }).default("SUPER_ADMIN").notNull(),
+  addedBy: varchar("addedBy", { length: 128 }).notNull(),
+  createdAt: text("createdAt").notNull(),
+});
+
+export type TelegramAllowedAdmin = typeof telegramAllowedAdmins.$inferSelect;
+
+export const telegramAuditLogs = mysqlTable("telegram_audit_logs", {
+  id: varchar("id", { length: 64 }).primaryKey(),
+  telegramUserId: varchar("telegramUserId", { length: 64 }).notNull(),
+  command: varchar("command", { length: 255 }).notNull(),
+  details: text("details"),
+  createdAt: text("createdAt").notNull(),
+});
+
+export type TelegramAuditLog = typeof telegramAuditLogs.$inferSelect;

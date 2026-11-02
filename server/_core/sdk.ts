@@ -301,10 +301,8 @@ class SDKServer {
         const userInfo = await this.getUserInfoWithJwt(sessionToken ?? "");
         await db.upsertUser({
           openId: userInfo.openId,
-          name: userInfo.name || null,
-          email: userInfo.email ?? null,
-          loginMethod: userInfo.loginMethod ?? userInfo.platform ?? null,
-          lastSignedIn: signedInAt,
+          name: userInfo.name || undefined,
+          email: userInfo.email || undefined,
         });
         user = await db.getUserByOpenId(userInfo.openId);
       } catch (error) {
@@ -318,8 +316,7 @@ class SDKServer {
     }
 
     await db.upsertUser({
-      openId: user.openId,
-      lastSignedIn: signedInAt,
+      openId: (user as any).openId || user.id,
     });
 
     return user;
@@ -339,18 +336,20 @@ function buildCronUser(
 ): AuthenticatedUser {
   const now = new Date();
   return {
-    id: -1,
+    id: "-1",
     openId: userInfo.openId,
     name: userInfo.name || "Manus Scheduled Task",
-    email: null,
-    loginMethod: null,
+    email: "",
+    passwordHash: "",
+    phone: null,
+    status: "ACTIVE",
+    telegramId: null,
     role: "user",
-    createdAt: now,
-    updatedAt: now,
-    lastSignedIn: now,
+    createdAt: now.toISOString(),
+    updatedAt: now.toISOString(),
     taskUid: userInfo.taskUid ?? undefined,
     isCron: true,
-  } as AuthenticatedUser;
+  } as unknown as AuthenticatedUser;
 }
 
 export const sdk = new SDKServer();
