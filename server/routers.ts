@@ -460,6 +460,17 @@ export const appRouter = router({
         db.cartRepo.mergeGuestCart(input.guestToken, String(ctx.user.id));
         return { success: true };
       }),
+
+    validateCoupon: publicProcedure
+      .input(
+        z.object({
+          code: z.string().min(1),
+          subtotal: z.number().min(0),
+        })
+      )
+      .query(async ({ input }) => {
+        return db.campaignsRepo.validateCoupon(input.code, input.subtotal);
+      }),
   }),
 
   // ==========================================
@@ -798,43 +809,104 @@ export const appRouter = router({
 
       delete: adminProcedure
         .input(z.object({ id: z.string() }))
-        .mutation(async ({ input }) => {
-          const success = db.productsRepo.delete(input.id);
-          return { success };
+        .mutation(async ({ input, ctx }) => {
+          const res = db.productsRepo.delete(input.id);
+          db.auditLogsRepo.log(ctx.user?.name || "Admin", "PRODUCT_DELETE", `Product ID: ${input.id}`);
+          return res;
+        }),
+
+      archive: adminProcedure
+        .input(z.object({ id: z.string() }))
+        .mutation(async ({ input, ctx }) => {
+          const res = db.productsRepo.archive(input.id);
+          db.auditLogsRepo.log(ctx.user?.name || "Admin", "PRODUCT_ARCHIVE", `Product ID: ${input.id}`);
+          return res;
         }),
 
       updateStock: adminProcedure
-        .input(z.object({ id: z.string(), stock: z.number() }))
-        .mutation(async ({ input }) => {
+        .input(z.object({ id: z.string(), stock: z.number(), reason: z.string().optional() }))
+        .mutation(async ({ input, ctx }) => {
+          db.auditLogsRepo.log(ctx.user?.name || "Admin", "STOCK_UPDATE", `Product ID: ${input.id}, New Stock: ${input.stock}`);
           return db.productsRepo.updateStock(input.id, input.stock);
         }),
 
       updatePrice: adminProcedure
-        .input(z.object({ id: z.string(), sellingPrice: z.number(), mrp: z.number().optional() }))
-        .mutation(async ({ input }) => {
+        .input(z.object({ id: z.string(), sellingPrice: z.number().min(0), mrp: z.number().optional() }))
+        .mutation(async ({ input, ctx }) => {
+          db.auditLogsRepo.log(ctx.user?.name || "Admin", "PRICE_UPDATE", `Product ID: ${input.id}, Price: ${input.sellingPrice}, MRP: ${input.mrp}`);
           return db.productsRepo.updatePrice(input.id, input.sellingPrice, input.mrp);
+        }),
+
+      exportCsv: adminProcedure.query(async () => {
+        return db.productsRepo.exportCsv();
+      }),
+
+      // Images management
+      getImages: adminProcedure
+        .input(z.object({ productId: z.string() }))
+        .query(async ({ input }) => {
+          return db.imagesRepo.getByProductId(input.productId);
+        }),
+
+      setPrimaryImage: adminProcedure
+        .input(z.object({ productId: z.string(), imageId: z.string() }))
+        .mutation(async ({ input, ctx }) => {
+          db.auditLogsRepo.log(ctx.user?.name || "Admin", "IMAGE_PRIMARY_SET", `Product ID: ${input.productId}, Image ID: ${input.imageId}`);
+          return db.imagesRepo.setPrimary(input.productId, input.imageId);
+        }),
+
+      addImage: adminProcedure
+        .input(z.object({ productId: z.string(), url: z.string(), altText: z.string().optional(), isPrimary: z.boolean().optional() }))
+        .mutation(async ({ input, ctx }) => {
+          db.auditLogsRepo.log(ctx.user?.name || "Admin", "IMAGE_ADD", `Product ID: ${input.productId}, URL: ${input.url}`);
+          return db.imagesRepo.add(input.productId, input.url, input.altText, input.isPrimary);
+        }),
+
+      removeImage: adminProcedure
+        .input(z.object({ productId: z.string(), imageId: z.string() }))
+        .mutation(async ({ input, ctx }) => {
+          db.auditLogsRepo.log(ctx.user?.name || "Admin", "IMAGE_DELETE", `Product ID: ${input.productId}, Image ID: ${input.imageId}`);
+          return db.imagesRepo.delete(input.productId, input.imageId);
+        }),
+
+      updateImageAlt: adminProcedure
+        .input(z.object({ imageId: z.string(), altText: z.string() }))
+        .mutation(async ({ input }) => {
+          return db.imagesRepo.updateAlt(input.imageId, input.altText);
         }),
 
       bulkImport: adminProcedure
         .input(z.array(z.record(z.string(), z.any())))
-        .mutation(async ({ input }) => {
+        .mutation(async ({ input, ctx }) => {
           let count = 0;
-          const errors: Array<{ index: number; error: string }> = [];
+          const errors: Array<{ index: number; sku?: string; error: string }> = [];
+          const seenSkus = new Set<string>();
 
           for (let i = 0; i < input.length; i++) {
             try {
               const row = input[i];
-              if (!row.sku || !row.nameEn || row.sellingPrice === undefined) {
-                errors.push({ index: i, error: "Missing required SKU, English Name, or Price." });
+              if (!row.sku || !String(row.sku).trim()) {
+                errors.push({ index: i, error: "Missing required SKU." });
                 continue;
               }
+              const sku = String(row.sku).trim();
+              if (!row.nameEn || !String(row.nameEn).trim()) {
+                errors.push({ index: i, sku, error: "Missing required Product Name." });
+                continue;
+              }
+              if (seenSkus.has(sku)) {
+                errors.push({ index: i, sku, error: `Duplicate SKU '${sku}' within import batch.` });
+                continue;
+              }
+              seenSkus.add(sku);
               db.productsRepo.create(row);
               count++;
             } catch (err: any) {
-              errors.push({ index: i, error: err.message || "Failed to import row" });
+              errors.push({ index: i, sku: input[i]?.sku, error: err.message || "Failed to import row" });
             }
           }
 
+          db.auditLogsRepo.log(ctx.user?.name || "Admin", "BULK_IMPORT", `Imported ${count} of ${input.length} products with ${errors.length} errors.`);
           return { successCount: count, total: input.length, errors };
         }),
     }),
@@ -979,6 +1051,45 @@ export const appRouter = router({
         .input(z.object({ key: z.string(), value: z.string() }))
         .mutation(async ({ input }) => {
           return db.siteContentRepo.set(input.key, input.value);
+        }),
+    }),
+
+    // --- INVENTORY ---
+    inventory: router({
+      list: adminProcedure
+        .input(
+          z
+            .object({
+              search: z.string().optional(),
+              status: z.string().optional(),
+              limit: z.number().optional().default(100),
+              offset: z.number().optional().default(0),
+            })
+            .optional()
+        )
+        .query(async ({ input }) => {
+          return db.inventoryRepo.list(input || {});
+        }),
+
+      updateStock: adminProcedure
+        .input(
+          z.object({
+            productId: z.string(),
+            stock: z.number().min(0),
+            reason: z.string().optional(),
+          })
+        )
+        .mutation(async ({ input, ctx }) => {
+          return db.inventoryRepo.updateStock(input.productId, input.stock, input.reason, ctx.user?.name || "Admin");
+        }),
+    }),
+
+    // --- AUDIT LOGS ---
+    auditLogs: router({
+      list: adminProcedure
+        .input(z.object({ limit: z.number().optional().default(100) }).optional())
+        .query(async ({ input }) => {
+          return db.auditLogsRepo.list(input?.limit || 100);
         }),
     }),
 

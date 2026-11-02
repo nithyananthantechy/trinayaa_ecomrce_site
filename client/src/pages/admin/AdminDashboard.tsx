@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
@@ -17,30 +17,66 @@ import {
   Search,
   Edit2,
   Trash2,
+  Archive,
   CheckCircle2,
   AlertTriangle,
   Upload,
   RefreshCw,
-  Eye,
   ExternalLink,
   ChevronLeft,
   ChevronRight,
-  TrendingUp,
   DollarSign,
-  ShieldCheck,
   X,
   ArrowRight,
-  Image as ImageIcon
+  Image as ImageIcon,
+  Layers,
+  FileText,
+  Clock,
+  Sparkles,
+  Info
 } from "lucide-react";
 
+type AdminTab =
+  | "overview"
+  | "products"
+  | "categories"
+  | "inventory"
+  | "orders"
+  | "customers"
+  | "offers"
+  | "import"
+  | "content"
+  | "settings"
+  | "telegram";
+
 export default function AdminDashboard() {
-  const [, setLocation] = useLocation();
-  const [activeTab, setActiveTab] = useState<
-    "overview" | "products" | "categories" | "orders" | "customers" | "offers" | "import" | "content" | "telegram"
-  >("overview");
+  const [location, setLocation] = useLocation();
+
+  // Compute active tab from URL path
+  const activeTab: AdminTab = useMemo(() => {
+    if (location.startsWith("/admin/products")) return "products";
+    if (location.startsWith("/admin/categories")) return "categories";
+    if (location.startsWith("/admin/inventory")) return "inventory";
+    if (location.startsWith("/admin/orders")) return "orders";
+    if (location.startsWith("/admin/customers")) return "customers";
+    if (location.startsWith("/admin/offers")) return "offers";
+    if (location.startsWith("/admin/import")) return "import";
+    if (location.startsWith("/admin/content")) return "content";
+    if (location.startsWith("/admin/settings")) return "settings";
+    if (location.startsWith("/admin/telegram")) return "telegram";
+    return "overview";
+  }, [location]);
+
+  const navigateToTab = (tab: AdminTab) => {
+    if (tab === "overview") {
+      setLocation("/admin/dashboard");
+    } else {
+      setLocation(`/admin/${tab}`);
+    }
+  };
 
   // Authentication check
-  const { data: currentUser, isLoading: userLoading, refetch: refetchUser } = trpc.auth.me.useQuery();
+  const { data: currentUser, isLoading: userLoading } = trpc.auth.me.useQuery();
   const logoutMutation = trpc.auth.logout.useMutation({
     onSuccess: () => {
       toast.success("Logged out successfully");
@@ -60,7 +96,7 @@ export default function AdminDashboard() {
     {
       search: productSearch,
       category: productCategory === "All" ? undefined : productCategory,
-      limit: 200,
+      limit: 300,
       offset: 0,
     },
     { enabled: Boolean(currentUser) }
@@ -69,6 +105,22 @@ export default function AdminDashboard() {
   const { data: categories = [], refetch: refetchCategories } = trpc.admin.categories.list.useQuery(undefined, {
     enabled: Boolean(currentUser),
   });
+
+  const [inventorySearch, setInventorySearch] = useState("");
+  const [inventoryStockFilter, setInventoryStockFilter] = useState<"all" | "low_stock" | "out_of_stock">("all");
+  const { data: inventoryData, refetch: refetchInventory } = trpc.admin.inventory.list.useQuery(
+    {
+      search: inventorySearch,
+      status: inventoryStockFilter,
+      limit: 300,
+    },
+    { enabled: Boolean(currentUser && activeTab === "inventory") }
+  );
+
+  const { data: auditLogs = [], refetch: refetchAuditLogs } = trpc.admin.auditLogs.list.useQuery(
+    { limit: 50 },
+    { enabled: Boolean(currentUser && (activeTab === "inventory" || activeTab === "overview")) }
+  );
 
   const [orderSearch, setOrderSearch] = useState("");
   const [orderStatusFilter, setOrderStatusFilter] = useState("All");
@@ -82,37 +134,88 @@ export default function AdminDashboard() {
   );
 
   const { data: customers = [], refetch: refetchCustomers } = trpc.admin.customers.list.useQuery(undefined, {
-    enabled: Boolean(currentUser),
-  });
+    enabled: Boolean(currentUser) }
+  );
 
   const { data: campaigns = [], refetch: refetchCampaigns } = trpc.admin.campaigns.list.useQuery(undefined, {
-    enabled: Boolean(currentUser),
-  });
+    enabled: Boolean(currentUser) }
+  );
 
   const { data: content = {}, refetch: refetchContent } = trpc.content.getAll.useQuery(undefined, {
-    enabled: Boolean(currentUser),
-  });
+    enabled: Boolean(currentUser) }
+  );
 
   const { data: telegramAdmins = [], refetch: refetchTelegramAdmins } = trpc.admin.telegram.getAdmins.useQuery(undefined, {
-    enabled: Boolean(currentUser),
-  });
+    enabled: Boolean(currentUser) }
+  );
 
-  const { data: auditLogs = [], refetch: refetchAuditLogs } = trpc.admin.telegram.getAuditLogs.useQuery(undefined, {
-    enabled: Boolean(currentUser),
-  });
-
-  // Product Modals State
+  // Modals & UI States
   const [editingProduct, setEditingProduct] = useState<any | null>(null);
   const [isAddingProduct, setIsAddingProduct] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<any | null>(null);
+  const [editingCategory, setEditingCategory] = useState<any | null>(null);
+  const [isAddingCategory, setIsAddingCategory] = useState(false);
+  const [isAddingCampaign, setIsAddingCampaign] = useState(false);
+  const [galleryProduct, setGalleryProduct] = useState<any | null>(null);
+  const [inventoryAdjustProduct, setInventoryAdjustProduct] = useState<any | null>(null);
+  const [importSummary, setImportSummary] = useState<any | null>(null);
+
+  // Auto-open Add Product modal if route is /admin/products/new
+  useEffect(() => {
+    if (location === "/admin/products/new") {
+      setIsAddingProduct(true);
+    }
+  }, [location]);
+
+  // Product Image query for gallery modal
+  const { data: galleryImages = [], refetch: refetchGalleryImages } = trpc.admin.products.getImages.useQuery(
+    { productId: galleryProduct?.id || "" },
+    { enabled: Boolean(galleryProduct?.id) }
+  );
 
   // Mutations
-  const updateStockMutation = trpc.admin.products.updateStock.useMutation({
+  const createProductMutation = trpc.admin.products.create.useMutation({
     onSuccess: () => {
-      toast.success("Stock updated");
+      toast.success("Product created successfully");
+      setIsAddingProduct(false);
+      refetchProducts();
+      refetchStats();
+      if (location === "/admin/products/new") {
+        setLocation("/admin/products");
+      }
+    },
+    onError: (err) => toast.error(err.message || "Failed to create product"),
+  });
+
+  const updateProductMutation = trpc.admin.products.update.useMutation({
+    onSuccess: () => {
+      toast.success("Product updated successfully");
+      setEditingProduct(null);
+      refetchProducts();
+    },
+    onError: (err) => toast.error(err.message || "Failed to update product"),
+  });
+
+  const archiveProductMutation = trpc.admin.products.archive.useMutation({
+    onSuccess: () => {
+      toast.success("Product archived successfully");
       refetchProducts();
       refetchStats();
     },
+    onError: (err) => toast.error(err.message || "Failed to archive product"),
+  });
+
+  const deleteProductMutation = trpc.admin.products.delete.useMutation({
+    onSuccess: (data) => {
+      if (data?.archived) {
+        toast.info("Product has order history, so it was archived instead of permanently deleted.");
+      } else {
+        toast.success("Product deleted successfully");
+      }
+      refetchProducts();
+      refetchStats();
+    },
+    onError: (err) => toast.error(err.message || "Failed to delete product"),
   });
 
   const updatePriceMutation = trpc.admin.products.updatePrice.useMutation({
@@ -120,14 +223,123 @@ export default function AdminDashboard() {
       toast.success("Price updated");
       refetchProducts();
     },
+    onError: (err) => toast.error(err.message),
   });
 
-  const deleteProductMutation = trpc.admin.products.delete.useMutation({
+  const updateStockMutation = trpc.admin.products.updateStock.useMutation({
     onSuccess: () => {
-      toast.success("Product deleted");
+      toast.success("Stock updated");
+      refetchProducts();
+      refetchStats();
+      refetchInventory();
+    },
+    onError: (err) => toast.error(err.message),
+  });
+
+  const inventoryStockMutation = trpc.admin.inventory.updateStock.useMutation({
+    onSuccess: () => {
+      toast.success("Inventory stock updated with audit entry");
+      setInventoryAdjustProduct(null);
+      refetchInventory();
+      refetchProducts();
+      refetchStats();
+      refetchAuditLogs();
+    },
+    onError: (err) => toast.error(err.message),
+  });
+
+  const createCategoryMutation = trpc.admin.categories.create.useMutation({
+    onSuccess: () => {
+      toast.success("Category created successfully");
+      setIsAddingCategory(false);
+      refetchCategories();
+      refetchStats();
+    },
+    onError: (err) => toast.error(err.message),
+  });
+
+  const updateCategoryMutation = trpc.admin.categories.update.useMutation({
+    onSuccess: () => {
+      toast.success("Category updated successfully");
+      setEditingCategory(null);
+      refetchCategories();
+    },
+    onError: (err) => toast.error(err.message),
+  });
+
+  const deleteCategoryMutation = trpc.admin.categories.delete.useMutation({
+    onSuccess: () => {
+      toast.success("Category deleted");
+      refetchCategories();
+      refetchStats();
+    },
+    onError: (err) => {
+      toast.error(err.message || "Cannot delete category containing active products.");
+    },
+  });
+
+  const createCampaignMutation = trpc.admin.campaigns.create.useMutation({
+    onSuccess: () => {
+      toast.success("Campaign created successfully");
+      setIsAddingCampaign(false);
+      refetchCampaigns();
+      refetchStats();
+    },
+    onError: (err) => toast.error(err.message),
+  });
+
+  const toggleCampaignMutation = trpc.admin.campaigns.toggle.useMutation({
+    onSuccess: () => {
+      toast.success("Campaign status updated");
+      refetchCampaigns();
+      refetchStats();
+    },
+    onError: (err) => toast.error(err.message),
+  });
+
+  const addImageMutation = trpc.admin.products.addImage.useMutation({
+    onSuccess: () => {
+      toast.success("Image added to gallery");
+      refetchGalleryImages();
+      refetchProducts();
+    },
+    onError: (err) => toast.error(err.message),
+  });
+
+  const setPrimaryImageMutation = trpc.admin.products.setPrimaryImage.useMutation({
+    onSuccess: () => {
+      toast.success("Cover image set successfully");
+      refetchGalleryImages();
+      refetchProducts();
+    },
+    onError: (err) => toast.error(err.message),
+  });
+
+  const removeImageMutation = trpc.admin.products.removeImage.useMutation({
+    onSuccess: () => {
+      toast.success("Image removed from gallery");
+      refetchGalleryImages();
+      refetchProducts();
+    },
+    onError: (err) => toast.error(err.message),
+  });
+
+  const updateImageAltMutation = trpc.admin.products.updateImageAlt.useMutation({
+    onSuccess: () => {
+      toast.success("Alt text updated");
+      refetchGalleryImages();
+    },
+    onError: (err) => toast.error(err.message),
+  });
+
+  const bulkImportMutation = trpc.admin.products.bulkImport.useMutation({
+    onSuccess: (res) => {
+      setImportSummary(res);
+      toast.success(`Import complete: ${res.successCount} of ${res.total} items processed`);
       refetchProducts();
       refetchStats();
     },
+    onError: (err) => toast.error(err.message),
   });
 
   const updateOrderStatusMutation = trpc.admin.orders.updateStatus.useMutation({
@@ -139,14 +351,7 @@ export default function AdminDashboard() {
         setSelectedOrder(data);
       }
     },
-  });
-
-  const toggleCampaignMutation = trpc.admin.campaigns.toggle.useMutation({
-    onSuccess: () => {
-      toast.success("Campaign status toggled");
-      refetchCampaigns();
-      refetchStats();
-    },
+    onError: (err) => toast.error(err.message),
   });
 
   const saveContentMutation = trpc.admin.content.set.useMutation({
@@ -154,6 +359,7 @@ export default function AdminDashboard() {
       toast.success("Store content saved");
       refetchContent();
     },
+    onError: (err) => toast.error(err.message),
   });
 
   const addTelegramAdminMutation = trpc.admin.telegram.addAdmin.useMutation({
@@ -161,6 +367,7 @@ export default function AdminDashboard() {
       toast.success("Telegram Admin added");
       refetchTelegramAdmins();
     },
+    onError: (err) => toast.error(err.message),
   });
 
   const removeTelegramAdminMutation = trpc.admin.telegram.removeAdmin.useMutation({
@@ -168,9 +375,10 @@ export default function AdminDashboard() {
       toast.success("Telegram Admin removed");
       refetchTelegramAdmins();
     },
+    onError: (err) => toast.error(err.message),
   });
 
-  // Redirect if not logged in
+  // Redirect if not logged in as Admin
   if (!userLoading && (!currentUser || (currentUser.role !== "ADMIN" && currentUser.role !== "SUPER_ADMIN"))) {
     return (
       <div className="min-h-screen bg-[#FBF8F0] flex flex-col items-center justify-center p-6 text-center">
@@ -181,10 +389,7 @@ export default function AdminDashboard() {
         <p className="text-sm text-[#6C7167] max-w-sm mb-6 font-sans">
           You must sign in with an authorized TRINAYAA administrator account to view the dashboard.
         </p>
-        <button
-          onClick={() => setLocation("/admin/login")}
-          className="dark-button"
-        >
+        <button onClick={() => setLocation("/admin/login")} className="dark-button">
           Go to Admin Login <ArrowRight size={16} />
         </button>
       </div>
@@ -199,12 +404,14 @@ export default function AdminDashboard() {
   return (
     <div className="min-h-screen bg-[#FBF8F0] text-[#1A2C20] flex font-sans">
       {/* Sidebar */}
-      <aside className="w-64 bg-[#123D28] text-white flex flex-col justify-between shrink-0 hidden md:flex">
+      <aside className="w-64 bg-[#123D28] text-white flex flex-col justify-between shrink-0 hidden md:flex border-r border-[#1F5638]">
         <div>
           <div className="p-5 border-b border-[#1F5638] flex items-center justify-between">
             <div>
               <div className="font-serif text-xl font-bold tracking-wider text-[#FBF8F0]">TRINAYAA</div>
-              <div className="text-[9px] uppercase tracking-widest text-[#E8BF83] font-semibold mt-0.5">Admin Console</div>
+              <div className="text-[9px] uppercase tracking-widest text-[#E8BF83] font-semibold mt-0.5">
+                Admin Console
+              </div>
             </div>
             <a href="/" target="_blank" title="View Storefront" className="text-[#DFE7D7] hover:text-white p-1">
               <ExternalLink size={16} />
@@ -213,19 +420,21 @@ export default function AdminDashboard() {
 
           <nav className="p-3 space-y-1 text-xs font-semibold">
             {[
-              { id: "overview", label: "Dashboard", icon: LayoutDashboard },
-              { id: "products", label: "Products (162)", icon: Package },
-              { id: "categories", label: "Categories", icon: FolderTree },
-              { id: "orders", label: "Orders", icon: ShoppingBag },
-              { id: "customers", label: "Customers", icon: Users },
-              { id: "offers", label: "Festival Offers", icon: Tag },
-              { id: "import", label: "Bulk Import / Export", icon: FileSpreadsheet },
-              { id: "content", label: "Store Content", icon: Settings },
-              { id: "telegram", label: "Telegram Bot", icon: Bot },
+              { id: "overview" as AdminTab, label: "Dashboard", icon: LayoutDashboard },
+              { id: "products" as AdminTab, label: `Products (${products.length})`, icon: Package },
+              { id: "categories" as AdminTab, label: "Categories", icon: FolderTree },
+              { id: "inventory" as AdminTab, label: "Inventory & Stock", icon: Layers },
+              { id: "orders" as AdminTab, label: "Orders", icon: ShoppingBag },
+              { id: "customers" as AdminTab, label: "Customers", icon: Users },
+              { id: "offers" as AdminTab, label: "Festival Offers", icon: Tag },
+              { id: "import" as AdminTab, label: "Bulk Import / Export", icon: FileSpreadsheet },
+              { id: "content" as AdminTab, label: "Store Content", icon: FileText },
+              { id: "settings" as AdminTab, label: "Store Settings", icon: Settings },
+              { id: "telegram" as AdminTab, label: "Telegram Bot", icon: Bot },
             ].map(({ id, label, icon: Icon }) => (
               <button
                 key={id}
-                onClick={() => setActiveTab(id as any)}
+                onClick={() => navigateToTab(id)}
                 className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-lg transition-colors ${
                   activeTab === id
                     ? "bg-[#1F5638] text-[#FBF8F0] shadow-sm font-bold"
@@ -264,7 +473,7 @@ export default function AdminDashboard() {
         <header className="bg-[#FFFDF8] border-b border-[#DEDFD5] px-6 py-4 flex items-center justify-between sticky top-0 z-20">
           <div>
             <h1 className="font-serif text-xl font-bold text-[#123D28] capitalize">
-              {activeTab === "overview" ? "Dashboard Overview" : activeTab}
+              {activeTab === "overview" ? "Dashboard Overview" : activeTab.replace("-", " ")}
             </h1>
             <p className="text-[11px] text-[#6C7167]">
               TRINAYAA Botanical Ecommerce Management System · Pan India
@@ -276,18 +485,16 @@ export default function AdminDashboard() {
                 refetchStats();
                 refetchProducts();
                 refetchOrders();
+                refetchCategories();
+                refetchInventory();
                 toast.success("Refreshed live data");
               }}
               className="p-2 border border-[#DEDFD5] rounded-md text-[#123D28] hover:bg-[#FBF8F0]"
-              title="Refresh"
+              title="Refresh Live Data"
             >
               <RefreshCw size={15} />
             </button>
-            <a
-              href="/"
-              target="_blank"
-              className="dark-button text-xs py-1.5 px-3"
-            >
+            <a href="/" target="_blank" className="dark-button text-xs py-1.5 px-3">
               Customer Storefront <ExternalLink size={13} />
             </a>
           </div>
@@ -300,23 +507,23 @@ export default function AdminDashboard() {
           {/* ========================================== */}
           {activeTab === "overview" && stats && (
             <div className="space-y-6">
-              {/* Metric Cards */}
+              {/* Primary 11 Metric Cards */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                <div className="bg-[#FFFDF8] border border-[#DEDFD5] p-5 rounded-xl shadow-xs">
-                  <div className="flex items-center justify-between text-[#6C7167] mb-2 text-xs font-semibold">
+                <div className="bg-[#FFFDF8] border border-[#DEDFD5] p-4 rounded-xl shadow-xs">
+                  <div className="flex items-center justify-between text-[#6C7167] mb-1.5 text-xs font-semibold">
                     <span>Total Products</span>
-                    <Package size={17} className="text-[#123D28]" />
+                    <Package size={16} className="text-[#123D28]" />
                   </div>
                   <div className="text-2xl font-bold font-serif text-[#123D28]">{stats.totalProducts}</div>
                   <div className="text-[11px] text-[#6C7167] mt-1">
-                    <span className="text-[#1F5638] font-bold">{stats.activeProducts} published</span> · Tamil & English
+                    <span className="text-[#1F5638] font-bold">{stats.activeProducts} published</span> · {stats.draftProducts} drafts
                   </div>
                 </div>
 
-                <div className="bg-[#FFFDF8] border border-[#DEDFD5] p-5 rounded-xl shadow-xs">
-                  <div className="flex items-center justify-between text-[#6C7167] mb-2 text-xs font-semibold">
+                <div className="bg-[#FFFDF8] border border-[#DEDFD5] p-4 rounded-xl shadow-xs">
+                  <div className="flex items-center justify-between text-[#6C7167] mb-1.5 text-xs font-semibold">
                     <span>Verified Revenue</span>
-                    <DollarSign size={17} className="text-[#AE6A2B]" />
+                    <DollarSign size={16} className="text-[#AE6A2B]" />
                   </div>
                   <div className="text-2xl font-bold font-serif text-[#123D28]">
                     ₹{stats.totalRevenue.toLocaleString("en-IN")}
@@ -324,10 +531,10 @@ export default function AdminDashboard() {
                   <div className="text-[11px] text-[#6C7167] mt-1">From verified gateway payments</div>
                 </div>
 
-                <div className="bg-[#FFFDF8] border border-[#DEDFD5] p-5 rounded-xl shadow-xs">
-                  <div className="flex items-center justify-between text-[#6C7167] mb-2 text-xs font-semibold">
+                <div className="bg-[#FFFDF8] border border-[#DEDFD5] p-4 rounded-xl shadow-xs">
+                  <div className="flex items-center justify-between text-[#6C7167] mb-1.5 text-xs font-semibold">
                     <span>Total Orders</span>
-                    <ShoppingBag size={17} className="text-[#123D28]" />
+                    <ShoppingBag size={16} className="text-[#123D28]" />
                   </div>
                   <div className="text-2xl font-bold font-serif text-[#123D28]">{stats.totalOrders}</div>
                   <div className="text-[11px] text-[#6C7167] mt-1">
@@ -335,22 +542,117 @@ export default function AdminDashboard() {
                   </div>
                 </div>
 
-                <div className="bg-[#FFFDF8] border border-[#DEDFD5] p-5 rounded-xl shadow-xs">
-                  <div className="flex items-center justify-between text-[#6C7167] mb-2 text-xs font-semibold">
+                <div className="bg-[#FFFDF8] border border-[#DEDFD5] p-4 rounded-xl shadow-xs">
+                  <div className="flex items-center justify-between text-[#6C7167] mb-1.5 text-xs font-semibold">
                     <span>Low Stock Alerts</span>
-                    <AlertTriangle size={17} className="text-amber-600" />
+                    <AlertTriangle size={16} className="text-amber-600" />
                   </div>
                   <div className="text-2xl font-bold font-serif text-amber-700">{stats.lowStockProducts}</div>
                   <div className="text-[11px] text-[#6C7167] mt-1">Items with stock &lt; 10 units</div>
                 </div>
               </div>
 
+              {/* Secondary Metrics Row */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="bg-[#FFFDF8] border border-[#DEDFD5] p-4 rounded-xl shadow-xs">
+                  <div className="text-[#6C7167] text-xs font-semibold mb-1">Botanical Categories</div>
+                  <div className="text-xl font-bold font-serif text-[#123D28]">{stats.totalCategories}</div>
+                  <div className="text-[11px] text-[#6C7167] mt-1">Tamil & English taxonomies</div>
+                </div>
+                <div className="bg-[#FFFDF8] border border-[#DEDFD5] p-4 rounded-xl shadow-xs">
+                  <div className="text-[#6C7167] text-xs font-semibold mb-1">Registered Customers</div>
+                  <div className="text-xl font-bold font-serif text-[#123D28]">{stats.totalCustomers}</div>
+                  <div className="text-[11px] text-[#6C7167] mt-1">Verified phone & email accounts</div>
+                </div>
+                <div className="bg-[#FFFDF8] border border-[#DEDFD5] p-4 rounded-xl shadow-xs">
+                  <div className="text-[#6C7167] text-xs font-semibold mb-1">Active Festival Campaigns</div>
+                  <div className="text-xl font-bold font-serif text-[#123D28]">{stats.activeCampaigns}</div>
+                  <div className="text-[11px] text-[#6C7167] mt-1">
+                    {stats.activePromotionSummary?.[0]?.name || "No campaign active"}
+                  </div>
+                </div>
+              </div>
+
+              {/* Low Stock Alerts & Recently Updated Products */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                {/* Low Stock Card */}
+                <div className="bg-[#FFFDF8] border border-[#DEDFD5] rounded-xl p-5 shadow-xs">
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="font-serif text-base font-bold text-[#123D28] flex items-center gap-2">
+                      <AlertTriangle size={16} className="text-amber-600" /> Low Stock Warning (&lt;10 Units)
+                    </h3>
+                    <button
+                      onClick={() => navigateToTab("inventory")}
+                      className="text-xs font-bold text-[#123D28] hover:text-[#AE6A2B]"
+                    >
+                      Manage Stock &rarr;
+                    </button>
+                  </div>
+                  {(!stats.lowStockAlerts || stats.lowStockAlerts.length === 0) ? (
+                    <p className="text-xs text-[#6C7167] py-4 text-center">All product stocks are healthy (&gt; 10 units).</p>
+                  ) : (
+                    <div className="space-y-2">
+                      {stats.lowStockAlerts.map((item: any) => (
+                        <div
+                          key={item.id}
+                          className="flex items-center justify-between p-2.5 bg-amber-50/60 border border-amber-200/80 rounded-lg text-xs"
+                        >
+                          <div>
+                            <span className="font-mono font-bold text-[#123D28] mr-2">{item.sku}</span>
+                            <span className="font-semibold text-[#123D28]">{item.nameEn}</span>
+                          </div>
+                          <span className="px-2 py-0.5 rounded font-bold bg-amber-200 text-amber-900">
+                            {item.stock} in stock
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Recently Updated Products */}
+                <div className="bg-[#FFFDF8] border border-[#DEDFD5] rounded-xl p-5 shadow-xs">
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="font-serif text-base font-bold text-[#123D28] flex items-center gap-2">
+                      <Clock size={16} className="text-[#123D28]" /> Recently Updated Botanicals
+                    </h3>
+                    <button
+                      onClick={() => navigateToTab("products")}
+                      className="text-xs font-bold text-[#123D28] hover:text-[#AE6A2B]"
+                    >
+                      View All &rarr;
+                    </button>
+                  </div>
+                  {(!stats.recentlyUpdatedProducts || stats.recentlyUpdatedProducts.length === 0) ? (
+                    <p className="text-xs text-[#6C7167] py-4 text-center">No recent product updates.</p>
+                  ) : (
+                    <div className="space-y-2">
+                      {stats.recentlyUpdatedProducts.map((p: any) => (
+                        <div
+                          key={p.id}
+                          className="flex items-center justify-between p-2 bg-[#FBF8F0]/60 border border-[#DEDFD5] rounded-lg text-xs"
+                        >
+                          <div>
+                            <span className="font-mono font-bold text-[#123D28] mr-2">{p.sku}</span>
+                            <span className="font-semibold">{p.nameEn}</span>
+                          </div>
+                          <div className="text-right">
+                            <span className="font-bold text-[#123D28]">₹{p.price}</span>
+                            <span className="text-[#6C7167] text-[10px] ml-2">({p.stock} units)</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+
               {/* Recent Orders Section */}
               <div className="bg-[#FFFDF8] border border-[#DEDFD5] rounded-xl p-5 shadow-xs">
                 <div className="flex items-center justify-between mb-4">
-                  <h3 className="font-serif text-lg font-bold text-[#123D28]">Recent Orders</h3>
+                  <h3 className="font-serif text-lg font-bold text-[#123D28]">Recent Store Orders</h3>
                   <button
-                    onClick={() => setActiveTab("orders")}
+                    onClick={() => navigateToTab("orders")}
                     className="text-xs font-bold text-[#123D28] hover:text-[#AE6A2B] flex items-center gap-1"
                   >
                     View All Orders <ArrowRight size={13} />
@@ -459,7 +761,10 @@ export default function AdminDashboard() {
 
                 <div className="flex items-center gap-2">
                   <button
-                    onClick={() => setIsAddingProduct(true)}
+                    onClick={() => {
+                      setIsAddingProduct(true);
+                      setLocation("/admin/products/new");
+                    }}
                     className="dark-button text-xs py-2 px-4"
                   >
                     <Plus size={15} /> Add New Product
@@ -488,14 +793,23 @@ export default function AdminDashboard() {
                       {paginatedProducts.map((p: any) => (
                         <tr key={p.id} className="hover:bg-[#FBF8F0]/40">
                           <td className="py-2.5 px-3">
-                            <img
-                              src={p.image}
-                              alt={p.nameEn}
-                              className="w-10 h-10 object-contain rounded border border-[#DEDFD5] bg-white p-0.5"
-                              onError={(e: any) => {
-                                e.target.src = "/images/products/packaged/pouch_001.png";
-                              }}
-                            />
+                            <button
+                              onClick={() => setGalleryProduct(p)}
+                              title="Click to view & manage image gallery"
+                              className="relative group block"
+                            >
+                              <img
+                                src={p.image}
+                                alt={p.nameEn}
+                                className="w-10 h-10 object-contain rounded border border-[#DEDFD5] bg-white p-0.5 group-hover:opacity-80"
+                                onError={(e: any) => {
+                                  e.target.src = "/images/products/packaged/pouch_001.png";
+                                }}
+                              />
+                              <span className="absolute inset-0 flex items-center justify-center bg-black/40 text-white opacity-0 group-hover:opacity-100 rounded text-[9px] font-bold">
+                                Gallery
+                              </span>
+                            </button>
                           </td>
                           <td className="py-2.5 px-3 font-mono font-bold text-[#123D28]">{p.sku}</td>
                           <td className="py-2.5 px-3">
@@ -528,7 +842,9 @@ export default function AdminDashboard() {
                                 }
                               }}
                               className={`w-16 px-1.5 py-1 text-xs border rounded font-bold ${
-                                p.stock < 10
+                                p.stock <= 0
+                                  ? "border-red-400 bg-red-50 text-red-800"
+                                  : p.stock < 10
                                   ? "border-amber-400 bg-amber-50 text-amber-800"
                                   : "border-[#DEDFD5] bg-white"
                               }`}
@@ -539,6 +855,8 @@ export default function AdminDashboard() {
                               className={`inline-block px-2 py-0.5 rounded text-[10px] font-bold ${
                                 p.status === "Published"
                                   ? "bg-emerald-100 text-emerald-800"
+                                  : p.status === "Archived"
+                                  ? "bg-amber-100 text-amber-800"
                                   : "bg-gray-100 text-gray-700"
                               }`}
                             >
@@ -548,6 +866,13 @@ export default function AdminDashboard() {
                           <td className="py-2.5 px-3 text-right">
                             <div className="flex items-center justify-end gap-1.5">
                               <button
+                                onClick={() => setGalleryProduct(p)}
+                                className="p-1 text-[#123D28] hover:bg-[#DFE7D7] rounded"
+                                title="Manage Image Gallery"
+                              >
+                                <ImageIcon size={14} />
+                              </button>
+                              <button
                                 onClick={() => setEditingProduct(p)}
                                 className="p-1 text-[#123D28] hover:bg-[#FBF8F0] rounded"
                                 title="Edit Product"
@@ -556,7 +881,18 @@ export default function AdminDashboard() {
                               </button>
                               <button
                                 onClick={() => {
-                                  if (confirm(`Are you sure you want to delete ${p.nameEn}?`)) {
+                                  if (confirm(`Archive product ${p.nameEn} (${p.sku})? It will be hidden from storefront but preserved in order history.`)) {
+                                    archiveProductMutation.mutate({ id: p.id });
+                                  }
+                                }}
+                                className="p-1 text-amber-700 hover:bg-amber-50 rounded"
+                                title="Archive Product"
+                              >
+                                <Archive size={14} />
+                              </button>
+                              <button
+                                onClick={() => {
+                                  if (confirm(`Are you sure you want to delete ${p.nameEn}? If referenced in orders, it will be automatically archived instead.`)) {
                                     deleteProductMutation.mutate({ id: p.id });
                                   }
                                 }}
@@ -607,21 +943,62 @@ export default function AdminDashboard() {
           {/* ========================================== */}
           {activeTab === "categories" && (
             <div className="space-y-4">
+              <div className="bg-[#FFFDF8] border border-[#DEDFD5] p-4 rounded-xl flex items-center justify-between shadow-xs">
+                <div>
+                  <h3 className="font-serif text-lg font-bold text-[#123D28]">Botanical Category Taxonomies</h3>
+                  <p className="text-xs text-[#6C7167]">
+                    Manage root categories. Categories with active products are protected from accidental deletion.
+                  </p>
+                </div>
+                <button
+                  onClick={() => setIsAddingCategory(true)}
+                  className="dark-button text-xs py-2 px-4"
+                >
+                  <Plus size={15} /> Add New Category
+                </button>
+              </div>
+
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {categories.map((cat: any) => {
                   const count = products.filter((p: any) => p.category === cat.name || p.categoryId === cat.id).length;
                   return (
-                    <div key={cat.id} className="bg-[#FFFDF8] border border-[#DEDFD5] p-5 rounded-xl shadow-xs">
-                      <div className="flex items-center justify-between mb-2">
-                        <h3 className="font-serif text-lg font-bold text-[#123D28]">{cat.name}</h3>
-                        <span className="text-xs bg-[#DFE7D7] text-[#123D28] px-2 py-0.5 rounded font-bold">
-                          {count} products
-                        </span>
+                    <div key={cat.id} className="bg-[#FFFDF8] border border-[#DEDFD5] p-5 rounded-xl shadow-xs flex flex-col justify-between">
+                      <div>
+                        <div className="flex items-center justify-between mb-2">
+                          <div>
+                            <h4 className="font-serif text-lg font-bold text-[#123D28]">{cat.name}</h4>
+                            {cat.tamilName && (
+                              <div className="text-xs text-[#AE6A2B] font-serif">{cat.tamilName}</div>
+                            )}
+                          </div>
+                          <span className="text-xs bg-[#DFE7D7] text-[#123D28] px-2 py-0.5 rounded font-bold">
+                            {count} {count === 1 ? "product" : "products"}
+                          </span>
+                        </div>
+                        <p className="text-xs text-[#6C7167] mb-3">
+                          {cat.description || "Traditional botanical collection from Tamil Nadu."}
+                        </p>
+                        <div className="text-[11px] text-[#6C7167] font-mono mb-4">Slug: /{cat.slug}</div>
                       </div>
-                      <p className="text-xs text-[#6C7167] mb-4">
-                        {cat.description || "Traditional botanical collection from Tamil Nadu."}
-                      </p>
-                      <div className="text-[11px] text-[#6C7167] font-mono">Slug: {cat.slug}</div>
+
+                      <div className="flex items-center justify-end gap-2 pt-3 border-t border-[#DEDFD5]">
+                        <button
+                          onClick={() => setEditingCategory(cat)}
+                          className="px-2.5 py-1 text-xs border border-[#DEDFD5] rounded text-[#123D28] hover:bg-[#FBF8F0] font-semibold"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => {
+                            if (confirm(`Delete category ${cat.name}? Note: Categories containing active products cannot be deleted.`)) {
+                              deleteCategoryMutation.mutate({ id: cat.id });
+                            }
+                          }}
+                          className="px-2.5 py-1 text-xs border border-red-200 text-red-600 rounded hover:bg-red-50 font-semibold"
+                        >
+                          Delete
+                        </button>
+                      </div>
                     </div>
                   );
                 })}
@@ -630,11 +1007,132 @@ export default function AdminDashboard() {
           )}
 
           {/* ========================================== */}
-          {/* 4. ORDERS MANAGEMENT */}
+          {/* 4. INVENTORY & STOCK MANAGEMENT */}
+          {/* ========================================== */}
+          {activeTab === "inventory" && (
+            <div className="space-y-4">
+              {/* Header & Filters */}
+              <div className="bg-[#FFFDF8] border border-[#DEDFD5] p-4 rounded-xl flex flex-wrap items-center justify-between gap-3 shadow-xs">
+                <div className="flex items-center gap-3 flex-1 min-w-[280px]">
+                  <div className="relative flex-1">
+                    <Search className="absolute left-3 top-2.5 text-[#6C7167]" size={15} />
+                    <input
+                      type="text"
+                      placeholder="Search inventory by SKU, product name..."
+                      value={inventorySearch}
+                      onChange={(e) => setInventorySearch(e.target.value)}
+                      className="w-full pl-9 pr-3 py-2 text-xs bg-[#FBF8F0] border border-[#DEDFD5] rounded-md focus:outline-none focus:border-[#123D28]"
+                    />
+                  </div>
+                  <div className="flex gap-1.5">
+                    {(["all", "low_stock", "out_of_stock"] as const).map((filter) => (
+                      <button
+                        key={filter}
+                        onClick={() => setInventoryStockFilter(filter)}
+                        className={`text-xs px-3 py-2 rounded-md font-semibold transition-colors ${
+                          inventoryStockFilter === filter
+                            ? "bg-[#123D28] text-white"
+                            : "bg-[#FBF8F0] border border-[#DEDFD5] text-[#123D28] hover:bg-white"
+                        }`}
+                      >
+                        {filter === "all" ? "All Items" : filter === "low_stock" ? "Low Stock (<10)" : "Out of Stock (0)"}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Inventory Table */}
+              <div className="bg-[#FFFDF8] border border-[#DEDFD5] rounded-xl shadow-xs overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs border-collapse">
+                    <thead className="bg-[#FBF8F0] border-b border-[#DEDFD5] text-[#6C7167] font-semibold">
+                      <tr>
+                        <th className="py-3 px-3">SKU</th>
+                        <th className="py-3 px-3">Botanical Product</th>
+                        <th className="py-3 px-3">Category</th>
+                        <th className="py-3 px-3">Selling Price</th>
+                        <th className="py-3 px-3">Stock Units</th>
+                        <th className="py-3 px-3">Inventory Status</th>
+                        <th className="py-3 px-3 text-right">Adjust Stock</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-[#DEDFD5]">
+                      {(inventoryData || []).map((item: any) => (
+                        <tr key={item.id} className="hover:bg-[#FBF8F0]/40">
+                          <td className="py-2.5 px-3 font-mono font-bold text-[#123D28]">{item.sku}</td>
+                          <td className="py-2.5 px-3 font-bold text-[#123D28]">{item.nameEn}</td>
+                          <td className="py-2.5 px-3 text-[#6C7167]">{item.category}</td>
+                          <td className="py-2.5 px-3 font-semibold">₹{item.price}</td>
+                          <td className="py-2.5 px-3 font-mono font-bold text-sm">{item.stock}</td>
+                          <td className="py-2.5 px-3">
+                            {item.stock <= 0 ? (
+                              <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-red-100 text-red-800">
+                                Out of Stock
+                              </span>
+                            ) : item.stock < 10 ? (
+                              <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800">
+                                Low Stock ({item.stock})
+                              </span>
+                            ) : (
+                              <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800">
+                                Healthy ({item.stock})
+                              </span>
+                            )}
+                          </td>
+                          <td className="py-2.5 px-3 text-right">
+                            <button
+                              onClick={() => setInventoryAdjustProduct(item)}
+                              className="px-2.5 py-1 bg-[#123D28] text-white rounded text-[11px] font-semibold hover:bg-[#1F5638]"
+                            >
+                              Update Stock
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* Audit Log Section */}
+              <div className="bg-[#FFFDF8] border border-[#DEDFD5] rounded-xl p-5 shadow-xs">
+                <h3 className="font-serif text-base font-bold text-[#123D28] mb-3 flex items-center gap-2">
+                  <Clock size={16} /> Stock & Inventory Change Audit Trail
+                </h3>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs border-collapse">
+                    <thead className="border-b border-[#DEDFD5] text-[#6C7167]">
+                      <tr>
+                        <th className="py-2 px-2">Timestamp</th>
+                        <th className="py-2 px-2">Admin User</th>
+                        <th className="py-2 px-2">Action / Target</th>
+                        <th className="py-2 px-2">Adjustment Reason / Details</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-[#DEDFD5]">
+                      {auditLogs.map((log: any) => (
+                        <tr key={log.id}>
+                          <td className="py-2 px-2 text-[#6C7167] whitespace-nowrap">
+                            {new Date(log.createdAt).toLocaleString()}
+                          </td>
+                          <td className="py-2 px-2 font-semibold text-[#123D28]">{log.adminEmail || log.userId}</td>
+                          <td className="py-2 px-2 font-mono font-bold text-xs">{log.action}</td>
+                          <td className="py-2 px-2 text-[#6C7167]">{log.details || log.reason || "—"}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ========================================== */}
+          {/* 5. ORDERS MANAGEMENT */}
           {/* ========================================== */}
           {activeTab === "orders" && (
             <div className="space-y-4">
-              {/* Filter */}
               <div className="bg-[#FFFDF8] border border-[#DEDFD5] p-4 rounded-xl flex flex-wrap items-center gap-3 shadow-xs">
                 <div className="relative flex-1 min-w-[240px]">
                   <Search className="absolute left-3 top-2.5 text-[#6C7167]" size={15} />
@@ -662,7 +1160,6 @@ export default function AdminDashboard() {
                 </select>
               </div>
 
-              {/* Orders Table */}
               <div className="bg-[#FFFDF8] border border-[#DEDFD5] rounded-xl shadow-xs overflow-hidden">
                 <div className="overflow-x-auto">
                   <table className="w-full text-left text-xs border-collapse">
@@ -741,7 +1238,7 @@ export default function AdminDashboard() {
           )}
 
           {/* ========================================== */}
-          {/* 5. CUSTOMERS */}
+          {/* 6. CUSTOMERS */}
           {/* ========================================== */}
           {activeTab === "customers" && (
             <div className="bg-[#FFFDF8] border border-[#DEDFD5] rounded-xl shadow-xs overflow-hidden">
@@ -778,12 +1275,24 @@ export default function AdminDashboard() {
           )}
 
           {/* ========================================== */}
-          {/* 6. FESTIVAL OFFERS & CAMPAIGNS */}
+          {/* 7. FESTIVAL OFFERS & CAMPAIGNS */}
           {/* ========================================== */}
           {activeTab === "offers" && (
             <div className="space-y-4">
               <div className="bg-[#FFFDF8] border border-[#DEDFD5] p-5 rounded-xl shadow-xs">
-                <h3 className="font-serif text-lg font-bold text-[#123D28] mb-4">Festival Promotions & Coupons</h3>
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <h3 className="font-serif text-lg font-bold text-[#123D28]">Festival Promotions & Coupons</h3>
+                    <p className="text-xs text-[#6C7167]">Create coupon codes with percentage or fixed discounts and minimum cart caps.</p>
+                  </div>
+                  <button
+                    onClick={() => setIsAddingCampaign(true)}
+                    className="dark-button text-xs py-2 px-4"
+                  >
+                    <Plus size={15} /> Create Offer Campaign
+                  </button>
+                </div>
+
                 <div className="space-y-3">
                   {campaigns.map((camp: any) => (
                     <div
@@ -800,6 +1309,11 @@ export default function AdminDashboard() {
                         <p className="text-xs text-[#6C7167] mt-1">
                           {camp.discountType === "PERCENTAGE" ? `${camp.discountValue}% OFF` : `₹${camp.discountValue} OFF`} on orders above ₹{camp.minOrderValue} (Max cap: ₹{camp.maxDiscount})
                         </p>
+                        {camp.bannerText && (
+                          <div className="text-[11px] text-[#AE6A2B] font-semibold mt-1">
+                            Banner: "{camp.bannerText}"
+                          </div>
+                        )}
                         <div className="text-[10px] text-[#6C7167] mt-1">
                           Valid: {new Date(camp.startDate).toLocaleDateString()} to {new Date(camp.endDate).toLocaleDateString()}
                         </div>
@@ -825,62 +1339,239 @@ export default function AdminDashboard() {
           )}
 
           {/* ========================================== */}
-          {/* 7. BULK IMPORT / EXPORT */}
+          {/* 8. BULK IMPORT / EXPORT */}
           {/* ========================================== */}
           {activeTab === "import" && (
-            <div className="bg-[#FFFDF8] border border-[#DEDFD5] p-6 rounded-xl shadow-xs space-y-4">
-              <h3 className="font-serif text-lg font-bold text-[#123D28]">Catalogue Bulk Import & Export</h3>
-              <p className="text-xs text-[#6C7167]">
-                Import actual product records from CSV/Excel or export the live 162-item botanical catalogue.
-              </p>
+            <div className="space-y-6">
+              <div className="bg-[#FFFDF8] border border-[#DEDFD5] p-6 rounded-xl shadow-xs space-y-4">
+                <h3 className="font-serif text-lg font-bold text-[#123D28]">Catalogue Bulk Import & Export</h3>
+                <p className="text-xs text-[#6C7167]">
+                  Export the verified botanical catalogue of 162 items as CSV, or bulk import updates with duplicate SKU checks.
+                </p>
 
-              <div className="flex flex-wrap gap-3 pt-2">
-                <button
-                  onClick={() => {
-                    const csvContent =
-                      "data:text/csv;charset=utf-8," +
-                      "SKU,Name (English),Name (Tamil),Category,Price,MRP,Stock\n" +
-                      products.map((p: any) => `"${p.sku}","${p.nameEn}","${p.nameTa}","${p.category}",${p.price},${p.compareAt || p.price},${p.stock}`).join("\n");
-                    const encodedUri = encodeURI(csvContent);
-                    const link = document.createElement("a");
-                    link.setAttribute("href", encodedUri);
-                    link.setAttribute("download", `trinayaa_catalogue_${Date.now()}.csv`);
-                    document.body.appendChild(link);
-                    link.click();
-                    document.body.removeChild(link);
-                    toast.success("Catalogue exported successfully");
+                <div className="flex flex-wrap gap-3 pt-2">
+                  <button
+                    onClick={() => {
+                      const csvContent =
+                        "data:text/csv;charset=utf-8," +
+                        "SKU,Name (English),Name (Tamil),Category,Price,MRP,Stock,Status\n" +
+                        products
+                          .map(
+                            (p: any) =>
+                              `"${p.sku}","${p.nameEn}","${p.nameTa || ""}","${p.category}",${p.price},${p.compareAt || p.price},${p.stock},"${p.status}"`
+                          )
+                          .join("\n");
+                      const encodedUri = encodeURI(csvContent);
+                      const link = document.createElement("a");
+                      link.setAttribute("href", encodedUri);
+                      link.setAttribute("download", `trinayaa_catalogue_${Date.now()}.csv`);
+                      document.body.appendChild(link);
+                      link.click();
+                      document.body.removeChild(link);
+                      toast.success("Catalogue exported to CSV");
+                    }}
+                    className="dark-button text-xs"
+                  >
+                    <FileSpreadsheet size={15} /> Export Catalogue CSV (162 Items)
+                  </button>
+                </div>
+              </div>
+
+              {/* Bulk Import Form */}
+              <div className="bg-[#FFFDF8] border border-[#DEDFD5] p-6 rounded-xl shadow-xs space-y-4">
+                <h4 className="font-serif text-base font-bold text-[#123D28]">Bulk CSV / JSON Product Importer</h4>
+                <p className="text-xs text-[#6C7167]">
+                  Upload a CSV file or paste CSV/JSON rows. Required columns: SKU, Name (English), Category, Price.
+                </p>
+
+                <form
+                  onSubmit={(e: any) => {
+                    e.preventDefault();
+                    const text = e.target.csvText.value.trim();
+                    if (!text) {
+                      toast.error("Please enter CSV or JSON text");
+                      return;
+                    }
+
+                    try {
+                      let rows: any[] = [];
+                      if (text.startsWith("[") && text.endsWith("]")) {
+                        rows = JSON.parse(text);
+                      } else {
+                        // Simple CSV parser
+                        const lines = text.split("\n").map((l: string) => l.trim()).filter(Boolean);
+                        const headerLine = lines[0];
+                        const headers = headerLine.split(",").map((h: string) => h.replace(/^["']|["']$/g, "").trim().toLowerCase());
+                        
+                        for (let i = 1; i < lines.length; i++) {
+                          const parts = lines[i].split(",").map((p: string) => p.replace(/^["']|["']$/g, "").trim());
+                          const row: any = {};
+                          headers.forEach((h: string, idx: number) => {
+                            if (h.includes("sku")) row.sku = parts[idx];
+                            else if (h.includes("english") || h === "name") row.nameEn = parts[idx];
+                            else if (h.includes("tamil")) row.nameTa = parts[idx];
+                            else if (h.includes("category")) row.category = parts[idx];
+                            else if (h.includes("price") && !h.includes("mrp")) row.sellingPrice = parseFloat(parts[idx]);
+                            else if (h.includes("mrp") || h.includes("compare")) row.mrp = parseFloat(parts[idx]);
+                            else if (h.includes("stock")) row.stock = parseInt(parts[idx], 10);
+                          });
+                          rows.push(row);
+                        }
+                      }
+
+                      bulkImportMutation.mutate(rows);
+                    } catch (err: any) {
+                      toast.error(`Parser error: ${err.message}`);
+                    }
                   }}
-                  className="dark-button text-xs"
+                  className="space-y-3"
                 >
-                  <FileSpreadsheet size={15} /> Export Catalogue CSV
-                </button>
+                  <textarea
+                    name="csvText"
+                    rows={6}
+                    placeholder={`SKU,Name (English),Name (Tamil),Category,Price,MRP,Stock\nTRN-9001,"Organic Tulsi Powder","துளசி பொடி","Herbs",180,220,100`}
+                    className="w-full p-3 font-mono text-xs border border-[#DEDFD5] rounded-md bg-[#FBF8F0]"
+                  />
+                  <div className="flex justify-end">
+                    <button type="submit" className="dark-button text-xs py-2 px-4">
+                      <Upload size={14} /> Validate & Process Import
+                    </button>
+                  </div>
+                </form>
+
+                {importSummary && (
+                  <div className="p-4 bg-[#FBF8F0] border border-[#DEDFD5] rounded-lg text-xs space-y-2">
+                    <div className="font-bold text-[#123D28]">Import Results:</div>
+                    <div>Total items: {importSummary.total}</div>
+                    <div className="text-emerald-700 font-semibold">Successfully processed: {importSummary.successCount}</div>
+                    {importSummary.errors?.length > 0 && (
+                      <div className="text-red-700 font-semibold">
+                        Errors ({importSummary.errors.length}):
+                        <ul className="list-disc pl-4 font-normal mt-1 text-[11px]">
+                          {importSummary.errors.map((e: any, i: number) => (
+                            <li key={i}>
+                              Row {e.index + 1}: {e.sku ? `[${e.sku}] ` : ""}{e.error}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           )}
 
           {/* ========================================== */}
-          {/* 8. STORE CONTENT */}
+          {/* 9. STORE CONTENT & POLICIES */}
           {/* ========================================== */}
           {activeTab === "content" && (
-            <div className="bg-[#FFFDF8] border border-[#DEDFD5] p-6 rounded-xl shadow-xs space-y-4 max-w-2xl">
-              <h3 className="font-serif text-lg font-bold text-[#123D28]">Website Promotional Banners</h3>
-              <div className="space-y-4 text-xs">
+            <div className="bg-[#FFFDF8] border border-[#DEDFD5] p-6 rounded-xl shadow-xs space-y-6 max-w-3xl">
+              <div>
+                <h3 className="font-serif text-lg font-bold text-[#123D28]">Website Content Management</h3>
+                <p className="text-xs text-[#6C7167]">
+                  Manage customer-facing announcements, brand heritage stories, policy pages, and contact information.
+                </p>
+              </div>
+
+              {/* Banners */}
+              <div className="space-y-3 border-b border-[#DEDFD5] pb-5">
+                <h4 className="font-serif text-sm font-bold text-[#123D28]">Announcement Banners</h4>
                 <div>
-                  <label className="block font-semibold mb-1">Top Announcement Banner</label>
+                  <label className="block text-xs font-semibold mb-1">Top Announcement Bar Text</label>
                   <input
                     type="text"
                     defaultValue={content.top_banner || "Pan India Delivery · Pure Herbs, Natural Seeds & Raw Powders"}
                     onBlur={(e) => saveContentMutation.mutate({ key: "top_banner", value: e.target.value })}
-                    className="w-full px-3 py-2 border border-[#DEDFD5] rounded bg-[#FBF8F0]"
+                    className="w-full px-3 py-2 text-xs border border-[#DEDFD5] rounded bg-[#FBF8F0]"
                   />
                 </div>
                 <div>
-                  <label className="block font-semibold mb-1">Mid-page Promotion Headline</label>
+                  <label className="block text-xs font-semibold mb-1">Mid-Page Promotional Tagline</label>
                   <input
                     type="text"
-                    defaultValue={content.promo_banner || "Free delivery on orders above ₹799"}
+                    defaultValue={content.promo_banner || "Free delivery on orders above ₹799 · Direct from Tamil Nadu"}
                     onBlur={(e) => saveContentMutation.mutate({ key: "promo_banner", value: e.target.value })}
-                    className="w-full px-3 py-2 border border-[#DEDFD5] rounded bg-[#FBF8F0]"
+                    className="w-full px-3 py-2 text-xs border border-[#DEDFD5] rounded bg-[#FBF8F0]"
+                  />
+                </div>
+              </div>
+
+              {/* Story */}
+              <div className="space-y-3 border-b border-[#DEDFD5] pb-5">
+                <h4 className="font-serif text-sm font-bold text-[#123D28]">About TRINAYAA (Brand Heritage Story)</h4>
+                <div>
+                  <textarea
+                    rows={4}
+                    defaultValue={content.about_story || "TRINAYAA is dedicated to preserving ancient botanical wisdom from Tamil Nadu. We work directly with certified tribal gatherers and organic growers to provide authentic natural powders, raw seeds, and herbs."}
+                    onBlur={(e) => saveContentMutation.mutate({ key: "about_story", value: e.target.value })}
+                    className="w-full px-3 py-2 text-xs border border-[#DEDFD5] rounded bg-[#FBF8F0]"
+                  />
+                </div>
+              </div>
+
+              {/* Contact Information */}
+              <div className="space-y-3 border-b border-[#DEDFD5] pb-5">
+                <h4 className="font-serif text-sm font-bold text-[#123D28]">Store Contact Details</h4>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-semibold mb-1">Support Email</label>
+                    <input
+                      type="email"
+                      defaultValue={content.contact_email || "support@trinayaa.in"}
+                      onBlur={(e) => saveContentMutation.mutate({ key: "contact_email", value: e.target.value })}
+                      className="w-full px-3 py-2 text-xs border border-[#DEDFD5] rounded bg-[#FBF8F0]"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold mb-1">Customer Care Phone</label>
+                    <input
+                      type="text"
+                      defaultValue={content.contact_phone || "+91 98765 43210"}
+                      onBlur={(e) => saveContentMutation.mutate({ key: "contact_phone", value: e.target.value })}
+                      className="w-full px-3 py-2 text-xs border border-[#DEDFD5] rounded bg-[#FBF8F0]"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold mb-1">WhatsApp Business</label>
+                    <input
+                      type="text"
+                      defaultValue={content.contact_whatsapp || "+91 98765 43210"}
+                      onBlur={(e) => saveContentMutation.mutate({ key: "contact_whatsapp", value: e.target.value })}
+                      className="w-full px-3 py-2 text-xs border border-[#DEDFD5] rounded bg-[#FBF8F0]"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold mb-1">Instagram URL</label>
+                    <input
+                      type="text"
+                      defaultValue={content.social_instagram || "https://instagram.com/trinayaa_botanicals"}
+                      onBlur={(e) => saveContentMutation.mutate({ key: "social_instagram", value: e.target.value })}
+                      className="w-full px-3 py-2 text-xs border border-[#DEDFD5] rounded bg-[#FBF8F0]"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Policies */}
+              <div className="space-y-3">
+                <h4 className="font-serif text-sm font-bold text-[#123D28]">Customer Policy Documents</h4>
+                <div>
+                  <label className="block text-xs font-semibold mb-1">Shipping & Delivery Policy</label>
+                  <textarea
+                    rows={2}
+                    defaultValue={content.policy_shipping || "Orders dispatched within 24-48 hours. Express delivery across Tamil Nadu in 2-3 business days and Pan-India in 4-6 business days."}
+                    onBlur={(e) => saveContentMutation.mutate({ key: "policy_shipping", value: e.target.value })}
+                    className="w-full px-3 py-2 text-xs border border-[#DEDFD5] rounded bg-[#FBF8F0]"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold mb-1">Returns & Refund Policy</label>
+                  <textarea
+                    rows={2}
+                    defaultValue={content.policy_returns || "Due to the hygienic nature of botanical herbs and raw powders, returns are accepted within 7 days only for damaged or incorrect deliveries."}
+                    onBlur={(e) => saveContentMutation.mutate({ key: "policy_returns", value: e.target.value })}
+                    className="w-full px-3 py-2 text-xs border border-[#DEDFD5] rounded bg-[#FBF8F0]"
                   />
                 </div>
               </div>
@@ -888,7 +1579,45 @@ export default function AdminDashboard() {
           )}
 
           {/* ========================================== */}
-          {/* 9. TELEGRAM BOT MANAGEMENT */}
+          {/* 10. SETTINGS */}
+          {/* ========================================== */}
+          {activeTab === "settings" && (
+            <div className="bg-[#FFFDF8] border border-[#DEDFD5] p-6 rounded-xl shadow-xs space-y-4 max-w-xl">
+              <h3 className="font-serif text-lg font-bold text-[#123D28]">Store Configuration Settings</h3>
+              <div className="space-y-3 text-xs">
+                <div>
+                  <label className="block font-semibold mb-1">Store Currency</label>
+                  <input
+                    type="text"
+                    disabled
+                    value="INR (₹) · Indian Rupee"
+                    className="w-full px-3 py-2 border border-[#DEDFD5] rounded bg-gray-100 text-[#6C7167]"
+                  />
+                </div>
+                <div>
+                  <label className="block font-semibold mb-1">Free Delivery Threshold (₹)</label>
+                  <input
+                    type="number"
+                    defaultValue={799}
+                    className="w-full px-3 py-2 border border-[#DEDFD5] rounded bg-[#FBF8F0]"
+                  />
+                </div>
+                <div>
+                  <label className="block font-semibold mb-1">Low-Stock Alert Trigger Threshold</label>
+                  <input
+                    type="number"
+                    defaultValue={10}
+                    disabled
+                    className="w-full px-3 py-2 border border-[#DEDFD5] rounded bg-gray-100 text-[#6C7167]"
+                  />
+                  <span className="text-[10px] text-[#6C7167]">Triggered whenever stock falls to 10 or below.</span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ========================================== */}
+          {/* 11. TELEGRAM BOT MANAGEMENT */}
           {/* ========================================== */}
           {activeTab === "telegram" && (
             <div className="space-y-6">
@@ -923,7 +1652,6 @@ export default function AdminDashboard() {
                   ))}
                 </div>
 
-                {/* Add Telegram Admin Form */}
                 <form
                   onSubmit={(e: any) => {
                     e.preventDefault();
@@ -954,39 +1682,16 @@ export default function AdminDashboard() {
                   </button>
                 </form>
               </div>
-
-              {/* Telegram Audit Logs */}
-              <div className="bg-[#FFFDF8] border border-[#DEDFD5] p-5 rounded-xl shadow-xs">
-                <h3 className="font-serif text-lg font-bold text-[#123D28] mb-3">Audit Logs</h3>
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left text-xs border-collapse">
-                    <thead className="border-b border-[#DEDFD5] text-[#6C7167]">
-                      <tr>
-                        <th className="py-2 px-2">Time</th>
-                        <th className="py-2 px-2">Telegram User ID</th>
-                        <th className="py-2 px-2">Action / Command</th>
-                        <th className="py-2 px-2">Details</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-[#DEDFD5]">
-                      {auditLogs.map((log: any) => (
-                        <tr key={log.id}>
-                          <td className="py-2 px-2 text-[#6C7167]">{new Date(log.createdAt).toLocaleString()}</td>
-                          <td className="py-2 px-2 font-mono font-bold">{log.telegramUserId}</td>
-                          <td className="py-2 px-2 font-semibold text-[#123D28]">{log.command}</td>
-                          <td className="py-2 px-2 text-[#6C7167]">{log.details || "—"}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
             </div>
           )}
         </main>
       </div>
 
-      {/* Order Detail Modal */}
+      {/* ========================================================= */}
+      {/* MODALS */}
+      {/* ========================================================= */}
+
+      {/* 1. Order Detail Modal */}
       {selectedOrder && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
           <div className="bg-[#FFFDF8] border border-[#DEDFD5] rounded-xl max-w-xl w-full max-h-[90vh] overflow-y-auto p-6 shadow-xl">
@@ -1058,25 +1763,12 @@ export default function AdminDashboard() {
                   <option value="Cancelled">Cancelled</option>
                 </select>
               </div>
-
-              <div>
-                <span className="font-bold text-[#123D28] block mb-2">Timestamped Lifecycle History:</span>
-                <div className="space-y-1.5 border-l-2 border-[#123D28] pl-3 py-1">
-                  {selectedOrder.history?.map((h: any) => (
-                    <div key={h.id} className="text-[11px]">
-                      <span className="font-bold text-[#123D28]">{h.status}</span>
-                      <span className="text-[#6C7167] ml-2">({new Date(h.createdAt).toLocaleString()})</span>
-                      <div className="text-[#6C7167] text-[10px]">{h.note} · by {h.updatedBy}</div>
-                    </div>
-                  ))}
-                </div>
-              </div>
             </div>
           </div>
         </div>
       )}
 
-      {/* Edit / Add Product Modal */}
+      {/* 2. Edit / Add Product Modal */}
       {(editingProduct || isAddingProduct) && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
           <div className="bg-[#FFFDF8] border border-[#DEDFD5] rounded-xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-6 shadow-xl">
@@ -1099,38 +1791,31 @@ export default function AdminDashboard() {
               onSubmit={(e: any) => {
                 e.preventDefault();
                 const form = e.target;
+                const sellingPrice = parseFloat(form.sellingPrice.value);
+                const mrp = parseFloat(form.mrp.value);
+
+                if (mrp < sellingPrice) {
+                  toast.error("MRP must be greater than or equal to Selling Price");
+                  return;
+                }
+
                 const data = {
-                  sku: form.sku.value,
-                  nameEn: form.nameEn.value,
-                  nameTa: form.nameTa.value,
+                  sku: form.sku.value.trim(),
+                  nameEn: form.nameEn.value.trim(),
+                  nameTa: form.nameTa.value.trim(),
                   category: form.category.value,
-                  sellingPrice: parseFloat(form.sellingPrice.value),
-                  mrp: parseFloat(form.mrp.value),
+                  sellingPrice,
+                  mrp,
                   stock: parseInt(form.stock.value, 10),
                   status: form.status.value,
-                  shortDesc: form.shortDesc.value,
-                  primaryImage: form.primaryImage.value,
+                  shortDesc: form.shortDesc.value.trim(),
+                  primaryImage: form.primaryImage.value.trim(),
                 };
 
                 if (editingProduct) {
-                  trpc.admin.products.update.useMutation().mutate(
-                    { id: editingProduct.id, updates: data },
-                    {
-                      onSuccess: () => {
-                        toast.success("Product updated");
-                        setEditingProduct(null);
-                        refetchProducts();
-                      },
-                    }
-                  );
+                  updateProductMutation.mutate({ id: editingProduct.id, updates: data });
                 } else {
-                  trpc.admin.products.create.useMutation().mutate(data, {
-                    onSuccess: () => {
-                      toast.success("Product created");
-                      setIsAddingProduct(false);
-                      refetchProducts();
-                    },
-                  });
+                  createProductMutation.mutate(data);
                 }
               }}
               className="space-y-3 text-xs"
@@ -1149,7 +1834,7 @@ export default function AdminDashboard() {
                   <label className="block font-semibold mb-1">Category</label>
                   <select
                     name="category"
-                    defaultValue={editingProduct?.category || "Herbs"}
+                    defaultValue={editingProduct?.category || categories[0]?.name || "Herbs"}
                     className="w-full px-2.5 py-1.5 border rounded bg-[#FBF8F0]"
                   >
                     {categories.map((c: any) => (
@@ -1186,6 +1871,7 @@ export default function AdminDashboard() {
                   <input
                     name="sellingPrice"
                     type="number"
+                    step="0.01"
                     required
                     defaultValue={editingProduct?.price || 150}
                     className="w-full px-2.5 py-1.5 border rounded bg-[#FBF8F0]"
@@ -1196,6 +1882,7 @@ export default function AdminDashboard() {
                   <input
                     name="mrp"
                     type="number"
+                    step="0.01"
                     required
                     defaultValue={editingProduct?.compareAt || editingProduct?.price || 180}
                     className="w-full px-2.5 py-1.5 border rounded bg-[#FBF8F0]"
@@ -1225,11 +1912,15 @@ export default function AdminDashboard() {
                     <Upload size={14} />
                     <input
                       type="file"
-                      accept="image/*"
+                      accept="image/png,image/jpeg,image/webp"
                       className="hidden"
                       onChange={async (e) => {
                         const file = e.target.files?.[0];
                         if (!file) return;
+                        if (file.size > 10 * 1024 * 1024) {
+                          toast.error("File exceeds 10MB limit");
+                          return;
+                        }
                         const reader = new FileReader();
                         reader.onload = async () => {
                           const base64 = reader.result as string;
@@ -1301,7 +1992,463 @@ export default function AdminDashboard() {
           </div>
         </div>
       )}
+
+      {/* 3. Product Image Gallery Modal */}
+      {galleryProduct && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-[#FFFDF8] border border-[#DEDFD5] rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6 shadow-xl space-y-4">
+            <div className="flex items-center justify-between border-b border-[#DEDFD5] pb-3">
+              <div>
+                <span className="text-[10px] uppercase font-bold tracking-wider text-[#AE6A2B]">Image Gallery</span>
+                <h3 className="font-serif text-xl font-bold text-[#123D28]">{galleryProduct.nameEn} ({galleryProduct.sku})</h3>
+              </div>
+              <button onClick={() => setGalleryProduct(null)} className="text-[#6C7167] hover:text-[#123D28]">
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Existing Images */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              {galleryImages.map((img: any) => (
+                <div
+                  key={img.id}
+                  className={`border rounded-lg p-2 bg-white relative flex flex-col justify-between ${
+                    img.isPrimary ? "border-[#123D28] ring-2 ring-[#123D28]/20" : "border-[#DEDFD5]"
+                  }`}
+                >
+                  <div className="aspect-square bg-[#FBF8F0] rounded overflow-hidden mb-2 relative">
+                    <img
+                      src={img.url}
+                      alt={img.altText || galleryProduct.nameEn}
+                      className="w-full h-full object-contain"
+                    />
+                    {img.isPrimary ? (
+                      <span className="absolute top-1 left-1 bg-[#123D28] text-white text-[9px] font-bold px-1.5 py-0.5 rounded">
+                        Cover
+                      </span>
+                    ) : null}
+                  </div>
+
+                  <div className="space-y-1.5 text-xs">
+                    <input
+                      type="text"
+                      placeholder="Alt text..."
+                      defaultValue={img.altText || ""}
+                      onBlur={(e) => updateImageAltMutation.mutate({ imageId: img.id, altText: e.target.value })}
+                      className="w-full text-[11px] px-1.5 py-0.5 border rounded bg-[#FBF8F0]"
+                    />
+                    <div className="flex items-center justify-between pt-1">
+                      {!img.isPrimary ? (
+                        <button
+                          onClick={() => setPrimaryImageMutation.mutate({ imageId: img.id, productId: galleryProduct.id })}
+                          className="text-[10px] font-bold text-[#123D28] hover:underline"
+                        >
+                          Set Cover
+                        </button>
+                      ) : (
+                        <span className="text-[10px] text-[#123D28] font-bold">Primary</span>
+                      )}
+                      <button
+                        onClick={() => removeImageMutation.mutate({ productId: galleryProduct.id, imageId: img.id })}
+                        className="text-[10px] text-red-600 hover:text-red-800 font-semibold"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Add New Image to Gallery */}
+            <div className="pt-3 border-t border-[#DEDFD5]">
+              <h4 className="font-serif text-sm font-bold text-[#123D28] mb-2">Upload Additional Gallery Image</h4>
+              <label className="dark-button text-xs py-2 px-4 cursor-pointer inline-flex items-center gap-2">
+                <Upload size={14} /> Upload Image (PNG, JPG, WebP)
+                <input
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp"
+                  className="hidden"
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    if (file.size > 10 * 1024 * 1024) {
+                      toast.error("File exceeds 10MB limit");
+                      return;
+                    }
+                    const reader = new FileReader();
+                    reader.onload = async () => {
+                      const base64 = reader.result as string;
+                      try {
+                        const res = await fetch("/api/upload", {
+                          method: "POST",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({
+                            fileName: file.name,
+                            fileData: base64,
+                            mimeType: file.type,
+                          }),
+                        });
+                        const data = await res.json();
+                        if (data.url) {
+                          addImageMutation.mutate({
+                            productId: galleryProduct.id,
+                            url: data.url,
+                            altText: galleryProduct.nameEn,
+                            isPrimary: galleryImages.length === 0,
+                          });
+                        }
+                      } catch {
+                        toast.error("Upload failed");
+                      }
+                    };
+                    reader.readAsDataURL(file);
+                  }}
+                />
+              </label>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 4. Category Modal */}
+      {(isAddingCategory || editingCategory) && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-[#FFFDF8] border border-[#DEDFD5] rounded-xl max-w-md w-full p-6 shadow-xl">
+            <div className="flex items-center justify-between border-b border-[#DEDFD5] pb-3 mb-4">
+              <h3 className="font-serif text-lg font-bold text-[#123D28]">
+                {editingCategory ? `Edit Category: ${editingCategory.name}` : "Create New Category"}
+              </h3>
+              <button
+                onClick={() => {
+                  setIsAddingCategory(false);
+                  setEditingCategory(null);
+                }}
+                className="text-[#6C7167] hover:text-[#123D28]"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <form
+              onSubmit={(e: any) => {
+                e.preventDefault();
+                const form = e.target;
+                const name = form.name.value.trim();
+                const tamilName = form.tamilName.value.trim();
+                const slug = form.slug.value.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-");
+                const description = form.description.value.trim();
+
+                if (editingCategory) {
+                  updateCategoryMutation.mutate({
+                    id: editingCategory.id,
+                    updates: {
+                      name,
+                      slug,
+                      description,
+                    },
+                  });
+                } else {
+                  createCategoryMutation.mutate({
+                    name,
+                    slug,
+                    description,
+                  });
+                }
+              }}
+              className="space-y-3 text-xs"
+            >
+              <div>
+                <label className="block font-semibold mb-1">Category Name (English)</label>
+                <input
+                  name="name"
+                  required
+                  defaultValue={editingCategory?.name || ""}
+                  className="w-full px-3 py-2 border rounded bg-[#FBF8F0]"
+                />
+              </div>
+              <div>
+                <label className="block font-semibold mb-1">Category Name (Tamil)</label>
+                <input
+                  name="tamilName"
+                  defaultValue={editingCategory?.tamilName || ""}
+                  className="w-full px-3 py-2 border rounded bg-[#FBF8F0]"
+                />
+              </div>
+              <div>
+                <label className="block font-semibold mb-1">URL Slug</label>
+                <input
+                  name="slug"
+                  required
+                  defaultValue={editingCategory?.slug || ""}
+                  placeholder="e.g. wild-herbs"
+                  className="w-full px-3 py-2 border rounded bg-[#FBF8F0]"
+                />
+              </div>
+              <div>
+                <label className="block font-semibold mb-1">Description</label>
+                <textarea
+                  name="description"
+                  rows={2}
+                  defaultValue={editingCategory?.description || ""}
+                  className="w-full px-3 py-2 border rounded bg-[#FBF8F0]"
+                />
+              </div>
+
+              <div className="pt-2 flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsAddingCategory(false);
+                    setEditingCategory(null);
+                  }}
+                  className="px-3 py-1.5 border border-[#DEDFD5] rounded font-semibold"
+                >
+                  Cancel
+                </button>
+                <button type="submit" className="dark-button py-1.5 px-4">
+                  Save Category
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* 5. Inventory Adjust Dialog */}
+      {inventoryAdjustProduct && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-[#FFFDF8] border border-[#DEDFD5] rounded-xl max-w-md w-full p-6 shadow-xl">
+            <div className="flex items-center justify-between border-b border-[#DEDFD5] pb-3 mb-4">
+              <div>
+                <span className="text-[10px] uppercase font-bold tracking-wider text-[#AE6A2B]">Stock Adjustment</span>
+                <h3 className="font-serif text-lg font-bold text-[#123D28]">
+                  {inventoryAdjustProduct.nameEn} ({inventoryAdjustProduct.sku})
+                </h3>
+              </div>
+              <button onClick={() => setInventoryAdjustProduct(null)} className="text-[#6C7167] hover:text-[#123D28]">
+                <X size={18} />
+              </button>
+            </div>
+
+            <form
+              onSubmit={(e: any) => {
+                e.preventDefault();
+                const form = e.target;
+                const quantity = parseInt(form.quantity.value, 10);
+                const changeType = form.changeType.value;
+                const reason = form.reason.value.trim();
+                const newStock =
+                  changeType === "ADD"
+                    ? inventoryAdjustProduct.stock + quantity
+                    : changeType === "SUBTRACT"
+                    ? Math.max(0, inventoryAdjustProduct.stock - quantity)
+                    : quantity;
+
+                inventoryStockMutation.mutate({
+                  productId: inventoryAdjustProduct.id,
+                  stock: newStock,
+                  reason,
+                });
+              }}
+              className="space-y-3 text-xs"
+            >
+              <div className="p-3 bg-[#FBF8F0] border border-[#DEDFD5] rounded-lg">
+                <span className="text-[#6C7167]">Current On-Hand Stock: </span>
+                <strong className="text-[#123D28] text-sm">{inventoryAdjustProduct.stock} units</strong>
+              </div>
+
+              <div>
+                <label className="block font-semibold mb-1">Adjustment Action</label>
+                <select name="changeType" defaultValue="SET" className="w-full px-3 py-2 border rounded bg-[#FBF8F0]">
+                  <option value="SET">Set Absolute Stock Count</option>
+                  <option value="ADD">Add / Restock Units</option>
+                  <option value="SUBTRACT">Subtract / Shrinkage Units</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block font-semibold mb-1">Quantity Value</label>
+                <input
+                  name="quantity"
+                  type="number"
+                  required
+                  defaultValue={inventoryAdjustProduct.stock}
+                  className="w-full px-3 py-2 border rounded bg-[#FBF8F0]"
+                />
+              </div>
+
+              <div>
+                <label className="block font-semibold mb-1">Reason for Adjustment (Required for Audit Trail)</label>
+                <input
+                  name="reason"
+                  required
+                  placeholder="e.g. Received fresh batch from Madurai / Damaged packet discarded"
+                  className="w-full px-3 py-2 border rounded bg-[#FBF8F0]"
+                />
+              </div>
+
+              <div className="pt-2 flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setInventoryAdjustProduct(null)}
+                  className="px-3 py-1.5 border border-[#DEDFD5] rounded font-semibold"
+                >
+                  Cancel
+                </button>
+                <button type="submit" className="dark-button py-1.5 px-4">
+                  Confirm Stock Change
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* 6. Campaign Modal */}
+      {isAddingCampaign && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-[#FFFDF8] border border-[#DEDFD5] rounded-xl max-w-md w-full p-6 shadow-xl">
+            <div className="flex items-center justify-between border-b border-[#DEDFD5] pb-3 mb-4">
+              <h3 className="font-serif text-lg font-bold text-[#123D28]">Create Festival Offer Campaign</h3>
+              <button onClick={() => setIsAddingCampaign(false)} className="text-[#6C7167] hover:text-[#123D28]">
+                <X size={18} />
+              </button>
+            </div>
+
+            <form
+              onSubmit={(e: any) => {
+                e.preventDefault();
+                const form = e.target;
+                createCampaignMutation.mutate({
+                  name: form.name.value.trim(),
+                  code: form.code.value.trim().toUpperCase(),
+                  discountType: form.discountType.value,
+                  discountValue: parseFloat(form.discountValue.value),
+                  minOrderValue: parseFloat(form.minOrderValue.value || 0),
+                  maxDiscount: parseFloat(form.maxDiscount.value || 500),
+                  startDate: new Date(form.startDate.value).toISOString(),
+                  endDate: new Date(form.endDate.value).toISOString(),
+                  bannerText: form.bannerText.value.trim() || undefined,
+                });
+              }}
+              className="space-y-3 text-xs"
+            >
+              <div>
+                <label className="block font-semibold mb-1">Campaign Name</label>
+                <input
+                  name="name"
+                  required
+                  placeholder="e.g. Pongal Harvest Festival Offer"
+                  className="w-full px-3 py-2 border rounded bg-[#FBF8F0]"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="block font-semibold mb-1">Coupon Code</label>
+                  <input
+                    name="code"
+                    required
+                    placeholder="PONGAL20"
+                    className="w-full px-3 py-2 border rounded bg-[#FBF8F0] uppercase font-mono font-bold"
+                  />
+                </div>
+                <div>
+                  <label className="block font-semibold mb-1">Discount Type</label>
+                  <select name="discountType" className="w-full px-3 py-2 border rounded bg-[#FBF8F0]">
+                    <option value="PERCENTAGE">Percentage (%)</option>
+                    <option value="FIXED">Flat Cash (₹)</option>
+                  </select>
+                </div>
+              </div>
+              <div className="grid grid-cols-3 gap-2">
+                <div>
+                  <label className="block font-semibold mb-1">Discount Value</label>
+                  <input
+                    name="discountValue"
+                    type="number"
+                    required
+                    defaultValue={15}
+                    className="w-full px-3 py-2 border rounded bg-[#FBF8F0]"
+                  />
+                </div>
+                <div>
+                  <label className="block font-semibold mb-1">Min Order (₹)</label>
+                  <input
+                    name="minOrderValue"
+                    type="number"
+                    defaultValue={499}
+                    className="w-full px-3 py-2 border rounded bg-[#FBF8F0]"
+                  />
+                </div>
+                <div>
+                  <label className="block font-semibold mb-1">Max Cap (₹)</label>
+                  <input
+                    name="maxDiscount"
+                    type="number"
+                    defaultValue={500}
+                    className="w-full px-3 py-2 border rounded bg-[#FBF8F0]"
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="block font-semibold mb-1">Start Date</label>
+                  <input
+                    name="startDate"
+                    type="date"
+                    required
+                    defaultValue={new Date().toISOString().split("T")[0]}
+                    className="w-full px-3 py-2 border rounded bg-[#FBF8F0]"
+                  />
+                </div>
+                <div>
+                  <label className="block font-semibold mb-1">End Date</label>
+                  <input
+                    name="endDate"
+                    type="date"
+                    required
+                    defaultValue={new Date(Date.now() + 30 * 86400000).toISOString().split("T")[0]}
+                    className="w-full px-3 py-2 border rounded bg-[#FBF8F0]"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block font-semibold mb-1">Applicable Category (Optional)</label>
+                <select name="applicableCategory" className="w-full px-3 py-2 border rounded bg-[#FBF8F0]">
+                  <option value="">All Categories</option>
+                  {categories.map((c: any) => (
+                    <option key={c.id} value={c.name}>
+                      {c.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block font-semibold mb-1">Promotional Banner Text (Optional)</label>
+                <input
+                  name="bannerText"
+                  placeholder="e.g. Use code PONGAL20 for 15% off herbal seeds"
+                  className="w-full px-3 py-2 border rounded bg-[#FBF8F0]"
+                />
+              </div>
+
+              <div className="pt-2 flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setIsAddingCampaign(false)}
+                  className="px-3 py-1.5 border border-[#DEDFD5] rounded font-semibold"
+                >
+                  Cancel
+                </button>
+                <button type="submit" className="dark-button py-1.5 px-4">
+                  Create Campaign
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
-

@@ -21,6 +21,9 @@ let _dbInstance: any = null;
 export function getDatabase(): any {
   if (!_dbInstance) {
     _dbInstance = new DatabaseSync(DB_PATH);
+    _dbInstance.exec("PRAGMA journal_mode = WAL;");
+    _dbInstance.exec("PRAGMA busy_timeout = 10000;");
+    _dbInstance.exec("PRAGMA foreign_keys = ON;");
     initTables(_dbInstance);
   }
   return _dbInstance;
@@ -571,11 +574,49 @@ export const productsRepo = {
     return this.getById(id);
   },
 
+  archive(id: string) {
+    const db = getDatabase();
+    db.prepare("UPDATE products SET status = 'Archived', updatedAt = ? WHERE id = ?").run(new Date().toISOString(), id);
+    return this.getById(id);
+  },
+
   delete(id: string) {
     const db = getDatabase();
-    db.prepare("DELETE FROM product_variants WHERE productId = ?").run(id);
-    const res = db.prepare("DELETE FROM products WHERE id = ?").run(id);
-    return res.changes > 0;
+    const refCount = (db.prepare("SELECT COUNT(*) as c FROM order_items WHERE productId = ?").get(id) as any)?.c || 0;
+    if (refCount > 0) {
+      db.prepare("UPDATE products SET status = 'Archived', updatedAt = ? WHERE id = ?").run(new Date().toISOString(), id);
+      return { success: true, archived: true };
+    } else {
+      db.prepare("DELETE FROM product_variants WHERE productId = ?").run(id);
+      db.prepare("DELETE FROM product_images WHERE productId = ?").run(id);
+      db.prepare("DELETE FROM inventory WHERE productId = ?").run(id);
+      const res = db.prepare("DELETE FROM products WHERE id = ?").run(id);
+      return { success: res.changes > 0, archived: false };
+    }
+  },
+
+  exportCsv() {
+    const db = getDatabase();
+    const items = db.prepare(`
+      SELECT p.sku, p.nameEn, p.nameTa, c.name as category, p.sellingPrice, p.mrp, p.stock, p.status, p.shortDesc
+      FROM products p
+      LEFT JOIN categories c ON p.categoryId = c.id
+      WHERE p.status != 'Archived'
+      ORDER BY p.sku ASC
+    `).all() as any[];
+    const headers = ["SKU", "English Name", "Tamil Name", "Category", "Selling Price", "MRP", "Stock", "Status", "Description"];
+    const rows = items.map(i => [
+      `"${i.sku}"`,
+      `"${(i.nameEn || "").replace(/"/g, '""')}"`,
+      `"${(i.nameTa || "").replace(/"/g, '""')}"`,
+      `"${(i.category || "").replace(/"/g, '""')}"`,
+      i.sellingPrice,
+      i.mrp,
+      i.stock,
+      `"${i.status}"`,
+      `"${(i.shortDesc || "").replace(/"/g, '""')}"`
+    ].join(","));
+    return [headers.join(","), ...rows].join("\n");
   },
 
   updateStock(id: string, stock: number) {
@@ -682,6 +723,10 @@ export const categoriesRepo = {
 
   delete(id: string) {
     const db = getDatabase();
+    const activeCount = (db.prepare("SELECT COUNT(*) as count FROM products WHERE categoryId = ? AND status != 'Archived'").get(id) as any)?.count || 0;
+    if (activeCount > 0) {
+      throw new Error(`Cannot delete category containing ${activeCount} active product(s). Please reassign or archive products first.`);
+    }
     const res = db.prepare("DELETE FROM categories WHERE id = ?").run(id);
     return res.changes > 0;
   }
@@ -1147,6 +1192,11 @@ export const campaignsRepo = {
     return db.prepare("SELECT * FROM campaigns ORDER BY createdAt DESC").all() as any[];
   },
 
+  getById(id: string) {
+    const db = getDatabase();
+    return db.prepare("SELECT * FROM campaigns WHERE id = ?").get(id) as any;
+  },
+
   getActive() {
     const db = getDatabase();
     const now = new Date().toISOString();
@@ -1163,12 +1213,15 @@ export const campaignsRepo = {
     if (!campaign) {
       return { valid: false, message: "Coupon code not found." };
     }
-    if (!campaign.isActive) {
-      return { valid: false, message: "This offer is no longer active." };
-    }
     const now = new Date().toISOString();
-    if (now < campaign.startDate || now > campaign.endDate) {
+    if (campaign.endDate && now > campaign.endDate) {
       return { valid: false, message: "This promotional campaign has expired." };
+    }
+    if (campaign.startDate && now < campaign.startDate) {
+      return { valid: false, message: "This promotional campaign is not active yet." };
+    }
+    if (campaign.isActive === 0 || campaign.isActive === false) {
+      return { valid: false, message: "This offer is no longer active." };
     }
     if (campaign.usageLimit && campaign.usageCount >= campaign.usageLimit) {
       return { valid: false, message: "This coupon usage limit has been reached." };
@@ -1218,7 +1271,7 @@ export const campaignsRepo = {
       data.maxDiscount || 1000,
       data.startDate,
       data.endDate,
-      data.isActive ? 1 : 0,
+      data.isActive === false ? 0 : 1,
       data.bannerText || "",
       data.bannerImage || "",
       JSON.stringify(data.eligibleCategories || []),
@@ -1359,6 +1412,143 @@ export const telegramRepo = {
 };
 
 // ==========================================
+// 8B. PRODUCT IMAGES REPOSITORY
+// ==========================================
+export const imagesRepo = {
+  getByProductId(productId: string) {
+    const db = getDatabase();
+    return db.prepare("SELECT * FROM product_images WHERE productId = ? ORDER BY isPrimary DESC, sortOrder ASC, createdAt DESC").all(productId) as any[];
+  },
+
+  setPrimary(productId: string, imageId: string) {
+    const db = getDatabase();
+    db.prepare("UPDATE product_images SET isPrimary = 0 WHERE productId = ?").run(productId);
+    db.prepare("UPDATE product_images SET isPrimary = 1 WHERE id = ?").run(imageId);
+    const img = db.prepare("SELECT url FROM product_images WHERE id = ?").get(imageId) as any;
+    if (img) {
+      db.prepare("UPDATE products SET primaryImage = ?, updatedAt = ? WHERE id = ?").run(img.url, new Date().toISOString(), productId);
+    }
+    return this.getByProductId(productId);
+  },
+
+  add(productId: string, url: string, altText = "", isPrimary = false) {
+    const db = getDatabase();
+    const id = "img_" + Date.now() + "_" + Math.floor(Math.random() * 1000);
+    const now = new Date().toISOString();
+    if (isPrimary) {
+      db.prepare("UPDATE product_images SET isPrimary = 0 WHERE productId = ?").run(productId);
+      db.prepare("UPDATE products SET primaryImage = ?, updatedAt = ? WHERE id = ?").run(url, now, productId);
+    }
+    db.prepare(`
+      INSERT INTO product_images (id, productId, url, altText, isPrimary, sortOrder, createdAt)
+      VALUES (?, ?, ?, ?, ?, 0, ?)
+    `).run(id, productId, url, altText, isPrimary ? 1 : 0, now);
+
+    const allImgs = db.prepare("SELECT url FROM product_images WHERE productId = ?").all(productId) as any[];
+    db.prepare("UPDATE products SET gallery = ?, updatedAt = ? WHERE id = ?").run(JSON.stringify(allImgs.map((i) => i.url)), now, productId);
+
+    return this.getByProductId(productId);
+  },
+
+  delete(productId: string, imageId: string) {
+    const db = getDatabase();
+    const img = db.prepare("SELECT * FROM product_images WHERE id = ?").get(imageId) as any;
+    db.prepare("DELETE FROM product_images WHERE id = ?").run(imageId);
+
+    if (img && img.isPrimary) {
+      const nextImg = db.prepare("SELECT * FROM product_images WHERE productId = ? LIMIT 1").get(productId) as any;
+      if (nextImg) {
+        db.prepare("UPDATE product_images SET isPrimary = 1 WHERE id = ?").run(nextImg.id);
+        db.prepare("UPDATE products SET primaryImage = ? WHERE id = ?").run(nextImg.url, productId);
+      }
+    }
+
+    const allImgs = db.prepare("SELECT url FROM product_images WHERE productId = ?").all(productId) as any[];
+    db.prepare("UPDATE products SET gallery = ? WHERE id = ?").run(JSON.stringify(allImgs.map((i) => i.url)), productId);
+
+    return this.getByProductId(productId);
+  },
+
+  updateAlt(imageId: string, altText: string) {
+    const db = getDatabase();
+    db.prepare("UPDATE product_images SET altText = ? WHERE id = ?").run(altText, imageId);
+    return db.prepare("SELECT * FROM product_images WHERE id = ?").get(imageId);
+  }
+};
+
+// ==========================================
+// 8C. INVENTORY REPOSITORY
+// ==========================================
+export const inventoryRepo = {
+  list(options: { search?: string; status?: string; limit?: number; offset?: number } = {}) {
+    const db = getDatabase();
+    let query = `
+      SELECT p.id as productId, p.sku, p.nameEn, p.nameTa, p.sellingPrice, p.mrp,
+             p.stock, p.stockAvailability, c.name as categoryName,
+             COALESCE(i.lowStockThreshold, 10) as lowStockThreshold,
+             COALESCE(i.reorderQuantity, 50) as reorderQuantity
+      FROM products p
+      LEFT JOIN categories c ON p.categoryId = c.id
+      LEFT JOIN inventory i ON p.id = i.productId
+      WHERE p.status != 'Archived'
+    `;
+    const params: any[] = [];
+    if (options.search) {
+      query += " AND (p.nameEn LIKE ? OR p.sku LIKE ? OR p.nameTa LIKE ?)";
+      const term = `%${options.search}%`;
+      params.push(term, term, term);
+    }
+    if (options.status === "low_stock") {
+      query += " AND p.stock <= 10";
+    } else if (options.status === "out_of_stock") {
+      query += " AND p.stock <= 0";
+    }
+    query += " ORDER BY p.stock ASC LIMIT ? OFFSET ?";
+    params.push(options.limit || 100, options.offset || 0);
+    return db.prepare(query).all(...params) as any[];
+  },
+
+  updateStock(productId: string, newStock: number, reason?: string, updatedBy = "Admin") {
+    const db = getDatabase();
+    const prod = db.prepare("SELECT * FROM products WHERE id = ?").get(productId) as any;
+    if (!prod) throw new Error("Product not found");
+    const oldStock = prod.stock;
+    const availability = newStock > 0 ? "In Stock" : "Out of Stock";
+    const now = new Date().toISOString();
+
+    db.prepare("UPDATE products SET stock = ?, stockAvailability = ?, updatedAt = ? WHERE id = ?")
+      .run(newStock, availability, now, productId);
+    db.prepare(`
+      INSERT INTO inventory (id, productId, sku, stockQuantity, lowStockThreshold, reorderQuantity, updatedAt)
+      VALUES (?, ?, ?, ?, 10, 50, ?)
+      ON CONFLICT(id) DO UPDATE SET stockQuantity = excluded.stockQuantity, updatedAt = excluded.updatedAt
+    `).run(`inv_${productId}`, productId, prod.sku, newStock, now);
+
+    auditLogsRepo.log(updatedBy, "STOCK_UPDATE", `Updated ${prod.sku} stock from ${oldStock} to ${newStock}. Reason: ${reason || "Manual adjustment"}`);
+    return { success: true, oldStock, newStock, availability };
+  }
+};
+
+// ==========================================
+// 8D. AUDIT LOGS REPOSITORY
+// ==========================================
+export const auditLogsRepo = {
+  log(user: string, action: string, details: string) {
+    const db = getDatabase();
+    const id = "audit_" + Date.now() + "_" + Math.floor(Math.random() * 1000);
+    db.prepare(`
+      INSERT INTO telegram_audit_logs (id, telegramUserId, command, details, createdAt)
+      VALUES (?, ?, ?, ?, ?)
+    `).run(id, user, action, details, new Date().toISOString());
+  },
+
+  list(limit = 100) {
+    const db = getDatabase();
+    return db.prepare("SELECT * FROM telegram_audit_logs ORDER BY createdAt DESC LIMIT ?").all(limit) as any[];
+  }
+};
+
+// ==========================================
 // 9. ADMIN DASHBOARD STATS REPOSITORY
 // ==========================================
 export const adminStatsRepo = {
@@ -1366,7 +1556,11 @@ export const adminStatsRepo = {
     const db = getDatabase();
     const totalProducts = (db.prepare("SELECT COUNT(*) as count FROM products").get() as any)?.count || 0;
     const activeProducts = (db.prepare("SELECT COUNT(*) as count FROM products WHERE status = 'Published'").get() as any)?.count || 0;
-    const lowStockProducts = (db.prepare("SELECT COUNT(*) as count FROM products WHERE stock < 10").get() as any)?.count || 0;
+    const draftProducts = (db.prepare("SELECT COUNT(*) as count FROM products WHERE status = 'Draft'").get() as any)?.count || 0;
+    const lowStockProducts = (db.prepare("SELECT COUNT(*) as count FROM products WHERE stock <= 10").get() as any)?.count || 0;
+
+    const totalCategories = (db.prepare("SELECT COUNT(*) as count FROM categories").get() as any)?.count || 0;
+    const totalCustomers = (db.prepare("SELECT COUNT(*) as count FROM users WHERE role = 'CUSTOMER'").get() as any)?.count || 0;
 
     const totalOrders = (db.prepare("SELECT COUNT(*) as count FROM orders").get() as any)?.count || 0;
     const pendingOrders = (db.prepare("SELECT COUNT(*) as count FROM orders WHERE orderStatus IN ('Pending Payment', 'Confirmed', 'Processing')").get() as any)?.count || 0;
@@ -1378,9 +1572,36 @@ export const adminStatsRepo = {
     const activeCampaigns = (db.prepare("SELECT COUNT(*) as count FROM campaigns WHERE isActive = 1").get() as any)?.count || 0;
     const recentOrders = db.prepare("SELECT * FROM orders ORDER BY createdAt DESC LIMIT 5").all() as any[];
 
+    const lowStockAlerts = db.prepare(`
+      SELECT p.id, p.sku, p.nameEn, p.nameTa, p.stock, p.primaryImage, c.name as category
+      FROM products p
+      LEFT JOIN categories c ON p.categoryId = c.id
+      WHERE p.stock <= 10 AND p.status != 'Archived'
+      ORDER BY p.stock ASC
+      LIMIT 10
+    `).all() as any[];
+
+    const recentlyUpdatedProducts = db.prepare(`
+      SELECT p.id, p.sku, p.nameEn, p.nameTa, p.sellingPrice, p.stock, p.status, p.updatedAt
+      FROM products p
+      ORDER BY p.updatedAt DESC
+      LIMIT 5
+    `).all() as any[];
+
+    const activePromotionSummary = db.prepare(`
+      SELECT id, name, code, discountType, discountValue, minOrderValue, maxDiscount, startDate, endDate, isActive
+      FROM campaigns
+      WHERE isActive = 1
+      ORDER BY createdAt DESC
+      LIMIT 5
+    `).all() as any[];
+
     return {
       totalProducts,
       activeProducts,
+      draftProducts,
+      totalCategories,
+      totalCustomers,
       lowStockProducts,
       totalOrders,
       pendingOrders,
@@ -1388,6 +1609,9 @@ export const adminStatsRepo = {
       totalRevenue,
       activeCampaigns,
       recentOrders: recentOrders.map((o) => ordersRepo.enrichOrder(o)),
+      lowStockAlerts,
+      recentlyUpdatedProducts,
+      activePromotionSummary,
     };
   }
 };
