@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, afterAll } from "vitest";
 import { appRouter } from "./routers";
 import * as db from "./db";
 import { handleTelegramUpdate } from "./telegram";
@@ -403,5 +403,15 @@ describe("TRINAYAA E-Commerce Functional & Acceptance Tests", () => {
     });
     const unauthorizedAudit = db.telegramRepo.getAuditLogs(5);
     expect(unauthorizedAudit.some((a: any) => a.command === "UNAUTHORIZED_ATTEMPT")).toBe(true);
+  });
+
+  afterAll(() => {
+    const sqlite = db.getDatabase();
+    sqlite.exec(`
+      DELETE FROM inventory WHERE sku LIKE 'TRN-TEST-%' OR sku LIKE 'TRN-BULK-%';
+      DELETE FROM product_variants WHERE sku LIKE 'TRN-TEST-%' OR sku LIKE 'TRN-BULK-%';
+      DELETE FROM product_images WHERE productId IN (SELECT id FROM products WHERE sku LIKE 'TRN-TEST-%' OR sku LIKE 'TRN-BULK-%');
+      DELETE FROM products WHERE sku LIKE 'TRN-TEST-%' OR sku LIKE 'TRN-BULK-%';
+    `);
   });
 });

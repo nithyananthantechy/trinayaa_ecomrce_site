@@ -1,0 +1,189 @@
+{
+  "generatedAt": "2026-11-02T07:16:59.508Z",
+  "totalProducts": 162,
+  "verifiedCount": 162,
+  "missingCount": 0,
+  "collagesCount": 0,
+  "results": [
+    {
+      "sku": "TRN-1001",
+      "nameEn": "Licorice Root",
+      "nameTa": "அதிமதுரம்",
+      "imageFile": "images/products/packaged/pouch_001.png",
+      "exists": true,
+      "isCollage": false,
+      "status": "VERIFIED"
+    },
+    {
+      "sku": "TRN-1002",
+      "nameEn": "Ashwagandha - 1",
+      "nameTa": "அமுக்கரா",
+      "imageFile": "images/products/packaged/pouch_002.png",
+      "exists": true,
+      "isCollage": false,
+      "status": "VERIFIED"
+    },
+    {
+      "sku": "TRN-1003",
+      "nameEn": "Peepal Seeds",
+      "nameTa": "அரச விதை",
+      "imageFile": "images/products/packaged/pouch_003.png",
+      "exists": true,
+      "isCollage": false,
+      "status": "VERIFIED"
+    },
+    {
+      "sku": "TRN-1004",
+      "nameEn": "Ashwagandha - 2",
+      "nameTa": "அஸ்வகந்தா",
+      "imageFile": "images/products/packaged/pouch_004.png",
+      "exists": true,
+      "isCollage": false,
+      "status": "VERIFIED"
+    },
+    {
+      "sku": "TRN-1005",
+      "nameEn": "Inknut/Myrobalan",
+      "nameTa": "கடுக்காய்",
+      "imageFile": "images/products/packaged/pouch_005.png",
+      "exists": true,
+      "isCollage": false,
+      "status": "VERIFIED"
+    },
+    {
+      "sku": "TRN-1006",
+      "nameEn": "Indian Aloe Gum",
+      "nameTa": "கரியபவளம்",
+      "imageFile": "images/products/packaged/pouch_006.png",
+      "exists": true,
+      "isCollage": false,
+      "status": "VERIFIED"
+    },
+    {
+      "sku": "TRN-1007",
+      "nameEn": "Fever Nut",
+      "nameTa": "கழற்சிக்காய்",
+      "imageFile": "images/products/packaged/pouch_007.png",
+      "exists": true,
+      "isCollage": false,
+      "status": "VERIFIED"
+    },
+    {
+      "sku": "TRN-1008",
+      "nameEn": "Babchi Seeds",
+      "nameTa": "கார்போக அரிசி",
+      "imageFile": "images/products/packaged/pouch_008.png",
+      "exists": true,
+      "isCollage": false,
+      "status": "VERIFIED"
+    },
+    {
+      "sku": "TRN-1009",
+      "nameEn": "Malabar Tamarind",
+      "nameTa": "குடம்புளி",
+      "imageFile": "images/products/packaged/pouch_009.png",
+      "exists": true,
+      "isCollage": false,
+      "status": "VERIFIED"
+    },
+    {
+      "sku": "TRN-1010",
+      "nameEn": "Lesser Galangal",
+      "nameTa": "சித்தரத்தை",
+      "imageFile": "images/products/packaged/pouch_010.png",
+      "exists": true,
+      "isCollage": false,
+      "status": "VERIFIED"
+    },
+    {
+      "sku": "TRN-1011",
+      "nameEn": "Sweet basil",
+      "nameTa": "சீனித்துளசி",
+      "imageFile": "images/products/packaged/pouch_011.png",
+      "exists": true,
+      "isCollage": false,
+      "status": "VERIFIED"
+    },
+    {
+      "sku": "TRN-1012",
+      "nameEn": "Lotus Flower",
+      "nameTa": "தாமரை பூ",
+      "imageFile": "images/products/packaged/pouch_012.png",
+      "exists": true,
+      "isCollage": false,
+      "status": "VERIFIED"
+    },
+    {
+      "sku": "TRN-1013",
+      "nameEn": "Lotus Seeds",
+      "nameTa": "தாமரை விதை",
+      "imageFile": "images/products/packaged/pouch_013.png",
+      "exists": true,
+      "isCollage": false,
+      "status": "VERIFIED"
+    },
+    {
+      "sku": "TRN-1014",
+      "nameEn": "Indian Silver Fir",
+      "nameTa": "தாளிசபத்திரி",
+      "imageFile": "images/products/packaged/pouch_014.png",
+      "exists": true,
+      "isCollage": false,
+      "status": "VERIFIED"
+    },
+    {
+      "sku": "TRN-1015",
+      "nameEn": "Long pepper",
+      "nameTa": "திப்பிலி (அரிசி)",
+      "imageFile": "images/products/packaged/pouch_015.png",
+      "exists": true,
+      "isCollage": false,
+      "status": "VERIFIED"
+    },
+    {
+      "sku": "TRN-1016",
+      "nameEn": "Big Pepper",
+      "nameTa": "திப்பிலி (யானை)",
+      "imageFile": "images/products/packaged/pouch_016.png",
+      "exists": true,
+      "isCollage": false,
+      "status": "VERIFIED"
+    },
+    {
+      "sku": "TRN-1017",
+      "nameEn": "Round Pepper",
+      "nameTa": "திப்பிலி (உருண்டை)",
+      "imageFile": "images/products/packaged/pouch_017.png",
+      "exists": true,
+      "isCollage": false,
+      "status": "VERIFIED"
+    },
+    {
+      "sku": "TRN-1018",
+      "nameEn": "Indian Mallow Seeds",
+      "nameTa": "துத்தி விதை",
+      "imageFile": "images/products/packaged/pouch_018.png",
+      "exists": true,
+      "isCollage": false,
+      "status": "VERIFIED"
+    },
+    {
+      "sku": "TRN-1019",
+      "nameEn": "Indian Sarasparilla",
+      "nameTa": "நன்னாரி",
+      "imageFile": "images/products/packaged/pouch_019.png",
+      "exists": true,
+      "isCollage": false,
+      "status": "VERIFIED"
+    },
+    {
+      "sku": "TRN-1020",
+      "nameEn": "Black Plum Seeds/Jamun Seeds",
+      "nameTa": "நாவல் கொட்டை",
+      "imageFile": "images/products/packaged/pouch_020.png",
+      "exists": true,
+      "isCollage": false,
+      "status": "VERIFIED"
+    }
+  ]
+}

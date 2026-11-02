@@ -213,6 +213,46 @@ function initTables(db: any) {
       updatedAt TEXT NOT NULL
     );
 
+    CREATE TABLE IF NOT EXISTS product_images (
+      id TEXT PRIMARY KEY,
+      productId TEXT NOT NULL,
+      url TEXT NOT NULL,
+      altText TEXT,
+      isPrimary INTEGER NOT NULL DEFAULT 0,
+      sortOrder INTEGER NOT NULL DEFAULT 0,
+      createdAt TEXT NOT NULL,
+      FOREIGN KEY (productId) REFERENCES products(id) ON DELETE CASCADE
+    );
+
+    CREATE TABLE IF NOT EXISTS inventory (
+      id TEXT PRIMARY KEY,
+      productId TEXT NOT NULL,
+      variantId TEXT,
+      sku TEXT NOT NULL,
+      stockQuantity INTEGER NOT NULL DEFAULT 100,
+      lowStockThreshold INTEGER NOT NULL DEFAULT 10,
+      reorderQuantity INTEGER NOT NULL DEFAULT 50,
+      updatedAt TEXT NOT NULL,
+      FOREIGN KEY (productId) REFERENCES products(id) ON DELETE CASCADE
+    );
+
+    CREATE TABLE IF NOT EXISTS coupons (
+      id TEXT PRIMARY KEY,
+      code TEXT UNIQUE NOT NULL,
+      campaignId TEXT,
+      discountType TEXT NOT NULL DEFAULT 'PERCENTAGE',
+      discountValue REAL NOT NULL,
+      minOrderValue REAL NOT NULL DEFAULT 0,
+      maxDiscount REAL NOT NULL DEFAULT 1000,
+      startDate TEXT NOT NULL,
+      endDate TEXT NOT NULL,
+      usageLimit INTEGER NOT NULL DEFAULT 1000,
+      usageCount INTEGER NOT NULL DEFAULT 0,
+      isActive INTEGER NOT NULL DEFAULT 1,
+      createdAt TEXT NOT NULL,
+      FOREIGN KEY (campaignId) REFERENCES campaigns(id) ON DELETE SET NULL
+    );
+
     CREATE TABLE IF NOT EXISTS telegram_allowed_admins (
       id TEXT PRIMARY KEY,
       telegramId TEXT UNIQUE NOT NULL,
@@ -229,6 +269,19 @@ function initTables(db: any) {
       details TEXT,
       createdAt TEXT NOT NULL
     );
+
+    -- Performance Indexes
+    CREATE INDEX IF NOT EXISTS idx_products_category ON products(categoryId);
+    CREATE INDEX IF NOT EXISTS idx_products_sku ON products(sku);
+    CREATE INDEX IF NOT EXISTS idx_variants_product ON product_variants(productId);
+    CREATE INDEX IF NOT EXISTS idx_product_images_product ON product_images(productId);
+    CREATE INDEX IF NOT EXISTS idx_inventory_product ON inventory(productId);
+    CREATE INDEX IF NOT EXISTS idx_orders_customer ON orders(customerId);
+    CREATE INDEX IF NOT EXISTS idx_orders_orderNumber ON orders(orderNumber);
+    CREATE INDEX IF NOT EXISTS idx_order_items_orderId ON order_items(orderId);
+    CREATE INDEX IF NOT EXISTS idx_order_history_orderId ON order_status_history(orderId);
+    CREATE INDEX IF NOT EXISTS idx_cart_items_cartId ON cart_items(cartId);
+    CREATE INDEX IF NOT EXISTS idx_coupons_code ON coupons(code);
   `);
 
   // Ensure default admin user exists if table is empty

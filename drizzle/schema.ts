@@ -105,6 +105,39 @@ export type ProductVariant = typeof productVariants.$inferSelect;
 export type InsertProductVariant = typeof productVariants.$inferInsert;
 
 // ==========================================
+// 5B. PRODUCT IMAGES
+// ==========================================
+export const productImages = mysqlTable("product_images", {
+  id: varchar("id", { length: 64 }).primaryKey(),
+  productId: varchar("productId", { length: 64 }).notNull(),
+  url: text("url").notNull(),
+  altText: varchar("altText", { length: 255 }),
+  isPrimary: int("isPrimary").default(0).notNull(),
+  sortOrder: int("sortOrder").default(0).notNull(),
+  createdAt: text("createdAt").notNull(),
+});
+
+export type ProductImage = typeof productImages.$inferSelect;
+export type InsertProductImage = typeof productImages.$inferInsert;
+
+// ==========================================
+// 5C. INVENTORY
+// ==========================================
+export const inventory = mysqlTable("inventory", {
+  id: varchar("id", { length: 64 }).primaryKey(),
+  productId: varchar("productId", { length: 64 }).notNull(),
+  variantId: varchar("variantId", { length: 64 }),
+  sku: varchar("sku", { length: 64 }).notNull(),
+  stockQuantity: int("stockQuantity").default(100).notNull(),
+  lowStockThreshold: int("lowStockThreshold").default(10).notNull(),
+  reorderQuantity: int("reorderQuantity").default(50).notNull(),
+  updatedAt: text("updatedAt").notNull(),
+});
+
+export type Inventory = typeof inventory.$inferSelect;
+export type InsertInventory = typeof inventory.$inferInsert;
+
+// ==========================================
 // 6. CART & CART ITEMS
 // ==========================================
 export const carts = mysqlTable("cart", {
@@ -229,6 +262,28 @@ export const campaigns = mysqlTable("campaigns", {
 
 export type Campaign = typeof campaigns.$inferSelect;
 export type InsertCampaign = typeof campaigns.$inferInsert;
+
+// ==========================================
+// 9B. COUPONS
+// ==========================================
+export const coupons = mysqlTable("coupons", {
+  id: varchar("id", { length: 64 }).primaryKey(),
+  code: varchar("code", { length: 64 }).notNull().unique(),
+  campaignId: varchar("campaignId", { length: 64 }),
+  discountType: varchar("discountType", { length: 32 }).default("PERCENTAGE").notNull(),
+  discountValue: double("discountValue").notNull(),
+  minOrderValue: double("minOrderValue").default(0).notNull(),
+  maxDiscount: double("maxDiscount").default(1000).notNull(),
+  startDate: text("startDate").notNull(),
+  endDate: text("endDate").notNull(),
+  usageLimit: int("usageLimit").default(1000).notNull(),
+  usageCount: int("usageCount").default(0).notNull(),
+  isActive: int("isActive").default(1).notNull(),
+  createdAt: text("createdAt").notNull(),
+});
+
+export type Coupon = typeof coupons.$inferSelect;
+export type InsertCoupon = typeof coupons.$inferInsert;
 
 // ==========================================
 // 10. SITE CONTENT & PROMOTIONAL BANNERS
