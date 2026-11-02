@@ -37,3 +37,4 @@ volumes:
     driver: local
   trinayaa_uploads:
     driver: local
+

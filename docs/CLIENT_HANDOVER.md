@@ -145,3 +145,4 @@ To add or remove store managers from Telegram access:
    - Confirm your numeric ID is listed in `TELEGRAM_ALLOWED_ADMIN_IDS`.
 3. **Database Busy / Locked**:
    - SQLite is configured with WAL mode and a 10-second busy timeout. Ensure only one application process accesses the database file.
+

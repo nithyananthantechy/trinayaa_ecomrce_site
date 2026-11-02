@@ -274,3 +274,4 @@ If database recovery is required:
    ```bash
    curl http://localhost:3000/health
    ```
+

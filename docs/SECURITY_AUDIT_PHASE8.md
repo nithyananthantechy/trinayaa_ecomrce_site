@@ -169,3 +169,4 @@ Running `pnpm audit` across the dependency tree identified 169 vulnerability adv
 - [x] Security headers and rate limiting active.
 - [x] Sensitive endpoints (`/admin`, `/checkout`, `/account`) protected with `X-Robots-Tag: noindex`.
 - [x] Database backups stored outside public web directory.
+
