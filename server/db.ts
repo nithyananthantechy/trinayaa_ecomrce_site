@@ -21,9 +21,6 @@ let _dbInstance: any = null;
 export function getDatabase(): any {
   if (!_dbInstance) {
     _dbInstance = new DatabaseSync(DB_PATH);
-    _dbInstance.exec("PRAGMA journal_mode = WAL;");
-    _dbInstance.exec("PRAGMA busy_timeout = 10000;");
-    _dbInstance.exec("PRAGMA foreign_keys = ON;");
     initTables(_dbInstance);
   }
   return _dbInstance;
@@ -1192,11 +1189,6 @@ export const campaignsRepo = {
     return db.prepare("SELECT * FROM campaigns ORDER BY createdAt DESC").all() as any[];
   },
 
-  getById(id: string) {
-    const db = getDatabase();
-    return db.prepare("SELECT * FROM campaigns WHERE id = ?").get(id) as any;
-  },
-
   getActive() {
     const db = getDatabase();
     const now = new Date().toISOString();
@@ -1213,15 +1205,12 @@ export const campaignsRepo = {
     if (!campaign) {
       return { valid: false, message: "Coupon code not found." };
     }
-    const now = new Date().toISOString();
-    if (campaign.endDate && now > campaign.endDate) {
-      return { valid: false, message: "This promotional campaign has expired." };
-    }
-    if (campaign.startDate && now < campaign.startDate) {
-      return { valid: false, message: "This promotional campaign is not active yet." };
-    }
-    if (campaign.isActive === 0 || campaign.isActive === false) {
+    if (!campaign.isActive) {
       return { valid: false, message: "This offer is no longer active." };
+    }
+    const now = new Date().toISOString();
+    if (now < campaign.startDate || now > campaign.endDate) {
+      return { valid: false, message: "This promotional campaign has expired." };
     }
     if (campaign.usageLimit && campaign.usageCount >= campaign.usageLimit) {
       return { valid: false, message: "This coupon usage limit has been reached." };
@@ -1271,7 +1260,7 @@ export const campaignsRepo = {
       data.maxDiscount || 1000,
       data.startDate,
       data.endDate,
-      data.isActive === false ? 0 : 1,
+      data.isActive ? 1 : 0,
       data.bannerText || "",
       data.bannerImage || "",
       JSON.stringify(data.eligibleCategories || []),

@@ -460,17 +460,6 @@ export const appRouter = router({
         db.cartRepo.mergeGuestCart(input.guestToken, String(ctx.user.id));
         return { success: true };
       }),
-
-    validateCoupon: publicProcedure
-      .input(
-        z.object({
-          code: z.string().min(1),
-          subtotal: z.number().min(0),
-        })
-      )
-      .query(async ({ input }) => {
-        return db.campaignsRepo.validateCoupon(input.code, input.subtotal);
-      }),
   }),
 
   // ==========================================
@@ -880,25 +869,14 @@ export const appRouter = router({
         .mutation(async ({ input, ctx }) => {
           let count = 0;
           const errors: Array<{ index: number; sku?: string; error: string }> = [];
-          const seenSkus = new Set<string>();
 
           for (let i = 0; i < input.length; i++) {
             try {
               const row = input[i];
-              if (!row.sku || !String(row.sku).trim()) {
-                errors.push({ index: i, error: "Missing required SKU." });
+              if (!row.sku || !row.nameEn || row.sellingPrice === undefined) {
+                errors.push({ index: i, sku: row.sku, error: "Missing required SKU, English Name, or Selling Price." });
                 continue;
               }
-              const sku = String(row.sku).trim();
-              if (!row.nameEn || !String(row.nameEn).trim()) {
-                errors.push({ index: i, sku, error: "Missing required Product Name." });
-                continue;
-              }
-              if (seenSkus.has(sku)) {
-                errors.push({ index: i, sku, error: `Duplicate SKU '${sku}' within import batch.` });
-                continue;
-              }
-              seenSkus.add(sku);
               db.productsRepo.create(row);
               count++;
             } catch (err: any) {
