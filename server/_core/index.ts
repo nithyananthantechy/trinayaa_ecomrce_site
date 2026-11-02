@@ -1,4 +1,9 @@
 import "dotenv/config";
+
+// If launched via npm run dev or tsx, ensure development mode is active
+if (process.env.npm_lifecycle_event === "dev" || process.argv.some(arg => arg.includes("tsx"))) {
+  process.env.NODE_ENV = "development";
+}
 import express from "express";
 import { createServer } from "http";
 import { createExpressMiddleware } from "@trpc/server/adapters/express";
@@ -380,7 +385,12 @@ TRINAYAA provides authentic single-ingredient botanicals, traditional herbal pow
     console.error("Server failed:", error.message);
     process.exit(1);
   });
-  server.listen(port, "0.0.0.0", () => console.log(`TRINAYAA Server listening on port ${port}`));
+  server.listen(port, "0.0.0.0", () => {
+    console.log(`\n🌿 TRINAYAA Server is running in ${process.env.NODE_ENV || "production"} mode!`);
+    console.log(`   ➜ Local:   http://localhost:${port}/`);
+    console.log(`   ➜ Admin:   http://localhost:${port}/admin`);
+    console.log(`   ➜ Health:  http://localhost:${port}/health\n`);
+  });
 }
 
 startServer().catch((error) => {
