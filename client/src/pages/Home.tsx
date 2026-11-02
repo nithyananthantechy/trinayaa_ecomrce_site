@@ -34,17 +34,32 @@ import { trpc } from "@/lib/trpc";
 type Category = "All" | "Seeds" | "Raw Powders" | "Herbs" | "Health Care" | "Hair Care" | "Skin Care";
 type Product = {
   id: string;
+  sku?: string;
   name: string;
   nameTa?: string;
   category: string;
   price: number;
   compareAt?: number;
+  discountPercent?: number;
+  stock?: number;
+  stockAvailability?: string;
   image: string;
   badge?: string;
   description: string;
-  sizes: { label: string; price: number; mrp?: number }[];
+  sizes: { label: string; price: number; mrp?: number; stock?: number }[];
+  slug?: string;
 };
 type CartItem = Product & { size: string; unitPrice: number; quantity: number };
+
+function getGuestToken(): string {
+  if (typeof window === "undefined") return "guest_default";
+  let token = localStorage.getItem("trinayaa_guest_token");
+  if (!token) {
+    token = "gst_" + Math.random().toString(36).substring(2, 10) + Date.now().toString(36);
+    localStorage.setItem("trinayaa_guest_token", token);
+  }
+  return token;
+}
 
 const IMG = {
   hero: "/images/hero/hero_botanical_display.png",
@@ -716,15 +731,27 @@ function ProductDetailModal({
           />
         </div>
         <div className="product-modal-copy">
-          <span className="eyebrow">{product.category} {product.badge ? `· ${product.badge}` : ""}</span>
+          <div className="flex items-center justify-between">
+            <span className="eyebrow">{product.category} {product.badge ? `· ${product.badge}` : ""}</span>
+            {product.sku && <span className="text-[11px] font-mono tracking-wider text-[#6C7167] bg-[#F4EFE6] px-2 py-0.5 rounded">{product.sku}</span>}
+          </div>
           <h2>{product.name}</h2>
           {product.nameTa && <p className="text-sm font-serif text-[#ae6a2b] -mt-2 mb-2 font-semibold">{product.nameTa}</p>}
           <div className="detail-rating">★★★★★ <span>4.9 · Verified Botanical Reviews</span></div>
           <p className="detail-description">{product.description || "Every batch is packed with care in small, considered quantities."}</p>
           <div className="detail-price">
             <strong>{formatINR(currentSizeObj.price)}</strong>
-            {product.compareAt && product.compareAt > currentSizeObj.price && <del>{formatINR(product.compareAt)}</del>}
-            <span>Inclusive of all taxes</span>
+            {product.compareAt && product.compareAt > currentSizeObj.price && (
+              <>
+                <del>{formatINR(product.compareAt)}</del>
+                <span className="text-xs font-bold text-[#123D28] bg-[#EAF2ED] px-2 py-0.5 rounded ml-2">
+                  {Math.round(((product.compareAt - currentSizeObj.price) / product.compareAt) * 100)}% OFF
+                </span>
+              </>
+            )}
+            <span className="ml-2 font-medium text-xs text-[#2E7D32]">
+              • {product.stockAvailability || (product.stock && product.stock > 0 ? "In Stock" : "In Stock")}
+            </span>
           </div>
           <div className="choice-block">
             <div className="choice-label"><strong>Choose a pack size</strong><span>Freshly packed in Tamil Nadu</span></div>
@@ -778,14 +805,17 @@ function AuthModal({
   open,
   onClose,
   onSuccess,
+  guestToken,
 }: {
   open: boolean;
   onClose: () => void;
   onSuccess: () => void;
+  guestToken?: string;
 }) {
   const [tab, setTab] = useState<"signin" | "register">("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [loading, setLoading] = useState(false);
@@ -820,11 +850,21 @@ function AuthModal({
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
+    if (tab === "register") {
+      if (password.length < 6) {
+        toast.error("Password must be at least 6 characters.");
+        return;
+      }
+      if (password !== confirmPassword) {
+        toast.error("Passwords do not match.");
+        return;
+      }
+    }
     setLoading(true);
     if (tab === "signin") {
-      loginMutation.mutate({ email, password });
+      loginMutation.mutate({ email, password, guestToken });
     } else {
-      registerMutation.mutate({ email, password, name, phone });
+      registerMutation.mutate({ email, password, confirmPassword, name, phone, guestToken });
     }
   };
 
@@ -907,6 +947,20 @@ function AuthModal({
               className="w-full px-3 py-2 border border-[#DEDFD5] rounded bg-[#FBF8F0]"
             />
           </div>
+
+          {tab === "register" && (
+            <div>
+              <label className="block font-semibold mb-1">Confirm Password</label>
+              <input
+                type="password"
+                required
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                placeholder="••••••••"
+                className="w-full px-3 py-2 border border-[#DEDFD5] rounded bg-[#FBF8F0]"
+              />
+            </div>
+          )}
 
           <button type="submit" disabled={loading} className="dark-button full-button mt-4">
             {loading ? "Processing..." : tab === "signin" ? "Sign In" : "Register Account"} <ArrowRight size={16} />
@@ -1049,27 +1103,63 @@ export default function Home() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
 
+  // Persistent Guest Token
+  const [guestToken] = useState<string>(() => getGuestToken());
+
   // tRPC live queries
   const { data: dbProducts = [] } = trpc.products.list.useQuery({ limit: 200 });
   const { data: dbBanners } = trpc.content.getBanners.useQuery();
   const { data: currentUser, refetch: refetchUser } = trpc.auth.me.useQuery();
+  const cartQuery = trpc.cart.get.useQuery({ guestToken });
+
+  const addToCartMutation = trpc.cart.add.useMutation();
+  const updateCartMutation = trpc.cart.update.useMutation();
+  const removeCartMutation = trpc.cart.remove.useMutation();
+
   const logoutMutation = trpc.auth.logout.useMutation({
     onSuccess: () => {
       toast.success("Signed out successfully");
       refetchUser();
+      cartQuery.refetch();
     },
   });
+
+  // Sync server cart into local state on load or update
+  useEffect(() => {
+    if (cartQuery.data?.items && cartQuery.data.items.length > 0) {
+      const serverItems: CartItem[] = cartQuery.data.items.map((item: any) => ({
+        id: item.productId,
+        sku: item.sku,
+        name: item.nameEn,
+        nameTa: item.nameTa,
+        category: "Botanicals",
+        price: item.unitPrice,
+        image: item.primaryImage || "/images/products/packaged/pouch_001.png",
+        description: "",
+        sizes: [{ label: item.packSize, price: item.unitPrice }],
+        size: item.packSize,
+        unitPrice: item.unitPrice,
+        quantity: item.quantity,
+        slug: item.slug,
+      }));
+      setCart(serverItems);
+    }
+  }, [cartQuery.data]);
 
   // Combine database products with fallback
   const allProducts: Product[] = useMemo(() => {
     if (dbProducts && dbProducts.length > 0) {
       return dbProducts.map((p: any) => ({
         id: p.id,
+        sku: p.sku,
         name: p.nameEn,
         nameTa: p.nameTa,
         category: p.category || "Herbs",
         price: p.price,
         compareAt: p.compareAt,
+        discountPercent: p.discountPercent,
+        stock: p.stock,
+        stockAvailability: p.stockAvailability,
         image: p.image || "/images/products/packaged/pouch_001.png",
         badge: p.featured ? "Featured" : undefined,
         description: p.description || "",
@@ -1102,6 +1192,7 @@ export default function Home() {
         !term ||
         product.name.toLowerCase().includes(term) ||
         (product.nameTa && product.nameTa.includes(term)) ||
+        (product.sku && product.sku.toLowerCase().includes(term)) ||
         product.category.toLowerCase().includes(term);
       return matchCat && matchSearch;
     });
@@ -1128,18 +1219,58 @@ export default function Home() {
       }
       return [...current, { ...product, size, unitPrice, quantity }];
     });
+
+    addToCartMutation.mutate(
+      { guestToken, productId: product.id, packSize: size, quantity },
+      {
+        onSuccess: () => cartQuery.refetch(),
+        onError: (err) => {
+          toast.error(err.message || "Failed to add to cart");
+          cartQuery.refetch();
+        },
+      }
+    );
+
     toast.success(`${product.name} added to your basket`, {
       description: `${size} · ${formatINR(unitPrice)}`,
     });
   };
 
-  const updateCart = (id: string, size: string, delta: number) =>
+  const updateCart = (id: string, size: string, delta: number) => {
+    const item = cart.find((i) => i.id === id && i.size === size);
+    if (!item) return;
+    const newQty = item.quantity + delta;
+
+    if (newQty <= 0) {
+      removeCart(id, size);
+      return;
+    }
+
     setCart((current) =>
-      current.map((item) => (item.id === id && item.size === size ? { ...item, quantity: Math.max(1, item.quantity + delta) } : item))
+      current.map((i) => (i.id === id && i.size === size ? { ...i, quantity: newQty } : i))
     );
 
-  const removeCart = (id: string, size: string) =>
+    updateCartMutation.mutate(
+      { guestToken, productId: id, packSize: size, quantity: newQty },
+      {
+        onSuccess: () => cartQuery.refetch(),
+        onError: (err) => {
+          toast.error(err.message || "Failed to update quantity");
+          cartQuery.refetch();
+        },
+      }
+    );
+  };
+
+  const removeCart = (id: string, size: string) => {
     setCart((current) => current.filter((item) => !(item.id === id && item.size === size)));
+    removeCartMutation.mutate(
+      { guestToken, productId: id, packSize: size },
+      {
+        onSuccess: () => cartQuery.refetch(),
+      }
+    );
+  };
 
   const scrollToShop = () => document.getElementById("shop")?.scrollIntoView({ behavior: "smooth" });
 
@@ -1365,7 +1496,14 @@ export default function Home() {
         onRemove={removeCart}
         onCheckout={() => {
           setCartOpen(false);
-          setCheckoutOpen(true);
+          if (!currentUser) {
+            toast.info("Please sign in or register to securely place your order.", {
+              description: "Your cart items are preserved safely.",
+            });
+            setAuthModalOpen(true);
+          } else {
+            setCheckoutOpen(true);
+          }
         }}
       />
 
@@ -1376,6 +1514,7 @@ export default function Home() {
         onComplete={() => {
           setCheckoutOpen(false);
           setCart([]);
+          cartQuery.refetch();
         }}
         currentUser={currentUser}
         onRequireAuth={() => setAuthModalOpen(true)}
@@ -1393,7 +1532,14 @@ export default function Home() {
       <AuthModal
         open={authModalOpen}
         onClose={() => setAuthModalOpen(false)}
-        onSuccess={() => refetchUser()}
+        guestToken={guestToken}
+        onSuccess={() => {
+          refetchUser();
+          cartQuery.refetch();
+          if (cart.length > 0) {
+            setCheckoutOpen(true);
+          }
+        }}
       />
 
       <AccountModal

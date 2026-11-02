@@ -8,6 +8,7 @@ import * as db from "./db";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import crypto from "node:crypto";
+import { checkRateLimit, resetRateLimit } from "./rateLimit";
 
 export const appRouter = router({
   system: systemRouter,
@@ -32,15 +33,30 @@ export const appRouter = router({
 
     register: publicProcedure
       .input(
-        z.object({
-          email: z.string().email(),
-          password: z.string().min(6, "Password must be at least 6 characters"),
-          name: z.string().min(2, "Name must be at least 2 characters"),
-          phone: z.string().optional(),
-          guestToken: z.string().optional(),
-        })
+        z
+          .object({
+            email: z.string().email("Please enter a valid email address"),
+            password: z.string().min(6, "Password must be at least 6 characters"),
+            confirmPassword: z.string().optional(),
+            name: z.string().min(2, "Name must be at least 2 characters"),
+            phone: z.string().optional(),
+            guestToken: z.string().optional(),
+          })
+          .refine((data) => !data.confirmPassword || data.password === data.confirmPassword, {
+            message: "Passwords do not match",
+            path: ["confirmPassword"],
+          })
       )
       .mutation(async ({ input, ctx }) => {
+        const clientIp = (ctx.req?.headers?.["x-forwarded-for"] as string) || ctx.req?.socket?.remoteAddress || "ip_anon";
+        const rateCheck = checkRateLimit(`reg_${clientIp}`, 10, 15 * 60 * 1000);
+        if (!rateCheck.allowed) {
+          throw new TRPCError({
+            code: "TOO_MANY_REQUESTS",
+            message: "Too many registration attempts. Please try again later.",
+          });
+        }
+
         const existing = db.usersRepo.getByEmail(input.email);
         if (existing) {
           throw new TRPCError({
@@ -90,12 +106,21 @@ export const appRouter = router({
     login: publicProcedure
       .input(
         z.object({
-          email: z.string().email(),
+          email: z.string().email("Please enter a valid email address"),
           password: z.string(),
           guestToken: z.string().optional(),
         })
       )
       .mutation(async ({ input, ctx }) => {
+        const clientIp = (ctx.req?.headers?.["x-forwarded-for"] as string) || ctx.req?.socket?.remoteAddress || "ip_anon";
+        const rateCheck = checkRateLimit(`login_${clientIp}_${input.email.toLowerCase()}`, 10, 15 * 60 * 1000);
+        if (!rateCheck.allowed) {
+          throw new TRPCError({
+            code: "TOO_MANY_REQUESTS",
+            message: "Too many failed login attempts. Please wait 15 minutes and try again.",
+          });
+        }
+
         const user = db.usersRepo.getByEmail(input.email);
         if (!user) {
           throw new TRPCError({
@@ -111,6 +136,8 @@ export const appRouter = router({
             message: "Invalid email or password.",
           });
         }
+
+        resetRateLimit(`login_${clientIp}_${input.email.toLowerCase()}`);
 
         if (user.status === "SUSPENDED") {
           throw new TRPCError({
@@ -289,6 +316,31 @@ export const appRouter = router({
         return product;
       }),
 
+    getBySku: publicProcedure
+      .input(z.object({ sku: z.string() }))
+      .query(async ({ input }) => {
+        const product = db.productsRepo.getBySku(input.sku);
+        if (!product) {
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: "Product not found.",
+          });
+        }
+        return product;
+      }),
+
+    getRelated: publicProcedure
+      .input(
+        z.object({
+          categoryId: z.string().optional(),
+          excludeId: z.string().optional(),
+          limit: z.number().optional().default(4),
+        })
+      )
+      .query(async ({ input }) => {
+        return db.productsRepo.getRelated(input.categoryId, input.excludeId, input.limit);
+      }),
+
     getFeatured: publicProcedure.query(async () => {
       return db.productsRepo.getAll({ limit: 12 });
     }),
@@ -326,21 +378,28 @@ export const appRouter = router({
           guestToken: z.string().optional(),
           productId: z.string(),
           packSize: z.string(),
-          unitPrice: z.number(),
+          unitPrice: z.number().optional(),
           quantity: z.number().optional().default(1),
         })
       )
       .mutation(async ({ input, ctx }) => {
-        const userId = ctx.user ? String(ctx.user.id) : undefined;
-        const cart = db.cartRepo.getOrCreate(userId, input.guestToken);
-        const items = db.cartRepo.addItem(
-          cart.id,
-          input.productId,
-          input.packSize,
-          input.unitPrice,
-          input.quantity
-        );
-        return { cartId: cart.id, items };
+        try {
+          const userId = ctx.user ? String(ctx.user.id) : undefined;
+          const cart = db.cartRepo.getOrCreate(userId, input.guestToken);
+          const items = db.cartRepo.addItem(
+            cart.id,
+            input.productId,
+            input.packSize,
+            input.unitPrice,
+            input.quantity
+          );
+          return { cartId: cart.id, items };
+        } catch (err: any) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: err.message || "Failed to add item to cart",
+          });
+        }
       }),
 
     update: publicProcedure
@@ -353,15 +412,22 @@ export const appRouter = router({
         })
       )
       .mutation(async ({ input, ctx }) => {
-        const userId = ctx.user ? String(ctx.user.id) : undefined;
-        const cart = db.cartRepo.getOrCreate(userId, input.guestToken);
-        const items = db.cartRepo.updateItem(
-          cart.id,
-          input.productId,
-          input.packSize,
-          input.quantity
-        );
-        return { cartId: cart.id, items };
+        try {
+          const userId = ctx.user ? String(ctx.user.id) : undefined;
+          const cart = db.cartRepo.getOrCreate(userId, input.guestToken);
+          const items = db.cartRepo.updateItem(
+            cart.id,
+            input.productId,
+            input.packSize,
+            input.quantity
+          );
+          return { cartId: cart.id, items };
+        } catch (err: any) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: err.message || "Failed to update item in cart",
+          });
+        }
       }),
 
     remove: publicProcedure

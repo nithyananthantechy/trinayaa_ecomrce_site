@@ -388,16 +388,18 @@ export const productsRepo = {
 
     if (options.search && options.search.trim()) {
       const term = `%${options.search.trim()}%`;
-      query += " AND (p.nameEn LIKE ? OR p.nameTa LIKE ? OR p.sku LIKE ? OR p.shortDesc LIKE ?)";
-      params.push(term, term, term, term);
+      query += " AND (p.nameEn LIKE ? OR p.nameTa LIKE ? OR p.sku LIKE ? OR c.name LIKE ? OR p.shortDesc LIKE ?)";
+      params.push(term, term, term, term, term);
     }
 
-    if (options.sort === "price-low") {
+    if (options.sort === "price-low" || options.sort === "price_asc" || options.sort === "price-asc") {
       query += " ORDER BY p.sellingPrice ASC";
-    } else if (options.sort === "price-high") {
+    } else if (options.sort === "price-high" || options.sort === "price_desc" || options.sort === "price-desc") {
       query += " ORDER BY p.sellingPrice DESC";
-    } else if (options.sort === "name") {
+    } else if (options.sort === "name" || options.sort === "name_asc" || options.sort === "name-asc") {
       query += " ORDER BY p.nameEn ASC";
+    } else if (options.sort === "name_desc" || options.sort === "name-desc") {
+      query += " ORDER BY p.nameEn DESC";
     } else {
       query += " ORDER BY p.featured DESC, p.createdAt DESC";
     }
@@ -431,6 +433,24 @@ export const productsRepo = {
     const db = getDatabase();
     const item = db.prepare("SELECT p.*, c.name as categoryName FROM products p LEFT JOIN categories c ON p.categoryId = c.id WHERE p.sku = ?").get(sku) as any;
     return item ? formatProduct(item) : null;
+  },
+
+  getRelated(categoryId?: string, excludeId?: string, limit = 4) {
+    const db = getDatabase();
+    let query = "SELECT p.*, c.name as categoryName FROM products p LEFT JOIN categories c ON p.categoryId = c.id WHERE p.status = 'Published'";
+    const params: any[] = [];
+    if (categoryId) {
+      query += " AND p.categoryId = ?";
+      params.push(categoryId);
+    }
+    if (excludeId) {
+      query += " AND p.id != ?";
+      params.push(excludeId);
+    }
+    query += " ORDER BY p.featured DESC, RANDOM() LIMIT ?";
+    params.push(limit);
+    const items = db.prepare(query).all(...params) as any[];
+    return items.map(formatProduct);
   },
 
   create(data: any) {
@@ -596,6 +616,8 @@ function formatProduct(p: any) {
         { label: "500 g", price: Math.round(p.sellingPrice * 4.2), mrp: Math.round(p.mrp * 4.2), stock: p.stock },
       ];
 
+  const discountPercent = p.mrp > p.sellingPrice ? Math.round(((p.mrp - p.sellingPrice) / p.mrp) * 100) : 0;
+
   return {
     ...p,
     id: p.id,
@@ -604,6 +626,7 @@ function formatProduct(p: any) {
     category: p.categoryName || "Herbs",
     price: p.sellingPrice,
     compareAt: p.mrp > p.sellingPrice ? p.mrp : undefined,
+    discountPercent,
     image: p.primaryImage || "/images/products/packaged/pouch_001.png",
     description: p.shortDesc || p.fullDesc || "",
     featured: Boolean(p.featured),
@@ -759,20 +782,46 @@ export const cartRepo = {
     return { ...cart, items };
   },
 
-  addItem(cartId: string, productId: string, packSize: string, unitPrice: number, quantity = 1) {
+  addItem(cartId: string, productId: string, packSize: string, clientUnitPrice?: number, quantity = 1) {
     const db = getDatabase();
+
+    // 1. Validate Product and Availability
+    const prod = db.prepare("SELECT * FROM products WHERE id = ?").get(productId) as any;
+    if (!prod) {
+      throw new Error("Product not found");
+    }
+    if (prod.status !== "Published") {
+      throw new Error("Product is currently unavailable");
+    }
+    if (prod.stock <= 0) {
+      throw new Error("Product is currently out of stock");
+    }
+
+    // 2. Fetch True Unit Price and Max Stock from Database
+    const variant = db.prepare("SELECT * FROM product_variants WHERE productId = ? AND packSize = ?")
+      .get(productId, packSize) as any;
+    const trueUnitPrice = variant ? Number(variant.price) : Number(prod.sellingPrice);
+    const maxStock = variant ? Number(variant.stock) : Number(prod.stock);
+
     const existing = db.prepare("SELECT * FROM cart_items WHERE cartId = ? AND productId = ? AND packSize = ?")
       .get(cartId, productId, packSize) as any;
 
     if (existing) {
-      db.prepare("UPDATE cart_items SET quantity = quantity + ? WHERE id = ?")
-        .run(quantity, existing.id);
+      const newQty = existing.quantity + quantity;
+      if (newQty > maxStock) {
+        throw new Error(`Requested quantity exceeds available stock (${maxStock})`);
+      }
+      db.prepare("UPDATE cart_items SET quantity = ?, unitPrice = ? WHERE id = ?")
+        .run(newQty, trueUnitPrice, existing.id);
     } else {
+      if (quantity > maxStock) {
+        throw new Error(`Requested quantity exceeds available stock (${maxStock})`);
+      }
       const id = "ci_" + Date.now() + "_" + Math.floor(Math.random() * 1000);
       db.prepare(`
         INSERT INTO cart_items (id, cartId, productId, packSize, unitPrice, quantity, createdAt)
         VALUES (?, ?, ?, ?, ?, ?, ?)
-      `).run(id, cartId, productId, packSize, unitPrice, quantity, new Date().toISOString());
+      `).run(id, cartId, productId, packSize, trueUnitPrice, quantity, new Date().toISOString());
     }
 
     db.prepare("UPDATE carts SET updatedAt = ? WHERE id = ?").run(new Date().toISOString(), cartId);
@@ -785,6 +834,13 @@ export const cartRepo = {
       db.prepare("DELETE FROM cart_items WHERE cartId = ? AND productId = ? AND packSize = ?")
         .run(cartId, productId, packSize);
     } else {
+      const prod = db.prepare("SELECT * FROM products WHERE id = ?").get(productId) as any;
+      const variant = prod ? db.prepare("SELECT * FROM product_variants WHERE productId = ? AND packSize = ?").get(productId, packSize) as any : null;
+      const maxStock = variant ? Number(variant.stock) : (prod ? Number(prod.stock) : 100);
+
+      if (quantity > maxStock) {
+        throw new Error(`Requested quantity exceeds available stock (${maxStock})`);
+      }
       db.prepare("UPDATE cart_items SET quantity = ? WHERE cartId = ? AND productId = ? AND packSize = ?")
         .run(quantity, cartId, productId, packSize);
     }
@@ -820,23 +876,56 @@ export const cartRepo = {
     const guestCart = db.prepare("SELECT * FROM carts WHERE guestToken = ?").get(guestToken) as any;
     if (!guestCart) return;
 
-    let userCart = db.prepare("SELECT * FROM carts WHERE userId = ?").get(userId) as any;
-    if (!userCart) {
-      // Re-assign guest cart to user
-      db.prepare("UPDATE carts SET userId = ?, guestToken = NULL, updatedAt = ? WHERE id = ?")
-        .run(userId, new Date().toISOString(), guestCart.id);
-      return;
-    }
+    db.exec("BEGIN TRANSACTION;");
+    try {
+      let userCart = db.prepare("SELECT * FROM carts WHERE userId = ?").get(userId) as any;
+      if (!userCart) {
+        // Re-assign guest cart to user
+        db.prepare("UPDATE carts SET userId = ?, guestToken = NULL, updatedAt = ? WHERE id = ?")
+          .run(userId, new Date().toISOString(), guestCart.id);
+        db.exec("COMMIT;");
+        return;
+      }
 
-    // Merge items into userCart
-    const guestItems = db.prepare("SELECT * FROM cart_items WHERE cartId = ?").all(guestCart.id) as any[];
-    for (const item of guestItems) {
-      this.addItem(userCart.id, item.productId, item.packSize, item.unitPrice, item.quantity);
-    }
+      // Merge items into userCart
+      const guestItems = db.prepare("SELECT * FROM cart_items WHERE cartId = ?").all(guestCart.id) as any[];
+      for (const item of guestItems) {
+        // Validate product and stock
+        const prod = db.prepare("SELECT * FROM products WHERE id = ?").get(item.productId) as any;
+        if (!prod || prod.status !== "Published") continue;
 
-    // Delete guest cart
-    db.prepare("DELETE FROM cart_items WHERE cartId = ?").run(guestCart.id);
-    db.prepare("DELETE FROM carts WHERE id = ?").run(guestCart.id);
+        const variant = db.prepare("SELECT * FROM product_variants WHERE productId = ? AND packSize = ?")
+          .get(item.productId, item.packSize) as any;
+        const truePrice = variant ? Number(variant.price) : Number(prod.sellingPrice);
+        const maxStock = variant ? Number(variant.stock) : Number(prod.stock);
+
+        const existing = db.prepare("SELECT * FROM cart_items WHERE cartId = ? AND productId = ? AND packSize = ?")
+          .get(userCart.id, item.productId, item.packSize) as any;
+
+        if (existing) {
+          const combinedQty = Math.min(existing.quantity + item.quantity, maxStock);
+          db.prepare("UPDATE cart_items SET quantity = ?, unitPrice = ? WHERE id = ?")
+            .run(combinedQty, truePrice, existing.id);
+        } else {
+          const qty = Math.min(item.quantity, maxStock);
+          const newId = "ci_" + Date.now() + "_" + Math.floor(Math.random() * 1000);
+          db.prepare(`
+            INSERT INTO cart_items (id, cartId, productId, packSize, unitPrice, quantity, createdAt)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+          `).run(newId, userCart.id, item.productId, item.packSize, truePrice, qty, new Date().toISOString());
+        }
+      }
+
+      // Invalidate / delete guest cart
+      db.prepare("DELETE FROM cart_items WHERE cartId = ?").run(guestCart.id);
+      db.prepare("DELETE FROM carts WHERE id = ?").run(guestCart.id);
+
+      db.prepare("UPDATE carts SET updatedAt = ? WHERE id = ?").run(new Date().toISOString(), userCart.id);
+      db.exec("COMMIT;");
+    } catch (err) {
+      db.exec("ROLLBACK;");
+      throw err;
+    }
   }
 };
 
