@@ -862,7 +862,17 @@ export const appRouter = router({
           razorpaySignature: z.string(),
         })
       )
-      .mutation(async ({ input }) => {
+      .mutation(async ({ input, ctx }) => {
+        const order = db.ordersRepo.getById(input.orderId);
+        if (!order) {
+          throw new TRPCError({ code: "NOT_FOUND", message: "Order not found" });
+        }
+
+        const role = (ctx.user?.role || "").toUpperCase();
+        if (role !== "ADMIN" && role !== "SUPER_ADMIN" && order.customerId !== String(ctx.user?.id)) {
+          throw new TRPCError({ code: "FORBIDDEN", message: "Unauthorized to verify payment for this order." });
+        }
+
         const secret = process.env.RAZORPAY_KEY_SECRET || process.env.PAYMENT_GATEWAY_KEY_SECRET || "placeholder_secret_key_value";
 
         // Calculate expected HMAC-SHA256 signature
@@ -903,7 +913,17 @@ export const appRouter = router({
           razorpaySignature: z.string(),
         })
       )
-      .mutation(async ({ input }) => {
+      .mutation(async ({ input, ctx }) => {
+        const order = db.ordersRepo.getById(input.orderId);
+        if (!order) {
+          throw new TRPCError({ code: "NOT_FOUND", message: "Order not found" });
+        }
+
+        const role = (ctx.user?.role || "").toUpperCase();
+        if (role !== "ADMIN" && role !== "SUPER_ADMIN" && order.customerId !== String(ctx.user?.id)) {
+          throw new TRPCError({ code: "FORBIDDEN", message: "Unauthorized to verify payment for this order." });
+        }
+
         const secret = process.env.RAZORPAY_KEY_SECRET || process.env.PAYMENT_GATEWAY_KEY_SECRET || "placeholder_secret_key_value";
 
         const expectedSignature = crypto

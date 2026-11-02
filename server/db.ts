@@ -7,7 +7,7 @@ import fs from "node:fs";
 import { notificationsService, type OrderNotificationEvent } from "./notifications.ts";
 
 // Path to SQLite database
-const DB_PATH = process.env.DATABASE_URL?.replace(/^sqlite:/, "") || path.resolve(process.cwd(), "data", "trinayaa.db");
+const DB_PATH = process.env.DATABASE_URL?.replace(/^sqlite:/, "") || process.env.DATABASE_PATH || path.resolve(process.cwd(), "data", "trinayaa.db");
 
 // Ensure data folder exists
 const dbDir = path.dirname(DB_PATH);

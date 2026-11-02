@@ -1,0 +1,39 @@
+version: '3.8'
+
+services:
+  trinayaa:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: trinayaa-ecommerce
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - DATABASE_PATH=/app/data/trinayaa.db
+      - SESSION_SECRET=${SESSION_SECRET:-trinayaa_production_session_secret_2026}
+      - JWT_SECRET=${JWT_SECRET:-trinayaa_production_session_secret_2026}
+      - RAZORPAY_KEY_ID=${RAZORPAY_KEY_ID}
+      - RAZORPAY_KEY_SECRET=${RAZORPAY_KEY_SECRET}
+      - RAZORPAY_WEBHOOK_SECRET=${RAZORPAY_WEBHOOK_SECRET}
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+      - TELEGRAM_WEBHOOK_SECRET=${TELEGRAM_WEBHOOK_SECRET}
+      - TELEGRAM_ALLOWED_ADMIN_IDS=${TELEGRAM_ALLOWED_ADMIN_IDS}
+      - NEXT_PUBLIC_APP_URL=${NEXT_PUBLIC_APP_URL:-https://trinayaa.in}
+    volumes:
+      - trinayaa_data:/app/data
+      - trinayaa_uploads:/app/client/public/uploads
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:3000/health').then(r => r.ok ? process.exit(0) : process.exit(1)).catch(() => process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+volumes:
+  trinayaa_data:
+    driver: local
+  trinayaa_uploads:
+    driver: local

@@ -13,10 +13,55 @@ import path from "node:path";
 import fs from "node:fs";
 import crypto from "node:crypto";
 
+// Simple in-memory rate limiter for sensitive endpoints
+interface RateLimitRecord {
+  count: number;
+  resetAt: number;
+}
+const rateLimitStore = new Map<string, RateLimitRecord>();
+
+function createRateLimiter(maxRequests: number, windowMs = 60000) {
+  return (req: express.Request, res: express.Response, next: express.NextFunction) => {
+    const ip = req.ip || req.socket.remoteAddress || "127.0.0.1";
+    const key = `${ip}:${req.baseUrl || ""}${req.path}`;
+    const now = Date.now();
+    const record = rateLimitStore.get(key);
+
+    if (!record || now > record.resetAt) {
+      rateLimitStore.set(key, { count: 1, resetAt: now + windowMs });
+      return next();
+    }
+
+    record.count++;
+    if (record.count > maxRequests) {
+      res.setHeader("Retry-After", Math.ceil((record.resetAt - now) / 1000));
+      return res.status(429).json({ error: "Too many requests. Please wait a moment before trying again." });
+    }
+
+    return next();
+  };
+}
+
 async function startServer() {
   initTelegramNotifications();
   const app = express();
   const server = createServer(app);
+
+  // Security: Disable express server banner
+  app.disable("x-powered-by");
+
+  // Security: Standard HTTP protection headers
+  app.use((req, res, next) => {
+    res.setHeader("X-Content-Type-Options", "nosniff");
+    res.setHeader("X-Frame-Options", "SAMEORIGIN");
+    res.setHeader("X-XSS-Protection", "1; mode=block");
+    res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
+    res.setHeader("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
+    if (process.env.NODE_ENV === "production" || req.secure || req.headers["x-forwarded-proto"] === "https") {
+      res.setHeader("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
+    }
+    next();
+  });
 
   // Configure body parser with 50mb size limit for file uploads and JSON
   app.use(express.json({ limit: "50mb" }));
@@ -29,18 +74,32 @@ async function startServer() {
   }
   app.use("/uploads", express.static(uploadsDir));
 
-  // Health check
-  app.get("/api/health", (_req, res) => res.json({ status: "ok", timestamp: new Date().toISOString() }));
+  // Health check endpoints (Liveness & Readiness probe)
+  const healthCheckHandler = (_req: express.Request, res: express.Response) => {
+    res.json({
+      status: "ok",
+      uptime: Math.floor(process.uptime()),
+      timestamp: new Date().toISOString(),
+      service: "trinayaa-storefront-api",
+      version: "1.0.0"
+    });
+  };
+  app.get("/health", healthCheckHandler);
+  app.get("/api/health", healthCheckHandler);
 
   // Platform config
   app.get("/api/platform/config.js", (_req, res) => {
     res.set("Cache-Control", "no-store").type("application/javascript").send(publicPlatformScript());
   });
 
+  // Rate limiter instances for sensitive endpoints
+  const uploadLimiter = createRateLimiter(30, 60000); // 30 uploads/min
+  const webhookLimiter = createRateLimiter(120, 60000); // 120 webhook calls/min
+
   // ==========================================
-  // IMAGE UPLOAD API WITH VALIDATION
+  // IMAGE UPLOAD API WITH VALIDATION & RATE LIMITING
   // ==========================================
-  app.post("/api/upload", (req, res) => {
+  app.post("/api/upload", uploadLimiter, (req, res) => {
     try {
       const { fileName, fileData, mimeType } = req.body;
       if (!fileData) {
@@ -82,9 +141,9 @@ async function startServer() {
   });
 
   // ==========================================
-  // TELEGRAM BOT WEBHOOK
+  // TELEGRAM BOT WEBHOOK (RATE LIMITED)
   // ==========================================
-  app.post("/api/webhooks/telegram", async (req, res) => {
+  app.post("/api/webhooks/telegram", webhookLimiter, async (req, res) => {
     try {
       const secret = process.env.TELEGRAM_WEBHOOK_SECRET;
       if (secret && !secret.includes("placeholder") && !secret.includes("PLACEHOLDER")) {
@@ -102,9 +161,9 @@ async function startServer() {
   });
 
   // ==========================================
-  // RAZORPAY PAYMENT WEBHOOK (IDEMPOTENT)
+  // RAZORPAY PAYMENT WEBHOOK (IDEMPOTENT & RATE LIMITED)
   // ==========================================
-  app.post("/api/webhooks/razorpay", (req, res) => {
+  app.post("/api/webhooks/razorpay", webhookLimiter, (req, res) => {
     try {
       const secret = process.env.RAZORPAY_WEBHOOK_SECRET || process.env.PAYMENT_GATEWAY_WEBHOOK_SECRET || "placeholder_webhook_secret_value";
       const signature = req.headers["x-razorpay-signature"] as string;
