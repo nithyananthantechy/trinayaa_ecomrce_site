@@ -27,7 +27,7 @@ import {
   Youtube,
 } from "lucide-react";
 import { useEffect, useMemo, useState, FormEvent } from "react";
-import { useLocation } from "wouter";
+import { useLocation, useRoute } from "wouter";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 
@@ -221,8 +221,8 @@ function SiteHeader({
             <a href="#shop" onClick={() => window.dispatchEvent(new CustomEvent("trinayaa-filter", { detail: "Seeds" }))}>Seeds</a>
             <a href="#shop" onClick={() => window.dispatchEvent(new CustomEvent("trinayaa-filter", { detail: "Raw Powders" }))}>Raw Powders</a>
             <a href="#shop" onClick={() => window.dispatchEvent(new CustomEvent("trinayaa-filter", { detail: "Herbs" }))}>Herbs</a>
-            <a href="#story">About Us</a>
-            <button onClick={() => toast.info("Write to support@trinayaa.in and we will be in touch.")}>Contact</button>
+            <button onClick={() => setLocation("/about")}>About Us</button>
+            <button onClick={() => setLocation("/contact")}>Contact</button>
           </nav>
           <div className="header-actions">
             <label className="header-search">
@@ -282,7 +282,9 @@ function ProductCard({
       <div className="product-image-wrap" onClick={onDetails} role="button" tabIndex={0} onKeyDown={(e) => e.key === "Enter" && onDetails()}>
         <img
           src={product.image}
-          alt={`${product.name} - TRINAYAA Pure Botanicals`}
+          alt={`${product.name}${product.nameTa ? ` (${product.nameTa})` : ""} - TRINAYAA Pure Botanical Pouch`}
+          loading="lazy"
+          decoding="async"
           onError={(e: any) => {
             e.target.src = "/images/products/packaged/pouch_001.png";
           }}
@@ -1223,6 +1225,11 @@ export default function Home() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
 
+  // Deep linking and clean URL routing
+  const [matchProduct, productParams] = useRoute("/products/:slug");
+  const [matchCategory, categoryParams] = useRoute("/categories/:slug");
+  const [matchProductsList] = useRoute("/products");
+
   // Persistent Guest Token
   const [guestToken] = useState<string>(() => getGuestToken());
 
@@ -1300,6 +1307,29 @@ export default function Home() {
       window.removeEventListener("trinayaa-search", onSearch);
     };
   }, []);
+
+  // Sync route parameters with SPA state
+  useEffect(() => {
+    if (matchProduct && productParams?.slug && allProducts.length > 0) {
+      const found = allProducts.find(
+        (p) => p.slug === productParams.slug || p.id === productParams.slug || p.sku?.toLowerCase() === productParams.slug.toLowerCase()
+      );
+      if (found) {
+        setSelectedProduct(found);
+      }
+    } else if (matchCategory && categoryParams?.slug) {
+      const slug = categoryParams.slug.toLowerCase();
+      const matched = categoriesData.find(
+        (c) => c.label.toLowerCase().replace(/[^a-z0-9]+/g, "-") === slug || slug.includes(c.label.toLowerCase().replace(/[^a-z0-9]+/g, "-"))
+      );
+      if (matched) {
+        setActiveCategory(matched.label);
+      }
+      scrollToShop();
+    } else if (matchProductsList) {
+      scrollToShop();
+    }
+  }, [matchProduct, productParams, matchCategory, categoryParams, matchProductsList, allProducts]);
 
   const filteredProducts = useMemo(() => {
     let result = allProducts.filter((product) => {
@@ -1443,7 +1473,12 @@ export default function Home() {
                 <p>{category.caption}</p>
                 <span className="circle-arrow"><ArrowRight size={16} /></span>
               </div>
-              <img src={category.image} alt="" />
+              <img
+                src={category.image}
+                alt={`${category.label} - TRINAYAA Pure Botanical Collection`}
+                loading="lazy"
+                decoding="async"
+              />
             </button>
           ))}
         </section>
@@ -1585,8 +1620,8 @@ export default function Home() {
           </div>
           <div className="footer-column">
             <span className="footer-title">Customer care</span>
-            <a href="#story">About Us</a>
-            <button onClick={() => toast.info("Write to support@trinayaa.in for help.")}>Contact</button>
+            <button onClick={() => setLocation("/about")}>About Us</button>
+            <button onClick={() => setLocation("/contact")}>Contact</button>
             <button onClick={() => setLocation("/track-order")}>Track Order</button>
             <button onClick={() => setLocation("/admin/login")}>Admin Portal</button>
           </div>
@@ -1600,10 +1635,10 @@ export default function Home() {
         <div className="footer-bottom container-wide">
           <span>© 2026 TRINAYAA ENTERPRISES. All rights reserved.</span>
           <div>
-            <a href="#footer" onClick={(e) => { e.preventDefault(); toast.info("TRINAYAA customer data is strictly protected."); }}>Privacy Policy</a>
-            <a href="#footer" onClick={(e) => { e.preventDefault(); toast.info("Standard Terms & Conditions apply to all purchases."); }}>Terms & Conditions</a>
-            <a href="#footer" onClick={(e) => { e.preventDefault(); toast.info("Standard delivery takes 2–5 business days across India."); }}>Shipping Policy</a>
-            <a href="#footer" onClick={(e) => { e.preventDefault(); toast.info("7-day replacement policy on damaged products."); }}>Return Policy</a>
+            <button onClick={() => setLocation("/policies/privacy")} className="hover:underline">Privacy Policy</button>
+            <button onClick={() => setLocation("/policies/terms")} className="hover:underline">Terms & Conditions</button>
+            <button onClick={() => setLocation("/policies/shipping")} className="hover:underline">Shipping Policy</button>
+            <button onClick={() => setLocation("/policies/returns")} className="hover:underline">Return Policy</button>
           </div>
         </div>
       </footer>
@@ -1643,7 +1678,12 @@ export default function Home() {
       <ProductDetailModal
         product={selectedProduct}
         open={Boolean(selectedProduct)}
-        onClose={() => setSelectedProduct(null)}
+        onClose={() => {
+          setSelectedProduct(null);
+          if (window.location.pathname.startsWith("/products/")) {
+            window.history.pushState(null, "", "/");
+          }
+        }}
         onAdd={addToCart}
         isWishlisted={selectedProduct ? wishlist.has(selectedProduct.id) : false}
         onWishlist={() => selectedProduct && toggleWishlist(selectedProduct.id)}

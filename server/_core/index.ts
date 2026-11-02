@@ -157,35 +157,51 @@ async function startServer() {
   });
 
   // ==========================================
-  // TECHNICAL SEO: SITEMAP.XML
+  // TECHNICAL SEO: DYNAMIC SITEMAP.XML
   // ==========================================
   app.get("/sitemap.xml", (_req, res) => {
     try {
-      const products = db.productsRepo.getAll({ limit: 500 });
-      const categories = db.categoriesRepo.getAll();
+      const dbInstance = db.getDatabase();
+      const products = dbInstance.prepare("SELECT slug, updatedAt, status FROM products WHERE status = 'Published'").all() as any[];
+      const categories = dbInstance.prepare("SELECT slug FROM categories WHERE isVisible = 1").all() as any[];
       const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://trinayaa.in";
       const now = new Date().toISOString().split("T")[0];
 
       let xml = `<?xml version="1.0" encoding="UTF-8"?>\n`;
       xml += `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n`;
 
-      // Static routes
-      xml += `  <url>\n    <loc>${baseUrl}/</loc>\n    <lastmod>${now}</lastmod>\n    <changefreq>daily</changefreq>\n    <priority>1.0</priority>\n  </url>\n`;
-      xml += `  <url>\n    <loc>${baseUrl}/track-order</loc>\n    <lastmod>${now}</lastmod>\n    <changefreq>weekly</changefreq>\n    <priority>0.8</priority>\n  </url>\n`;
+      // Static indexable routes
+      const staticPages = [
+        { path: "/", priority: "1.0", changefreq: "daily" },
+        { path: "/products", priority: "0.9", changefreq: "daily" },
+        { path: "/about", priority: "0.8", changefreq: "monthly" },
+        { path: "/contact", priority: "0.8", changefreq: "monthly" },
+        { path: "/track-order", priority: "0.8", changefreq: "weekly" },
+        { path: "/policies/shipping", priority: "0.7", changefreq: "monthly" },
+        { path: "/policies/returns", priority: "0.7", changefreq: "monthly" },
+        { path: "/policies/privacy", priority: "0.6", changefreq: "monthly" },
+        { path: "/policies/terms", priority: "0.6", changefreq: "monthly" },
+      ];
 
-      // Categories
-      for (const cat of categories) {
-        xml += `  <url>\n    <loc>${baseUrl}/?category=${encodeURIComponent(cat.name)}</loc>\n    <lastmod>${now}</lastmod>\n    <changefreq>weekly</changefreq>\n    <priority>0.8</priority>\n  </url>\n`;
+      for (const p of staticPages) {
+        xml += `  <url>\n    <loc>${baseUrl}${p.path}</loc>\n    <lastmod>${now}</lastmod>\n    <changefreq>${p.changefreq}</changefreq>\n    <priority>${p.priority}</priority>\n  </url>\n`;
       }
 
-      // Products
+      // Categories (clean path URLs)
+      for (const cat of categories) {
+        xml += `  <url>\n    <loc>${baseUrl}/categories/${cat.slug}</loc>\n    <lastmod>${now}</lastmod>\n    <changefreq>weekly</changefreq>\n    <priority>0.8</priority>\n  </url>\n`;
+      }
+
+      // Products (clean path URLs for all 162 published items)
       for (const prod of products) {
-        xml += `  <url>\n    <loc>${baseUrl}/#product-${prod.slug}</loc>\n    <lastmod>${prod.updatedAt ? prod.updatedAt.split("T")[0] : now}</lastmod>\n    <changefreq>daily</changefreq>\n    <priority>0.9</priority>\n  </url>\n`;
+        const lastMod = prod.updatedAt ? prod.updatedAt.split("T")[0] : now;
+        xml += `  <url>\n    <loc>${baseUrl}/products/${prod.slug}</loc>\n    <lastmod>${lastMod}</lastmod>\n    <changefreq>daily</changefreq>\n    <priority>0.9</priority>\n  </url>\n`;
       }
 
       xml += `</urlset>`;
-      res.header("Content-Type", "application/xml").send(xml);
+      res.header("Content-Type", "application/xml; charset=utf-8").send(xml);
     } catch (err) {
+      console.error("[Sitemap Error]:", err);
       res.status(500).send("Error generating sitemap");
     }
   });
@@ -197,43 +213,86 @@ async function startServer() {
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://trinayaa.in";
     const robots = `User-agent: *
 Allow: /
+Allow: /products
+Allow: /products/*
+Allow: /categories/*
+Allow: /about
+Allow: /contact
 Allow: /track-order
+Allow: /policies/*
+Allow: /images/*
+Allow: /assets/*
+Allow: /uploads/*
 Disallow: /admin
 Disallow: /admin/*
+Disallow: /cart
+Disallow: /checkout
+Disallow: /account
 Disallow: /api/
 Disallow: /api/*
 
 Sitemap: ${baseUrl}/sitemap.xml
 `;
-    res.header("Content-Type", "text/plain").send(robots);
+    res.header("Content-Type", "text/plain; charset=utf-8").send(robots);
   });
 
   // ==========================================
   // ANSWER ENGINE OPTIMIZATION (AEO): LLMS.TXT
   // ==========================================
   app.get("/llms.txt", (_req, res) => {
-    const content = `# TRINAYAA — Pure Seeds · Raw Powders · True Herbs
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://trinayaa.in";
+    const content = `# TRINAYAA ENTERPRISES — Pure Seeds · Raw Powders · True Herbs
 
-> TRINAYAA Enterprises is a premier botanical wellness brand and traditional apothecary rooted in Tamil Nadu, India.
+> TRINAYAA Enterprises is a premier botanical wellness brand and traditional apothecary rooted in Erode, Tamil Nadu, India.
+> Official Website: ${baseUrl}
 > Brand Philosophy: "Pure Seeds. Raw Powders. True Herbs. Good ingredients need nothing extra."
 
+## About the Brand
+TRINAYAA provides authentic single-ingredient botanicals, traditional herbal powders, and whole natural seeds sourced directly through ethical grower partnerships across Tamil Nadu. All ingredients are meticulously cleaned, naturally sun-dried, stone-ground where applicable, and hygienically packaged with zero artificial colors, synthetic fragrances, chemical preservatives, or fillers.
+
+## Canonical Website Entry Points
+- Homepage: ${baseUrl}/
+- Complete Catalogue (162 Botanicals): ${baseUrl}/products
+- About TRINAYAA: ${baseUrl}/about
+- Customer Support & Contact: ${baseUrl}/contact
+- Live Order Tracking: ${baseUrl}/track-order
+
 ## Core Product Categories
-1. Natural Seeds: Pure aromatic cumin, kalonji (black seed), peepal seeds, fenugreek seeds, and unadulterated whole botanicals.
-2. Raw Powders: Gently sun-dried and stone-ground pure herbal powders including Moringa leaf powder, Amla powder, and Ashwagandha.
-3. True Herbs: Whole botanicals including Licorice Root (அதிமதுரம்), Dried Hibiscus Flower petals, and single-origin medicinal plants.
+1. Natural Seeds: Pure aromatic cumin, kalonji (black seed), peepal seeds, fenugreek seeds, and unadulterated botanical seeds (${baseUrl}/categories/natural-seeds)
+2. Raw Powders: Pure stone-ground herbal powders including Moringa leaf powder, Amla powder, Ashwagandha, and Licorice (${baseUrl}/categories/raw-powders)
+3. True Herbs: Whole botanical roots, stems, and petals including Licorice Root (அதிமதுரம்), Dried Hibiscus Flower petals, and single-origin plants (${baseUrl}/categories/herbs)
+4. Health Care: Vitality botanicals and traditional tonics (${baseUrl}/categories/health-care)
+5. Hair Care: Herbal hair nourishing ingredients including Shikakai, Bringharaj, and Amla (${baseUrl}/categories/hair-care)
+6. Skin Care: Natural botanical clays and purifying powders (${baseUrl}/categories/skin-care)
+7. Wellness Drinks: Traditional herbal teas and rejuvenating infusions (${baseUrl}/categories/welness-drinks)
+8. Spices & Culinary: Single-origin natural culinary herbs (${baseUrl}/categories/spices-culinary)
+9. Aromatherapy & Incense: Pure botanical resins and aromatic woods (${baseUrl}/categories/aromatherapy-incense)
 
-## Sourcing and Quality Standards
-- Direct farm partnerships across Tamil Nadu, India.
-- Zero artificial colors, chemical preservatives, or synthetic additives.
-- Meticulously cleaned, naturally dried, and hygienically packed in individual pouches.
-- Pan-India tracked delivery with free shipping on orders above ₹799.
+## Sourcing & Quality Standards
+- Origin: Small-batch direct farm sourcing in Tamil Nadu, India.
+- Processing: Traditional slow-drying and fine stone-milling.
+- Safety: Natural packaging with tamper-evident individual food-grade pouches.
+- Medical Disclaimer: TRINAYAA botanicals are traditional single-ingredient dietary and wellness products. They are not intended to diagnose, treat, cure, or prevent any medical condition.
 
-## Customer Support & Verification
-- Official Website: https://trinayaa.in
-- Headquarters: Erode, Tamil Nadu – 638002
-- Customer Care Email: support@trinayaa.in
-- Support Phone: +91 98765 43210
-- Order Tracking: https://trinayaa.in/track-order
+## Ordering, Shipping & Customer Service Policies
+- Delivery Coverage: Pan-India tracked delivery across all Indian pin codes.
+- Shipping Fee: Free tracked delivery on orders above ₹799; standard delivery fee ₹60 for orders below ₹799.
+- Dispatch Location: Erode, Tamil Nadu – 638002.
+- Delivery Time: 2–5 business days via standard courier partners.
+- Payment Methods: 100% secure payments via Razorpay (UPI, Google Pay, PhonePe, Paytm, Debit/Credit Cards, NetBanking).
+- Return Policy: 7-day replacement guarantee on damaged or defective items.
+- Full Policies:
+  - Shipping Policy: ${baseUrl}/policies/shipping
+  - Return & Refund Policy: ${baseUrl}/policies/returns
+  - Privacy Policy: ${baseUrl}/policies/privacy
+  - Terms & Conditions: ${baseUrl}/policies/terms
+
+## Contact Details
+- Entity: TRINAYAA ENTERPRISES
+- Headquarters: Erode, Tamil Nadu – 638002, India
+- Email: support@trinayaa.in
+- Telephone: +91 98765 43210
+- Languages Supported: English, Tamil (தமிழ்)
 `;
     res.header("Content-Type", "text/markdown; charset=utf-8").send(content);
   });

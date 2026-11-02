@@ -5,6 +5,7 @@ import { nanoid } from "nanoid";
 import path from "path";
 import { createServer as createViteServer } from "vite";
 import viteConfig from "../../vite.config";
+import { injectSeoMetadata } from "../seo";
 
 export async function setupVite(app: Express, server: Server) {
   const serverOptions = {
@@ -34,10 +35,14 @@ export async function setupVite(app: Express, server: Server) {
 
       // always reload the index.html file from disk incase it changes
       let template = await fs.promises.readFile(clientTemplate, "utf-8");
+      template = injectSeoMetadata(template, url, process.env.NEXT_PUBLIC_APP_URL || "https://trinayaa.in");
       template = template.replace(
         `src="/src/main.tsx"`,
         `src="/src/main.tsx?v=${nanoid()}"`
       );
+      if (url.startsWith("/admin") || url.startsWith("/cart") || url.startsWith("/checkout")) {
+        res.setHeader("X-Robots-Tag", "noindex, nofollow");
+      }
       const page = await vite.transformIndexHtml(url, template);
       res.status(200).set({ "Content-Type": "text/html" }).end(page);
     } catch (e) {
@@ -65,8 +70,21 @@ export function serveStatic(app: Express) {
     res.status(404).sendFile(path.resolve(distPath, "index.html"));
   });
 
-  // fall through to index.html if the file doesn't exist
-  app.use("*", (_req, res) => {
-    res.sendFile(path.resolve(distPath, "index.html"));
+  // fall through to index.html with dynamically injected SEO metadata
+  app.use("*", async (req, res) => {
+    try {
+      const indexPath = path.resolve(distPath, "index.html");
+      if (!fs.existsSync(indexPath)) {
+        return res.status(404).send("Not Found");
+      }
+      let html = await fs.promises.readFile(indexPath, "utf-8");
+      html = injectSeoMetadata(html, req.originalUrl, process.env.NEXT_PUBLIC_APP_URL || "https://trinayaa.in");
+      if (req.originalUrl.startsWith("/admin") || req.originalUrl.startsWith("/cart") || req.originalUrl.startsWith("/checkout")) {
+        res.setHeader("X-Robots-Tag", "noindex, nofollow");
+      }
+      res.status(200).set({ "Content-Type": "text/html" }).send(html);
+    } catch {
+      res.sendFile(path.resolve(distPath, "index.html"));
+    }
   });
 }
