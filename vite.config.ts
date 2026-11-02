@@ -172,6 +172,23 @@ const plugins = [vitePluginPublicPlatformConfig(), react(), tailwindcss(), jsxLo
 
 export default defineConfig({
   plugins,
+  optimizeDeps: {
+    include: [
+      "react",
+      "react/jsx-runtime",
+      "react/jsx-dev-runtime",
+      "react-dom",
+      "react-dom/client",
+      "@tanstack/react-query",
+      "@trpc/client",
+      "@trpc/react-query",
+      "superjson",
+      "wouter",
+      "clsx",
+      "tailwind-merge",
+      "lucide-react",
+    ],
+  },
   resolve: {
     alias: {
       "@": path.resolve(import.meta.dirname, "client", "src"),
