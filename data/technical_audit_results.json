@@ -1,0 +1,539 @@
+{
+  "timestamp": "2026-10-31T11:52:42.345Z",
+  "environment": {
+    "node": "v24.14.1",
+    "platform": "win32",
+    "baseUrl": "http://127.0.0.1:3040"
+  },
+  "summary": {
+    "totalTests": 46,
+    "passed": 46,
+    "failed": 0,
+    "warnings": 0
+  },
+  "suites": [
+    {
+      "name": "Database & Schema Integrity",
+      "tests": [
+        {
+          "testName": "SQLite Database file exists on disk",
+          "status": "PASSED",
+          "details": {
+            "path": "C:\\Users\\Nithyananthan\\Desktop\\trinayaa-ecommerce\\data\\trinayaa.db"
+          },
+          "error": null
+        },
+        {
+          "testName": "All 11 relational schema tables exist",
+          "status": "PASSED",
+          "details": {
+            "tablesFound": 11,
+            "missingTables": []
+          },
+          "error": null
+        },
+        {
+          "testName": "162 Authentic Tamil Nadu Botanical Products seeded with packaging artwork",
+          "status": "PASSED",
+          "details": {
+            "totalProducts": 165,
+            "sampleNameEn": "Licorice Root",
+            "sampleNameTa": "அதிமதுரம்",
+            "sampleImage": "/images/products/packaged/pouch_001.png"
+          },
+          "error": null
+        }
+      ]
+    },
+    {
+      "name": "Authentication & Security",
+      "tests": [
+        {
+          "testName": "Customer Registration (Positive Workflow)",
+          "status": "PASSED",
+          "details": {
+            "user": {
+              "id": "usr_1793447562684_xxsz",
+              "email": "customer_1793447562602@example.com",
+              "name": "Senthil Velan",
+              "role": "CUSTOMER",
+              "phone": "+91 94433 11223"
+            },
+            "message": "Account created successfully"
+          },
+          "error": null
+        },
+        {
+          "testName": "Duplicate Email Registration Rejection (Negative Workflow)",
+          "status": "PASSED",
+          "details": {
+            "status": 409
+          },
+          "error": null
+        },
+        {
+          "testName": "Customer Login & JWT Session Issuance (Positive Workflow)",
+          "status": "PASSED",
+          "details": {
+            "role": "CUSTOMER"
+          },
+          "error": null
+        },
+        {
+          "testName": "Invalid Password Login Rejection (Negative Workflow)",
+          "status": "PASSED",
+          "details": {
+            "status": 401
+          },
+          "error": null
+        },
+        {
+          "testName": "Super Admin Login & Privileged Session (Positive Workflow)",
+          "status": "PASSED",
+          "details": {
+            "role": "SUPER_ADMIN"
+          },
+          "error": null
+        }
+      ]
+    },
+    {
+      "name": "RBAC & Route Protection",
+      "tests": [
+        {
+          "testName": "Unauthenticated Access to /api/admin/stats Blocked (403)",
+          "status": "PASSED",
+          "details": {
+            "status": 403
+          },
+          "error": null
+        },
+        {
+          "testName": "Customer Access to /api/admin/stats Blocked (403)",
+          "status": "PASSED",
+          "details": {
+            "status": 403
+          },
+          "error": null
+        },
+        {
+          "testName": "Super Admin Access to /api/admin/stats Permitted (200)",
+          "status": "PASSED",
+          "details": {
+            "totalProducts": 165,
+            "published": 165
+          },
+          "error": null
+        },
+        {
+          "testName": "Unauthenticated Access to /api/admin/customers Blocked (403)",
+          "status": "PASSED",
+          "details": {
+            "status": 403
+          },
+          "error": null
+        },
+        {
+          "testName": "Customer Access to /api/admin/telegram Blocked (403)",
+          "status": "PASSED",
+          "details": {
+            "status": 403
+          },
+          "error": null
+        }
+      ]
+    },
+    {
+      "name": "Product CRUD & Inventory",
+      "tests": [
+        {
+          "testName": "Admin Product Creation with Variants (Positive Workflow)",
+          "status": "PASSED",
+          "details": {
+            "id": "prod_1793447563365",
+            "sku": "TEST-AUDIT-3359"
+          },
+          "error": null
+        },
+        {
+          "testName": "Product Retrieval by Slug & Variants Inspection",
+          "status": "PASSED",
+          "details": {
+            "variantsCount": 3
+          },
+          "error": null
+        },
+        {
+          "testName": "Admin Product Update (Price: ₹220, Stock: 80)",
+          "status": "PASSED",
+          "details": {
+            "price": 220,
+            "stock": 80
+          },
+          "error": null
+        },
+        {
+          "testName": "Admin Product Deletion (Positive Workflow)",
+          "status": "PASSED",
+          "details": {
+            "deleteStatus": 200,
+            "verifyStatus": 404
+          },
+          "error": null
+        }
+      ]
+    },
+    {
+      "name": "Image Upload & Assets",
+      "tests": [
+        {
+          "testName": "Valid PNG Packaging Image Upload (Positive Workflow)",
+          "status": "PASSED",
+          "details": {
+            "urls": [
+              "/uploads/trn_1793447563427_audit_pouch_test.png"
+            ],
+            "url": "/uploads/trn_1793447563427_audit_pouch_test.png",
+            "message": "1 file(s) uploaded successfully"
+          },
+          "error": null
+        },
+        {
+          "testName": "Unsupported File Mime Type Rejection (Negative Workflow)",
+          "status": "PASSED",
+          "details": {
+            "status": 400
+          },
+          "error": null
+        },
+        {
+          "testName": "Unauthenticated Image Upload Rejection (403 Forbidden)",
+          "status": "PASSED",
+          "details": {
+            "status": 403
+          },
+          "error": null
+        }
+      ]
+    },
+    {
+      "name": "Bulk Import & Export",
+      "tests": [
+        {
+          "testName": "Admin CSV Catalogue Export with English & Tamil Headers",
+          "status": "PASSED",
+          "details": {
+            "lengthBytes": 15745
+          },
+          "error": null
+        },
+        {
+          "testName": "Admin Bulk Product Import (Positive Workflow)",
+          "status": "PASSED",
+          "details": {
+            "success": true,
+            "importedCount": 1,
+            "updatedCount": 0,
+            "errors": [],
+            "message": "Processed 1 rows: 1 added, 0 updated, 0 errors."
+          },
+          "error": null
+        },
+        {
+          "testName": "Bulk Import Missing Price Validation (Negative Workflow)",
+          "status": "PASSED",
+          "details": {
+            "errors": [
+              "Row 1 (Broken Item No Price): Invalid or missing selling price."
+            ]
+          },
+          "error": null
+        }
+      ]
+    },
+    {
+      "name": "Pricing & Security",
+      "tests": [
+        {
+          "testName": "Client Price Spoofing Protection (Server enforces real database unit price ₹150)",
+          "status": "PASSED",
+          "details": {
+            "sentPrice": 1,
+            "serverCalculatedSubtotal": 300,
+            "serverTotal": 350
+          },
+          "error": null
+        },
+        {
+          "testName": "Active Campaign Code Verification (FESTIVE15)",
+          "status": "PASSED",
+          "details": {
+            "valid": true,
+            "campaign": {
+              "id": "camp_diwali_01",
+              "name": "Festival Herbal Wellness Celebration",
+              "code": "FESTIVE15",
+              "discountType": "PERCENTAGE",
+              "discountValue": 15,
+              "minOrderValue": 499,
+              "maxDiscount": 500
+            }
+          },
+          "error": null
+        },
+        {
+          "testName": "Invalid Coupon Code Rejection (Negative Workflow)",
+          "status": "PASSED",
+          "details": {
+            "status": 404
+          },
+          "error": null
+        },
+        {
+          "testName": "Insufficient Stock Order Rejection (Negative Workflow)",
+          "status": "PASSED",
+          "details": {
+            "status": 400
+          },
+          "error": null
+        },
+        {
+          "testName": "Mandatory Customer Login Gate at Order Placement (401 Rejection)",
+          "status": "PASSED",
+          "details": {
+            "status": 401
+          },
+          "error": null
+        }
+      ]
+    },
+    {
+      "name": "Customer Privacy & Tracking",
+      "tests": [
+        {
+          "testName": "Customer A Viewing Their Own Order (200 OK)",
+          "status": "PASSED",
+          "details": {
+            "status": 200
+          },
+          "error": null
+        },
+        {
+          "testName": "Cross-Customer Order Data Isolation (Customer B Blocked with 403)",
+          "status": "PASSED",
+          "details": {
+            "status": 403
+          },
+          "error": null
+        },
+        {
+          "testName": "Public Order Tracking by Order Number (Safe fulfillment timeline without leaking tokens)",
+          "status": "PASSED",
+          "details": {
+            "orderNumber": "TRN-563487-668",
+            "status": "Confirmed",
+            "historySteps": 1
+          },
+          "error": null
+        }
+      ]
+    },
+    {
+      "name": "Payment Gateway Verification",
+      "tests": [
+        {
+          "testName": "Forged Cryptographic HMAC-SHA256 Signature Rejection (Negative Workflow)",
+          "status": "PASSED",
+          "details": {
+            "status": 400
+          },
+          "error": null
+        },
+        {
+          "testName": "Genuine HMAC-SHA256 Signature Verification & Order Confirmation (Positive Workflow)",
+          "status": "PASSED",
+          "details": {
+            "paymentStatus": "PAID",
+            "orderStatus": "Confirmed"
+          },
+          "error": null
+        },
+        {
+          "testName": "Payment Idempotency (Already paid order handled cleanly without duplicate charge)",
+          "status": "PASSED",
+          "details": {
+            "order": {
+              "id": "ord_1793447563552",
+              "orderNumber": "TRN-563552-843",
+              "customerId": "usr_1793447562684_xxsz",
+              "customerName": "Senthil Velan",
+              "customerEmail": "customer_1793447562602@example.com",
+              "customerPhone": "+91 94433 11223",
+              "shippingAddress": "42, Bhavani Main Road, Erode",
+              "subtotal": 150,
+              "discountAmount": 0,
+              "shippingFee": 50,
+              "total": 200,
+              "paymentMethod": "RAZORPAY",
+              "paymentStatus": "PAID",
+              "razorpayOrderId": "order_mock_1793447563577_brskp",
+              "razorpayPaymentId": "pay_mock_test_98765",
+              "orderStatus": "Confirmed",
+              "internalNotes": "",
+              "createdAt": "2026-10-31T11:52:43.552Z",
+              "updatedAt": "2026-10-31T11:52:43.599Z",
+              "items": [
+                {
+                  "id": "item_ord_1793447563552_1",
+                  "orderId": "ord_1793447563552",
+                  "productId": "prod_2",
+                  "productNameEn": "Ashwagandha - 1",
+                  "productNameTa": "அமுக்கரா",
+                  "packSize": "100g",
+                  "price": 150,
+                  "quantity": 1,
+                  "subtotal": 150,
+                  "image": "/images/products/packaged/pouch_002.png"
+                }
+              ],
+              "history": [
+                {
+                  "id": "hist_1793447563574",
+                  "orderId": "ord_1793447563552",
+                  "status": "Pending Payment",
+                  "note": "Order placed by customer",
+                  "updatedBy": "System",
+                  "createdAt": "2026-10-31T11:52:43.552Z"
+                },
+                {
+                  "id": "hist_1793447563601",
+                  "orderId": "ord_1793447563552",
+                  "status": "Confirmed",
+                  "note": "Payment verified via Razorpay",
+                  "updatedBy": "Razorpay Webhook",
+                  "createdAt": "2026-10-31T11:52:43.599Z"
+                }
+              ]
+            },
+            "message": "Order is already confirmed and paid"
+          },
+          "error": null
+        },
+        {
+          "testName": "Razorpay Webhook Signature Verification & Idempotent Handling",
+          "status": "PASSED",
+          "details": {
+            "status": 200
+          },
+          "error": null
+        }
+      ]
+    },
+    {
+      "name": "Order Status Lifecycle",
+      "tests": [
+        {
+          "testName": "Order Status Progression (Processing -> Packed -> Shipped -> Out for Delivery -> Delivered)",
+          "status": "PASSED",
+          "details": {
+            "currentStatus": "Delivered",
+            "historyEntries": 6
+          },
+          "error": null
+        }
+      ]
+    },
+    {
+      "name": "Telegram Bot Integration",
+      "tests": [
+        {
+          "testName": "Unauthorized Telegram User Rejection (Security Test)",
+          "status": "PASSED",
+          "details": {
+            "reply": "⛔ <b>Access Denied — TRINAYAA Admin System</b>\n\nYour Telegram User ID (<code>1122334455</code>) is not authorized to manage TRINAYAA.\n\nPlease contact the Super Administrator to add your Telegram ID to the administrative allowlist."
+          },
+          "error": null
+        },
+        {
+          "testName": "Authorized Telegram /dashboard Live Metrics Query",
+          "status": "PASSED",
+          "details": {
+            "replySnippet": "📊 <b>TRINAYAA BUSINESS OVERVIEW</b>\n\n💰 <b>Total Sales Revenue:</b> ₹800\n📦 <b>Total Orders:</b> 10"
+          },
+          "error": null
+        },
+        {
+          "testName": "Telegram Product Stock Modification Syncs to Live Database (/stock TRN-1001 77)",
+          "status": "PASSED",
+          "details": {
+            "newStockInDb": 77,
+            "targetSku": "TRN-1001"
+          },
+          "error": null
+        },
+        {
+          "testName": "Telegram Price Modification Syncs to Live Database (/updateprice TRN-1001 175)",
+          "status": "PASSED",
+          "details": {
+            "newSellingPriceInDb": 175,
+            "targetSku": "TRN-1001"
+          },
+          "error": null
+        },
+        {
+          "testName": "Telegram Promotion & Campaign Management (/offers and /toggleoffer)",
+          "status": "PASSED",
+          "details": {
+            "offersFound": true
+          },
+          "error": null
+        },
+        {
+          "testName": "Telegram Bot Audit Log Recording (Commands & Unauthorized Attempts Stored in DB)",
+          "status": "PASSED",
+          "details": {
+            "totalAuditLogsStored": 26
+          },
+          "error": null
+        }
+      ]
+    },
+    {
+      "name": "SEO & Indexing",
+      "tests": [
+        {
+          "testName": "Dynamic XML Sitemap (/sitemap.xml) with Product & Category URLs",
+          "status": "PASSED",
+          "details": {
+            "urlsInSitemap": 185
+          },
+          "error": null
+        },
+        {
+          "testName": "Robots.txt Directives (/robots.txt) Shielding Admin & Account Paths",
+          "status": "PASSED",
+          "details": {
+            "preview": "User-Agent: *; Allow: /; Disallow: /admin; Disallow: /admin/*"
+          },
+          "error": null
+        },
+        {
+          "testName": "AEO / LLM Context Directives (/llms.txt)",
+          "status": "PASSED",
+          "details": {
+            "lengthBytes": 1880
+          },
+          "error": null
+        },
+        {
+          "testName": "Homepage Metadata, OpenGraph & Structured Data",
+          "status": "PASSED",
+          "details": {
+            "metaTitleVerified": true
+          },
+          "error": null
+        }
+      ]
+    }
+  ]
+}

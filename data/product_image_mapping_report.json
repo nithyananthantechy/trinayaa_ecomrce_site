@@ -1,0 +1,1467 @@
+{
+  "totalCatalogProducts": 162,
+  "uniqueIndividualImagesAssigned": 156,
+  "featuredPhotosAssigned": 6,
+  "placeholdersAssigned": 0,
+  "collagesAssigned": 0,
+  "items": [
+    {
+      "sku": "TRN-1001",
+      "nameEn": "Licorice Root",
+      "nameTa": "அதிமதுரம்",
+      "category": "Health Care",
+      "assignedImage": "/images/products/packaged/pouch_001.png",
+      "verificationStatus": "Verified Individual Packaging Image",
+      "isCollage": false
+    },
+    {
+      "sku": "TRN-1002",
+      "nameEn": "Ashwagandha - 1",
+      "nameTa": "அமுக்கரா",
+      "category": "Health Care",
+      "assignedImage": "/images/products/packaged/pouch_002.png",
+      "verificationStatus": "Verified Individual Packaging Image",
+      "isCollage": false
+    },
+    {
+      "sku": "TRN-1003",
+      "nameEn": "Peepal Seeds",
+      "nameTa": "அரச விதை",
+      "category": "Health Care",
+      "assignedImage": "/images/products/packaged/pouch_003.png",
+      "verificationStatus": "Verified Individual Packaging Image",
+      "isCollage": false
+    },
+    {
+      "sku": "TRN-1004",
+      "nameEn": "Ashwagandha - 2",
+      "nameTa": "அஸ்வகந்தா",
+      "category": "Health Care",
+      "assignedImage": "/images/products/packaged/pouch_004.png",
+      "verificationStatus": "Verified Individual Packaging Image",
+      "isCollage": false
+    },
+    {
+      "sku": "TRN-1005",
+      "nameEn": "Inknut/Myrobalan",
+      "nameTa": "கடுக்காய்",
+      "category": "Health Care",
+      "assignedImage": "/images/products/packaged/pouch_005.png",
+      "verificationStatus": "Verified Individual Packaging Image",
+      "isCollage": false
+    },
+    {
+      "sku": "TRN-1006",
+      "nameEn": "Indian Aloe Gum",
+      "nameTa": "கரியபவளம்",
+      "category": "Health Care",
+      "assignedImage": "/images/products/packaged/pouch_006.png",
+      "verificationStatus": "Verified Individual Packaging Image",
+      "isCollage": false
+    },
+    {
+      "sku": "TRN-1007",
+      "nameEn": "Fever Nut",
+      "nameTa": "கழற்சிக்காய்",
+      "category": "Health Care",
+      "assignedImage": "/images/products/packaged/pouch_007.png",
+      "verificationStatus": "Verified Individual Packaging Image",
+      "isCollage": false
+    },
+    {
+      "sku": "TRN-1008",
+      "nameEn": "Babchi Seeds",
+      "nameTa": "கார்போக அரிசி",
+      "category": "Health Care",
+      "assignedImage": "/images/products/packaged/pouch_008.png",
+      "verificationStatus": "Verified Individual Packaging Image",
+      "isCollage": false
+    },
+    {
+      "sku": "TRN-1009",
+      "nameEn": "Malabar Tamarind",
+      "nameTa": "குடம்புளி",
+      "category": "Health Care",
+      "assignedImage": "/images/products/packaged/pouch_009.png",
+      "verificationStatus": "Verified Individual Packaging Image",
+      "isCollage": false
+    },
+    {
+      "sku": "TRN-1010",
+      "nameEn": "Lesser Galangal",
+      "nameTa": "சித்தரத்தை",
+      "category": "Health Care",
+      "assignedImage": "/images/products/packaged/pouch_010.png",
+      "verificationStatus": "Verified Individual Packaging Image",
+      "isCollage": false
+    },
+    {
+      "sku": "TRN-1011",
+      "nameEn": "Sweet basil",
+      "nameTa": "சீனித்துளசி",
+      "category": "Health Care",
+      "assignedImage": "/images/products/packaged/pouch_011.png",
+      "verificationStatus": "Verified Individual Packaging Image",
+      "isCollage": false
+    },
+    {
+      "sku": "TRN-1012",
+      "nameEn": "Lotus Flower",
+      "nameTa": "தாமரை பூ",
+      "category": "Health Care",
+      "assignedImage": "/images/products/packaged/pouch_012.png",
+      "verificationStatus": "Verified Individual Packaging Image",
+      "isCollage": false
+    },
+    {
+      "sku": "TRN-1013",
+      "nameEn": "Lotus Seeds",
+      "nameTa": "தாமரை விதை",
+      "category": "Health Care",
+      "assignedImage": "/images/products/packaged/pouch_013.png",
+      "verificationStatus": "Verified Individual Packaging Image",
+      "isCollage": false
+    },
+    {
+      "sku": "TRN-1014",
+      "nameEn": "Indian Silver Fir",
+      "nameTa": "தாளிசபத்திரி",
+      "category": "Health Care",
+      "assignedImage": "/images/products/packaged/pouch_014.png",
+      "verificationStatus": "Verified Individual Packaging Image",
+      "isCollage": false
+    },
+    {
+      "sku": "TRN-1015",
+      "nameEn": "Long pepper",
+      "nameTa": "திப்பிலி (அரிசி)",
+      "category": "Health Care",
+      "assignedImage": "/images/products/packaged/pouch_015.png",
+      "verificationStatus": "Verified Individual Packaging Image",
+      "isCollage": false
+    },
+    {
+      "sku": "TRN-1016",
+      "nameEn": "Big Pepper",
+      "nameTa": "திப்பிலி (யானை)",
+      "category": "Health Care",
+      "assignedImage": "/images/products/packaged/pouch_016.png",
+      "verificationStatus": "Verified Individual Packaging Image",
+      "isCollage": false
+    },
+    {
+      "sku": "TRN-1017",
+      "nameEn": "Round Pepper",
+      "nameTa": "திப்பிலி (உருண்டை)",
+      "category": "Health Care",
+      "assignedImage": "/images/products/packaged/pouch_017.png",
+      "verificationStatus": "Verified Individual Packaging Image",
+      "isCollage": false
+    },
+    {
+      "sku": "TRN-1018",
+      "nameEn": "Indian Mallow Seeds",
+      "nameTa": "துத்தி விதை",
+      "category": "Health Care",
+      "assignedImage": "/images/products/packaged/pouch_018.png",
+      "verificationStatus": "Verified Individual Packaging Image",
+      "isCollage": false
+    },
+    {
+      "sku": "TRN-1019",
+      "nameEn": "Indian Sarasparilla",
+      "nameTa": "நன்னாரி",
+      "category": "Health Care",
+      "assignedImage": "/images/products/packaged/pouch_019.png",
+      "verificationStatus": "Verified Individual Packaging Image",
+      "isCollage": false
+    },
+    {
+      "sku": "TRN-1020",
+      "nameEn": "Black Plum Seeds/Jamun Seeds",
+      "nameTa": "நாவல் கொட்டை",
+      "category": "Health Care",
+      "assignedImage": "/images/products/packaged/pouch_020.png",
+      "verificationStatus": "Verified Individual Packaging Image",
+      "isCollage": false
+    },
+    {
+      "sku": "TRN-1021",
+      "nameEn": "Black Plum Bark/Jamun Bark",
+      "nameTa": "நாவல் பட்டை",
+      "category": "Health Care",
+      "assignedImage": "/images/products/packaged/pouch_021.png",
+      "verificationStatus": "Verified Individual Packaging Image",
+      "isCollage": false
+    },
+    {
+      "sku": "TRN-1022",
+      "nameEn": "King of bitter",
+      "nameTa": "நிலவேம்பு",
+      "category": "Health Care",
+      "assignedImage": "/images/products/packaged/pouch_022.png",
+      "verificationStatus": "Verified Individual Packaging Image",
+      "isCollage": false
+    },
+    {
+      "sku": "TRN-1023",
+      "nameEn": "Caltrops Large",
+      "nameTa": "நெருஞ்சில் முள் (பெ)",
+      "category": "Health Care",
+      "assignedImage": "/images/products/packaged/pouch_023.png",
+      "verificationStatus": "Verified Individual Packaging Image",
+      "isCollage": false
+    },
+    {
+      "sku": "TRN-1024",
+      "nameEn": "Caltrops Small",
+      "nameTa": "நெருஞ்சில் முள் (சி)",
+      "category": "Health Care",
+      "assignedImage": "/images/products/packaged/pouch_024.png",
+      "verificationStatus": "Verified Individual Packaging Image",
+      "isCollage": false
+    },
+    {
+      "sku": "TRN-1025",
+      "nameEn": "Indian Goosberry",
+      "nameTa": "நெல்லி வத்தல்",
+      "category": "Health Care",
+      "assignedImage": "/images/products/packaged/pouch_025.png",
+      "verificationStatus": "Verified Individual Packaging Image",
+      "isCollage": false
+    },
+    {
+      "sku": "TRN-1026",
+      "nameEn": "Sappan Wood",
+      "nameTa": "பதிமுகம்",
+      "category": "Health Care",
+      "assignedImage": "/images/products/packaged/pouch_026.png",
+      "verificationStatus": "Verified Individual Packaging Image",
+      "isCollage": false
+    },
+    {
+      "sku": "TRN-1027",
+      "nameEn": "Indian Cotton Seeds",
+      "nameTa": "பருத்தி விதை",
+      "category": "Health Care",
+      "assignedImage": "/images/products/packaged/pouch_027.png",
+      "verificationStatus": "Verified Individual Packaging Image",
+      "isCollage": false
+    },
+    {
+      "sku": "TRN-1028",
+      "nameEn": "Almond Gum",
+      "nameTa": "பாதாம்பிசின்",
+      "category": "Health Care",
+      "assignedImage": "/images/products/packaged/pouch_028.png",
+      "verificationStatus": "Verified Individual Packaging Image",
+      "isCollage": false
+    },
+    {
+      "sku": "TRN-1029",
+      "nameEn": "Veldt Grape",
+      "nameTa": "பிரண்டை",
+      "category": "Health Care",
+      "assignedImage": "/images/products/packaged/pouch_029.png",
+      "verificationStatus": "Verified Individual Packaging Image",
+      "isCollage": false
+    },
+    {
+      "sku": "TRN-1030",
+      "nameEn": "Menthol Crystal",
+      "nameTa": "புதினா உப்பு",
+      "category": "Health Care",
+      "assignedImage": "/images/products/packaged/pouch_030.png",
+      "verificationStatus": "Verified Individual Packaging Image",
+      "isCollage": false
+    },
+    {
+      "sku": "TRN-1031",
+      "nameEn": "Greater Galangal",
+      "nameTa": "பேரரத்தை",
+      "category": "Health Care",
+      "assignedImage": "/images/products/packaged/pouch_031.png",
+      "verificationStatus": "Verified Individual Packaging Image",
+      "isCollage": false
+    },
+    {
+      "sku": "TRN-1032",
+      "nameEn": "Arjun bark",
+      "nameTa": "மருதம்பட்டை",
+      "category": "Health Care",
+      "assignedImage": "/images/products/packaged/pouch_032.png",
+      "verificationStatus": "Verified Individual Packaging Image",
+      "isCollage": false
+    },
+    {
+      "sku": "TRN-1033",
+      "nameEn": "Blue Jack",
+      "nameTa": "மாசிக்காய்",
+      "category": "Health Care",
+      "assignedImage": "/images/products/packaged/pouch_033.png",
+      "verificationStatus": "Verified Individual Packaging Image",
+      "isCollage": false
+    },
+    {
+      "sku": "TRN-1034",
+      "nameEn": "Pomegranate Skin",
+      "nameTa": "மாதுளை தோல்",
+      "category": "Health Care",
+      "assignedImage": "/images/products/packaged/pouch_034.png",
+      "verificationStatus": "Verified Individual Packaging Image",
+      "isCollage": false
+    },
+    {
+      "sku": "TRN-1035",
+      "nameEn": "Pomegranate Seeds",
+      "nameTa": "மாதுளை விதை",
+      "category": "Health Care",
+      "assignedImage": "/images/products/packaged/pouch_035.png",
+      "verificationStatus": "Verified Individual Packaging Image",
+      "isCollage": false
+    },
+    {
+      "sku": "TRN-1036",
+      "nameEn": "Mango Kernel",
+      "nameTa": "மாம்பருப்பு",
+      "category": "Health Care",
+      "assignedImage": "/images/products/packaged/pouch_036.png",
+      "verificationStatus": "Verified Individual Packaging Image",
+      "isCollage": false
+    },
+    {
+      "sku": "TRN-1037",
+      "nameEn": "Goat Leg Tuber",
+      "nameTa": "முடவாட்டுக்கால் கிழங்கு",
+      "category": "Health Care",
+      "assignedImage": "/images/products/packaged/pouch_037.png",
+      "verificationStatus": "Verified Individual Packaging Image",
+      "isCollage": false
+    },
+    {
+      "sku": "TRN-1038",
+      "nameEn": "Drumstick Seeds",
+      "nameTa": "முருங்கை விதை",
+      "category": "Health Care",
+      "assignedImage": "/images/products/packaged/pouch_038.png",
+      "verificationStatus": "Verified Individual Packaging Image",
+      "isCollage": false
+    },
+    {
+      "sku": "TRN-1039",
+      "nameEn": "Drumstick Gum",
+      "nameTa": "முருங்கை பிசின்",
+      "category": "Health Care",
+      "assignedImage": "/images/products/packaged/pouch_039.png",
+      "verificationStatus": "Verified Individual Packaging Image",
+      "isCollage": false
+    },
+    {
+      "sku": "TRN-1040",
+      "nameEn": "Drumstick Flower",
+      "nameTa": "முருங்கை பூ",
+      "category": "Health Care",
+      "assignedImage": "/images/products/packaged/pouch_040.png",
+      "verificationStatus": "Verified Individual Packaging Image",
+      "isCollage": false
+    },
+    {
+      "sku": "TRN-1041",
+      "nameEn": "Indian Screw Tree",
+      "nameTa": "வலம்புரி - இடம்புரி",
+      "category": "Health Care",
+      "assignedImage": "/images/products/packaged/pouch_041.png",
+      "verificationStatus": "Verified Individual Packaging Image",
+      "isCollage": false
+    },
+    {
+      "sku": "TRN-1042",
+      "nameEn": "Tailed pepper",
+      "nameTa": "வால்மிளகு",
+      "category": "Health Care",
+      "assignedImage": "/images/products/packaged/pouch_042.png",
+      "verificationStatus": "Verified Individual Packaging Image",
+      "isCollage": false
+    },
+    {
+      "sku": "TRN-1043",
+      "nameEn": "Nutmeg",
+      "nameTa": "ஜாதிக்காய்",
+      "category": "Health Care",
+      "assignedImage": "/images/products/packaged/pouch_043.png",
+      "verificationStatus": "Verified Individual Packaging Image",
+      "isCollage": false
+    },
+    {
+      "sku": "TRN-1044",
+      "nameEn": "Sweet Flag",
+      "nameTa": "வசம்பு",
+      "category": "Health Care",
+      "assignedImage": "/images/products/packaged/pouch_044.png",
+      "verificationStatus": "Verified Individual Packaging Image",
+      "isCollage": false
+    },
+    {
+      "sku": "TRN-1045",
+      "nameEn": "Rosemary",
+      "nameTa": "ரோஸ்மேரி",
+      "category": "Hair Care",
+      "assignedImage": "/images/products/packaged/pouch_045.png",
+      "verificationStatus": "Verified Individual Packaging Image",
+      "isCollage": false
+    },
+    {
+      "sku": "TRN-1046",
+      "nameEn": "Henna",
+      "nameTa": "மருதாணி",
+      "category": "Hair Care",
+      "assignedImage": "/images/products/packaged/pouch_046.png",
+      "verificationStatus": "Verified Individual Packaging Image",
+      "isCollage": false
+    },
+    {
+      "sku": "TRN-1047",
+      "nameEn": "Marjoram",
+      "nameTa": "மரிக்கொழுந்து",
+      "category": "Hair Care",
+      "assignedImage": "/images/products/packaged/pouch_047.png",
+      "verificationStatus": "Verified Individual Packaging Image",
+      "isCollage": false
+    },
+    {
+      "sku": "TRN-1048",
+      "nameEn": "Country Senna Leaf",
+      "nameTa": "நிலாவரை",
+      "category": "Hair Care",
+      "assignedImage": "/images/products/packaged/pouch_048.png",
+      "verificationStatus": "Verified Individual Packaging Image",
+      "isCollage": false
+    },
+    {
+      "sku": "TRN-1049",
+      "nameEn": "Hibiscus Leaf",
+      "nameTa": "செம்பருத்தி இலை",
+      "category": "Hair Care",
+      "assignedImage": "/images/products/featured/hibiscus_flower_dried.png",
+      "verificationStatus": "Featured Botanical Photo (Template 1)",
+      "isCollage": false
+    },
+    {
+      "sku": "TRN-1050",
+      "nameEn": "Hibiscus Flower",
+      "nameTa": "செம்பருத்தி பூ",
+      "category": "Hair Care",
+      "assignedImage": "/images/products/featured/hibiscus_flower_dried.png",
+      "verificationStatus": "Featured Botanical Photo (Template 1)",
+      "isCollage": false
+    },
+    {
+      "sku": "TRN-1051",
+      "nameEn": "Soap pod Special",
+      "nameTa": "சீயக்காய் - 1",
+      "category": "Hair Care",
+      "assignedImage": "/images/products/packaged/pouch_051.png",
+      "verificationStatus": "Verified Individual Packaging Image",
+      "isCollage": false
+    },
+    {
+      "sku": "TRN-1052",
+      "nameEn": "Soap pod",
+      "nameTa": "சீயக்காய் - 2",
+      "category": "Hair Care",
+      "assignedImage": "/images/products/packaged/pouch_052.png",
+      "verificationStatus": "Verified Individual Packaging Image",
+      "isCollage": false
+    },
+    {
+      "sku": "TRN-1053",
+      "nameEn": "Dil Seeds",
+      "nameTa": "சதக்குப்பை",
+      "category": "Hair Care",
+      "assignedImage": "/images/products/packaged/pouch_053.png",
+      "verificationStatus": "Verified Individual Packaging Image",
+      "isCollage": false
+    },
+    {
+      "sku": "TRN-1054",
+      "nameEn": "Nutgrass",
+      "nameTa": "கோரைக்கிழங்கு",
+      "category": "Hair Care",
+      "assignedImage": "/images/products/packaged/pouch_054.png",
+      "verificationStatus": "Verified Individual Packaging Image",
+      "isCollage": false
+    },
+    {
+      "sku": "TRN-1055",
+      "nameEn": "Red Fruit Creeper",
+      "nameTa": "கருடக்கிழங்கு",
+      "category": "Hair Care",
+      "assignedImage": "/images/products/packaged/pouch_055.png",
+      "verificationStatus": "Verified Individual Packaging Image",
+      "isCollage": false
+    },
+    {
+      "sku": "TRN-1056",
+      "nameEn": "Indian Indigo",
+      "nameTa": "அவுரி விதை",
+      "category": "Hair Care",
+      "assignedImage": "/images/products/packaged/pouch_056.png",
+      "verificationStatus": "Verified Individual Packaging Image",
+      "isCollage": false
+    },
+    {
+      "sku": "TRN-1057",
+      "nameEn": "Black Cumin",
+      "nameTa": "கருஞ்சீரகம்",
+      "category": "Hair Care",
+      "assignedImage": "/images/products/packaged/pouch_057.png",
+      "verificationStatus": "Verified Individual Packaging Image",
+      "isCollage": false
+    },
+    {
+      "sku": "TRN-1058",
+      "nameEn": "Soap Pod Powder",
+      "nameTa": "சீயக்காய் மிக்ஸ் பொடி",
+      "category": "Hair Care",
+      "assignedImage": "/images/products/packaged/pouch_058.png",
+      "verificationStatus": "Verified Individual Packaging Image",
+      "isCollage": false
+    },
+    {
+      "sku": "TRN-1059",
+      "nameEn": "Alkanet Roots",
+      "nameTa": "வேம்பாளம் பட்டை",
+      "category": "Skin Care",
+      "assignedImage": "/images/products/packaged/pouch_059.png",
+      "verificationStatus": "Verified Individual Packaging Image",
+      "isCollage": false
+    },
+    {
+      "sku": "TRN-1060",
+      "nameEn": "Camel Grass",
+      "nameTa": "வெட்டிவேர்",
+      "category": "Skin Care",
+      "assignedImage": "/images/products/packaged/pouch_060.png",
+      "verificationStatus": "Verified Individual Packaging Image",
+      "isCollage": false
+    },
+    {
+      "sku": "TRN-1061",
+      "nameEn": "Turmeric",
+      "nameTa": "விரலிமஞ்சள்",
+      "category": "Skin Care",
+      "assignedImage": "/images/products/packaged/pouch_061.png",
+      "verificationStatus": "Verified Individual Packaging Image",
+      "isCollage": false
+    },
+    {
+      "sku": "TRN-1062",
+      "nameEn": "Bilva Fruit Dry",
+      "nameTa": "வில்வ ஓடு",
+      "category": "Skin Care",
+      "assignedImage": "/images/products/packaged/pouch_062.png",
+      "verificationStatus": "Verified Individual Packaging Image",
+      "isCollage": false
+    },
+    {
+      "sku": "TRN-1063",
+      "nameEn": "Indian Rose",
+      "nameTa": "ரோஜாபூ",
+      "category": "Skin Care",
+      "assignedImage": "/images/products/packaged/pouch_063.png",
+      "verificationStatus": "Verified Individual Packaging Image",
+      "isCollage": false
+    },
+    {
+      "sku": "TRN-1064",
+      "nameEn": "Fuller Earth",
+      "nameTa": "முல்தானி மட்டி",
+      "category": "Skin Care",
+      "assignedImage": "/images/products/packaged/pouch_064.png",
+      "verificationStatus": "Verified Individual Packaging Image",
+      "isCollage": false
+    },
+    {
+      "sku": "TRN-1065",
+      "nameEn": "Indian madder",
+      "nameTa": "மஞ்சிஷ்டா",
+      "category": "Skin Care",
+      "assignedImage": "/images/products/packaged/pouch_065.png",
+      "verificationStatus": "Verified Individual Packaging Image",
+      "isCollage": false
+    },
+    {
+      "sku": "TRN-1066",
+      "nameEn": "Indian Rennet",
+      "nameTa": "பன்னீர் பூ",
+      "category": "Skin Care",
+      "assignedImage": "/images/products/packaged/pouch_066.png",
+      "verificationStatus": "Verified Individual Packaging Image",
+      "isCollage": false
+    },
+    {
+      "sku": "TRN-1067",
+      "nameEn": "Alam Stone",
+      "nameTa": "படிகாரம்",
+      "category": "Skin Care",
+      "assignedImage": "/images/products/packaged/pouch_067.png",
+      "verificationStatus": "Verified Individual Packaging Image",
+      "isCollage": false
+    },
+    {
+      "sku": "TRN-1068",
+      "nameEn": "Rough Chaff",
+      "nameTa": "நாயுருவி அரிசி",
+      "category": "Skin Care",
+      "assignedImage": "/images/products/packaged/pouch_068.png",
+      "verificationStatus": "Verified Individual Packaging Image",
+      "isCollage": false
+    },
+    {
+      "sku": "TRN-1069",
+      "nameEn": "Sweet Basil",
+      "nameTa": "திருநீற்று பச்சிலை",
+      "category": "Skin Care",
+      "assignedImage": "/images/products/packaged/pouch_069.png",
+      "verificationStatus": "Verified Individual Packaging Image",
+      "isCollage": false
+    },
+    {
+      "sku": "TRN-1070",
+      "nameEn": "Wild Turmeric",
+      "nameTa": "கஸ்தூரி மஞ்சள்",
+      "category": "Skin Care",
+      "assignedImage": "/images/products/packaged/pouch_070.png",
+      "verificationStatus": "Verified Individual Packaging Image",
+      "isCollage": false
+    },
+    {
+      "sku": "TRN-1071",
+      "nameEn": "Lemon Peel",
+      "nameTa": "எலுமிச்சை தோல்",
+      "category": "Skin Care",
+      "assignedImage": "/images/products/packaged/pouch_071.png",
+      "verificationStatus": "Verified Individual Packaging Image",
+      "isCollage": false
+    },
+    {
+      "sku": "TRN-1072",
+      "nameEn": "Senna Flowers",
+      "nameTa": "ஆவாரம்பூ",
+      "category": "Skin Care",
+      "assignedImage": "/images/products/packaged/pouch_072.png",
+      "verificationStatus": "Verified Individual Packaging Image",
+      "isCollage": false
+    },
+    {
+      "sku": "TRN-1073",
+      "nameEn": "Benzoin Resin - 1",
+      "nameTa": "சாம்பிராணி 1",
+      "category": "Aromatherapy&Incense",
+      "assignedImage": "/images/products/packaged/pouch_073.png",
+      "verificationStatus": "Verified Individual Packaging Image",
+      "isCollage": false
+    },
+    {
+      "sku": "TRN-1074",
+      "nameEn": "Benzoin Resin - 2",
+      "nameTa": "சாம்பிராணி 2",
+      "category": "Aromatherapy&Incense",
+      "assignedImage": "/images/products/packaged/pouch_074.png",
+      "verificationStatus": "Verified Individual Packaging Image",
+      "isCollage": false
+    },
+    {
+      "sku": "TRN-1075",
+      "nameEn": "Benzoin Resin - 3",
+      "nameTa": "சாம்பிராணி 3",
+      "category": "Aromatherapy&Incense",
+      "assignedImage": "/images/products/packaged/pouch_075.png",
+      "verificationStatus": "Verified Individual Packaging Image",
+      "isCollage": false
+    },
+    {
+      "sku": "TRN-1076",
+      "nameEn": "Black Dammer",
+      "nameTa": "குங்கிலியம் (க)",
+      "category": "Aromatherapy&Incense",
+      "assignedImage": "/images/products/packaged/pouch_076.png",
+      "verificationStatus": "Verified Individual Packaging Image",
+      "isCollage": false
+    },
+    {
+      "sku": "TRN-1077",
+      "nameEn": "White Dammer",
+      "nameTa": "குங்கிலியம் (வெ)",
+      "category": "Aromatherapy&Incense",
+      "assignedImage": "/images/products/packaged/pouch_077.png",
+      "verificationStatus": "Verified Individual Packaging Image",
+      "isCollage": false
+    },
+    {
+      "sku": "TRN-1078",
+      "nameEn": "Magic ginger",
+      "nameTa": "மேஜிக் இஞ்சி",
+      "category": "Welness Drinks",
+      "assignedImage": "/images/products/packaged/pouch_078.png",
+      "verificationStatus": "Verified Individual Packaging Image",
+      "isCollage": false
+    },
+    {
+      "sku": "TRN-1079",
+      "nameEn": "Amla Tea",
+      "nameTa": "நெல்லி டி",
+      "category": "Welness Drinks",
+      "assignedImage": "/images/products/featured/amla_powder.png",
+      "verificationStatus": "Featured Botanical Photo (Template 1)",
+      "isCollage": false
+    },
+    {
+      "sku": "TRN-1080",
+      "nameEn": "Ginger Soup",
+      "nameTa": "இஞ்சி சூப்",
+      "category": "Welness Drinks",
+      "assignedImage": "/images/products/packaged/pouch_080.png",
+      "verificationStatus": "Verified Individual Packaging Image",
+      "isCollage": false
+    },
+    {
+      "sku": "TRN-1081",
+      "nameEn": "Pumpkin Seeds",
+      "nameTa": "பூசணி விதை",
+      "category": "Welness Drinks",
+      "assignedImage": "/images/products/packaged/pouch_081.png",
+      "verificationStatus": "Verified Individual Packaging Image",
+      "isCollage": false
+    },
+    {
+      "sku": "TRN-1082",
+      "nameEn": "Cucumber Seeds",
+      "nameTa": "வெள்ளரி விதை",
+      "category": "Welness Drinks",
+      "assignedImage": "/images/products/packaged/pouch_082.png",
+      "verificationStatus": "Verified Individual Packaging Image",
+      "isCollage": false
+    },
+    {
+      "sku": "TRN-1083",
+      "nameEn": "Sunflower Seeds",
+      "nameTa": "சூரியகாந்தி விதை",
+      "category": "Welness Drinks",
+      "assignedImage": "/images/products/packaged/pouch_083.png",
+      "verificationStatus": "Verified Individual Packaging Image",
+      "isCollage": false
+    },
+    {
+      "sku": "TRN-1084",
+      "nameEn": "Chia Seeds",
+      "nameTa": "சியா விதை",
+      "category": "Welness Drinks",
+      "assignedImage": "/images/products/packaged/pouch_084.png",
+      "verificationStatus": "Verified Individual Packaging Image",
+      "isCollage": false
+    },
+    {
+      "sku": "TRN-1085",
+      "nameEn": "Flax Sseeds",
+      "nameTa": "ஆளி விதை",
+      "category": "Welness Drinks",
+      "assignedImage": "/images/products/packaged/pouch_085.png",
+      "verificationStatus": "Verified Individual Packaging Image",
+      "isCollage": false
+    },
+    {
+      "sku": "TRN-1086",
+      "nameEn": "Basil Seeds",
+      "nameTa": "சப்ஜா விதை",
+      "category": "Welness Drinks",
+      "assignedImage": "/images/products/packaged/pouch_086.png",
+      "verificationStatus": "Verified Individual Packaging Image",
+      "isCollage": false
+    },
+    {
+      "sku": "TRN-1087",
+      "nameEn": "Spogel Seeds",
+      "nameTa": "இசப்புகல் விதை",
+      "category": "Welness Drinks",
+      "assignedImage": "/images/products/packaged/pouch_087.png",
+      "verificationStatus": "Verified Individual Packaging Image",
+      "isCollage": false
+    },
+    {
+      "sku": "TRN-1088",
+      "nameEn": "fenugreek Seeds",
+      "nameTa": "வெந்தய விதைகள்",
+      "category": "Welness Drinks",
+      "assignedImage": "/images/products/featured/fenugreek_seeds.png",
+      "verificationStatus": "Featured Botanical Photo (Template 1)",
+      "isCollage": false
+    },
+    {
+      "sku": "TRN-1089",
+      "nameEn": "Cinnamon",
+      "nameTa": "இலவங்கம்",
+      "category": "Spices & Culinary",
+      "assignedImage": "/images/products/packaged/pouch_089.png",
+      "verificationStatus": "Verified Individual Packaging Image",
+      "isCollage": false
+    },
+    {
+      "sku": "TRN-1090",
+      "nameEn": "Cardamom",
+      "nameTa": "ஏலரிசி",
+      "category": "Spices & Culinary",
+      "assignedImage": "/images/products/packaged/pouch_090.png",
+      "verificationStatus": "Verified Individual Packaging Image",
+      "isCollage": false
+    },
+    {
+      "sku": "TRN-1091",
+      "nameEn": "Bishop Weed",
+      "nameTa": "ஓமம்",
+      "category": "Spices & Culinary",
+      "assignedImage": "/images/products/packaged/pouch_091.png",
+      "verificationStatus": "Verified Individual Packaging Image",
+      "isCollage": false
+    },
+    {
+      "sku": "TRN-1092",
+      "nameEn": "Dry Ginger",
+      "nameTa": "சுக்கு",
+      "category": "Spices & Culinary",
+      "assignedImage": "/images/products/packaged/pouch_092.png",
+      "verificationStatus": "Verified Individual Packaging Image",
+      "isCollage": false
+    },
+    {
+      "sku": "TRN-1093",
+      "nameEn": "Garlic",
+      "nameTa": "பூண்டு - புகை",
+      "category": "Spices & Culinary",
+      "assignedImage": "/images/products/packaged/pouch_093.png",
+      "verificationStatus": "Verified Individual Packaging Image",
+      "isCollage": false
+    },
+    {
+      "sku": "TRN-1094",
+      "nameEn": "Licorice Root Powder",
+      "nameTa": "அதிமதுரம் பொடி",
+      "category": "Health Care",
+      "assignedImage": "/images/products/packaged/pouch_094.png",
+      "verificationStatus": "Verified Individual Packaging Image",
+      "isCollage": false
+    },
+    {
+      "sku": "TRN-1095",
+      "nameEn": "Ashwagandha Powder",
+      "nameTa": "அமுக்கரா பொடி",
+      "category": "Health Care",
+      "assignedImage": "/images/products/packaged/pouch_095.png",
+      "verificationStatus": "Verified Individual Packaging Image",
+      "isCollage": false
+    },
+    {
+      "sku": "TRN-1096",
+      "nameEn": "Peepal Seeds Powder",
+      "nameTa": "அரச விதை பொடி",
+      "category": "Health Care",
+      "assignedImage": "/images/products/packaged/pouch_096.png",
+      "verificationStatus": "Verified Individual Packaging Image",
+      "isCollage": false
+    },
+    {
+      "sku": "TRN-1097",
+      "nameEn": "Inknut/Myrobalan  Powder",
+      "nameTa": "கடுக்காய் பொடி",
+      "category": "Health Care",
+      "assignedImage": "/images/products/packaged/pouch_097.png",
+      "verificationStatus": "Verified Individual Packaging Image",
+      "isCollage": false
+    },
+    {
+      "sku": "TRN-1098",
+      "nameEn": "Indian Aloevera  Powder",
+      "nameTa": "கற்றாழை பொடி",
+      "category": "Health Care",
+      "assignedImage": "/images/products/packaged/pouch_098.png",
+      "verificationStatus": "Verified Individual Packaging Image",
+      "isCollage": false
+    },
+    {
+      "sku": "TRN-1099",
+      "nameEn": "Fever Nut  Powder",
+      "nameTa": "கழற்சிக்காய் பொடி",
+      "category": "Health Care",
+      "assignedImage": "/images/products/packaged/pouch_099.png",
+      "verificationStatus": "Verified Individual Packaging Image",
+      "isCollage": false
+    },
+    {
+      "sku": "TRN-1100",
+      "nameEn": "Babchi Seeds  Powder",
+      "nameTa": "கார்போக அரிசி பொடி",
+      "category": "Health Care",
+      "assignedImage": "/images/products/packaged/pouch_100.png",
+      "verificationStatus": "Verified Individual Packaging Image",
+      "isCollage": false
+    },
+    {
+      "sku": "TRN-1101",
+      "nameEn": "Lesser Galangal  Powder",
+      "nameTa": "சித்தரத்தை பொடி",
+      "category": "Health Care",
+      "assignedImage": "/images/products/packaged/pouch_101.png",
+      "verificationStatus": "Verified Individual Packaging Image",
+      "isCollage": false
+    },
+    {
+      "sku": "TRN-1102",
+      "nameEn": "Sweet basil  Powder",
+      "nameTa": "சீனி துளசி பொடி",
+      "category": "Health Care",
+      "assignedImage": "/images/products/packaged/pouch_102.png",
+      "verificationStatus": "Verified Individual Packaging Image",
+      "isCollage": false
+    },
+    {
+      "sku": "TRN-1103",
+      "nameEn": "Indian Silver Fir  Powder",
+      "nameTa": "தாளிச்சபத்திரி பொடி",
+      "category": "Health Care",
+      "assignedImage": "/images/products/packaged/pouch_103.png",
+      "verificationStatus": "Verified Individual Packaging Image",
+      "isCollage": false
+    },
+    {
+      "sku": "TRN-1104",
+      "nameEn": "Long pepper  Powder",
+      "nameTa": "திப்பிலி பொடி",
+      "category": "Health Care",
+      "assignedImage": "/images/products/packaged/pouch_104.png",
+      "verificationStatus": "Verified Individual Packaging Image",
+      "isCollage": false
+    },
+    {
+      "sku": "TRN-1105",
+      "nameEn": "Indian Mallow Seeds  Powder",
+      "nameTa": "துத்தி பொடி",
+      "category": "Health Care",
+      "assignedImage": "/images/products/packaged/pouch_105.png",
+      "verificationStatus": "Verified Individual Packaging Image",
+      "isCollage": false
+    },
+    {
+      "sku": "TRN-1106",
+      "nameEn": "Indian Sarasparilla  Powder",
+      "nameTa": "நன்னாரி பொடி",
+      "category": "Health Care",
+      "assignedImage": "/images/products/packaged/pouch_106.png",
+      "verificationStatus": "Verified Individual Packaging Image",
+      "isCollage": false
+    },
+    {
+      "sku": "TRN-1107",
+      "nameEn": "Black Plum Seeds/Jamun Seeds  Powder",
+      "nameTa": "நாவல்கொட்டை பொடி",
+      "category": "Health Care",
+      "assignedImage": "/images/products/packaged/pouch_107.png",
+      "verificationStatus": "Verified Individual Packaging Image",
+      "isCollage": false
+    },
+    {
+      "sku": "TRN-1108",
+      "nameEn": "Black Plum Bark/Jamun Bark  Powder",
+      "nameTa": "நாவல் பட்டை பொடி",
+      "category": "Health Care",
+      "assignedImage": "/images/products/packaged/pouch_108.png",
+      "verificationStatus": "Verified Individual Packaging Image",
+      "isCollage": false
+    },
+    {
+      "sku": "TRN-1109",
+      "nameEn": "King of bitter  Powder",
+      "nameTa": "நிலவேம்பு பொடி",
+      "category": "Health Care",
+      "assignedImage": "/images/products/packaged/pouch_109.png",
+      "verificationStatus": "Verified Individual Packaging Image",
+      "isCollage": false
+    },
+    {
+      "sku": "TRN-1110",
+      "nameEn": "Caltrops Large  Powder",
+      "nameTa": "நெருஞ்சில் (பெ) பொடி",
+      "category": "Health Care",
+      "assignedImage": "/images/products/packaged/pouch_110.png",
+      "verificationStatus": "Verified Individual Packaging Image",
+      "isCollage": false
+    },
+    {
+      "sku": "TRN-1111",
+      "nameEn": "Caltrops Small  Powder",
+      "nameTa": "நெருஞ்சில் (சி) பொடி",
+      "category": "Health Care",
+      "assignedImage": "/images/products/packaged/pouch_111.png",
+      "verificationStatus": "Verified Individual Packaging Image",
+      "isCollage": false
+    },
+    {
+      "sku": "TRN-1112",
+      "nameEn": "Indian Goosberry  Powder - 1",
+      "nameTa": "நெல்லிக்காய் பொடி-1",
+      "category": "Health Care",
+      "assignedImage": "/images/products/packaged/pouch_112.png",
+      "verificationStatus": "Verified Individual Packaging Image",
+      "isCollage": false
+    },
+    {
+      "sku": "TRN-1113",
+      "nameEn": "Indian Goosberry  Powder - 2",
+      "nameTa": "நெல்லிக்காய் பொடி-2",
+      "category": "Health Care",
+      "assignedImage": "/images/products/packaged/pouch_113.png",
+      "verificationStatus": "Verified Individual Packaging Image",
+      "isCollage": false
+    },
+    {
+      "sku": "TRN-1114",
+      "nameEn": "Sappan Wood  Powder",
+      "nameTa": "பதிமுகம் பொடி",
+      "category": "Health Care",
+      "assignedImage": "/images/products/packaged/pouch_114.png",
+      "verificationStatus": "Verified Individual Packaging Image",
+      "isCollage": false
+    },
+    {
+      "sku": "TRN-1115",
+      "nameEn": "Veldt Grape  Powder",
+      "nameTa": "பிரண்டை பொடி",
+      "category": "Health Care",
+      "assignedImage": "/images/products/packaged/pouch_115.png",
+      "verificationStatus": "Verified Individual Packaging Image",
+      "isCollage": false
+    },
+    {
+      "sku": "TRN-1116",
+      "nameEn": "Menthol Crystal  Powder",
+      "nameTa": "புதினா பொடி",
+      "category": "Health Care",
+      "assignedImage": "/images/products/packaged/pouch_116.png",
+      "verificationStatus": "Verified Individual Packaging Image",
+      "isCollage": false
+    },
+    {
+      "sku": "TRN-1117",
+      "nameEn": "Greater Galangal  Powder",
+      "nameTa": "பேரரத்தை பொடி",
+      "category": "Health Care",
+      "assignedImage": "/images/products/packaged/pouch_117.png",
+      "verificationStatus": "Verified Individual Packaging Image",
+      "isCollage": false
+    },
+    {
+      "sku": "TRN-1118",
+      "nameEn": "Arjun bark  Powder",
+      "nameTa": "மருதம்பட்டை பொடி",
+      "category": "Health Care",
+      "assignedImage": "/images/products/packaged/pouch_118.png",
+      "verificationStatus": "Verified Individual Packaging Image",
+      "isCollage": false
+    },
+    {
+      "sku": "TRN-1119",
+      "nameEn": "Blue Jack  Powder",
+      "nameTa": "மாசிக்காய் பொடி",
+      "category": "Health Care",
+      "assignedImage": "/images/products/packaged/pouch_119.png",
+      "verificationStatus": "Verified Individual Packaging Image",
+      "isCollage": false
+    },
+    {
+      "sku": "TRN-1120",
+      "nameEn": "Pomegranate Skin  Powder",
+      "nameTa": "மாதுளை தோல் பொடி",
+      "category": "Health Care",
+      "assignedImage": "/images/products/packaged/pouch_120.png",
+      "verificationStatus": "Verified Individual Packaging Image",
+      "isCollage": false
+    },
+    {
+      "sku": "TRN-1121",
+      "nameEn": "Mango Kernel  Powder",
+      "nameTa": "மாம்பருப்பு பொடி",
+      "category": "Health Care",
+      "assignedImage": "/images/products/packaged/pouch_121.png",
+      "verificationStatus": "Verified Individual Packaging Image",
+      "isCollage": false
+    },
+    {
+      "sku": "TRN-1122",
+      "nameEn": "Goat Leg Tuber  Powder",
+      "nameTa": "முடவாட்டுக் கால் பொடி",
+      "category": "Health Care",
+      "assignedImage": "/images/products/packaged/pouch_122.png",
+      "verificationStatus": "Verified Individual Packaging Image",
+      "isCollage": false
+    },
+    {
+      "sku": "TRN-1123",
+      "nameEn": "Drumstick Seeds  Powder",
+      "nameTa": "முருங்கை விதை பொடி",
+      "category": "Health Care",
+      "assignedImage": "/images/products/packaged/pouch_123.png",
+      "verificationStatus": "Verified Individual Packaging Image",
+      "isCollage": false
+    },
+    {
+      "sku": "TRN-1124",
+      "nameEn": "Drumstick Gum  Powder",
+      "nameTa": "முருங்கை பிசின் பொடி",
+      "category": "Health Care",
+      "assignedImage": "/images/products/packaged/pouch_124.png",
+      "verificationStatus": "Verified Individual Packaging Image",
+      "isCollage": false
+    },
+    {
+      "sku": "TRN-1125",
+      "nameEn": "Drumstick Leaves  Powder",
+      "nameTa": "முருங்கை இலை பொடி",
+      "category": "Health Care",
+      "assignedImage": "/images/products/packaged/pouch_125.png",
+      "verificationStatus": "Verified Individual Packaging Image",
+      "isCollage": false
+    },
+    {
+      "sku": "TRN-1126",
+      "nameEn": "Tailed pepper  Powder",
+      "nameTa": "வால்மிளகு பொடி",
+      "category": "Health Care",
+      "assignedImage": "/images/products/packaged/pouch_126.png",
+      "verificationStatus": "Verified Individual Packaging Image",
+      "isCollage": false
+    },
+    {
+      "sku": "TRN-1127",
+      "nameEn": "Nutmeg  Powder",
+      "nameTa": "ஜாதிக்காய் பொடி",
+      "category": "Health Care",
+      "assignedImage": "/images/products/packaged/pouch_127.png",
+      "verificationStatus": "Verified Individual Packaging Image",
+      "isCollage": false
+    },
+    {
+      "sku": "TRN-1128",
+      "nameEn": "Sweet Flag  Powder",
+      "nameTa": "வசம்பு பொடி",
+      "category": "Health Care",
+      "assignedImage": "/images/products/packaged/pouch_128.png",
+      "verificationStatus": "Verified Individual Packaging Image",
+      "isCollage": false
+    },
+    {
+      "sku": "TRN-1129",
+      "nameEn": "Flax seeds  Powder",
+      "nameTa": "ஆளிவிதை பொடி",
+      "category": "Health Care",
+      "assignedImage": "/images/products/packaged/pouch_129.png",
+      "verificationStatus": "Verified Individual Packaging Image",
+      "isCollage": false
+    },
+    {
+      "sku": "TRN-1130",
+      "nameEn": "Rosemary  Powder",
+      "nameTa": "ரோஸ்மேரி பொடி",
+      "category": "Hair Care",
+      "assignedImage": "/images/products/packaged/pouch_130.png",
+      "verificationStatus": "Verified Individual Packaging Image",
+      "isCollage": false
+    },
+    {
+      "sku": "TRN-1131",
+      "nameEn": "Henna Leaves  Powder",
+      "nameTa": "மருதாணி இலை பொடி",
+      "category": "Hair Care",
+      "assignedImage": "/images/products/packaged/pouch_131.png",
+      "verificationStatus": "Verified Individual Packaging Image",
+      "isCollage": false
+    },
+    {
+      "sku": "TRN-1132",
+      "nameEn": "Marjoram  Powder",
+      "nameTa": "மரிக்கொழுந்து பொடி",
+      "category": "Hair Care",
+      "assignedImage": "/images/products/packaged/pouch_132.png",
+      "verificationStatus": "Verified Individual Packaging Image",
+      "isCollage": false
+    },
+    {
+      "sku": "TRN-1133",
+      "nameEn": "Country Senna Leaf  Powder",
+      "nameTa": "நிலாவரை பொடி",
+      "category": "Hair Care",
+      "assignedImage": "/images/products/packaged/pouch_133.png",
+      "verificationStatus": "Verified Individual Packaging Image",
+      "isCollage": false
+    },
+    {
+      "sku": "TRN-1134",
+      "nameEn": "Hibiscus Leaf  Powder",
+      "nameTa": "செம்பருத்தி இலை பொடி",
+      "category": "Hair Care",
+      "assignedImage": "/images/products/featured/hibiscus_flower_dried.png",
+      "verificationStatus": "Featured Botanical Photo (Template 1)",
+      "isCollage": false
+    },
+    {
+      "sku": "TRN-1135",
+      "nameEn": "Hibiscus Flower  Powder",
+      "nameTa": "செம்பருத்தி பூ பொடி",
+      "category": "Hair Care",
+      "assignedImage": "/images/products/featured/hibiscus_flower_dried.png",
+      "verificationStatus": "Featured Botanical Photo (Template 1)",
+      "isCollage": false
+    },
+    {
+      "sku": "TRN-1136",
+      "nameEn": "Soap pod  Powder",
+      "nameTa": "சீயக்காய் பொடி",
+      "category": "Hair Care",
+      "assignedImage": "/images/products/packaged/pouch_136.png",
+      "verificationStatus": "Verified Individual Packaging Image",
+      "isCollage": false
+    },
+    {
+      "sku": "TRN-1137",
+      "nameEn": "Dil Seeds  Powder",
+      "nameTa": "சதக்குப்பை பொடி",
+      "category": "Hair Care",
+      "assignedImage": "/images/products/packaged/pouch_137.png",
+      "verificationStatus": "Verified Individual Packaging Image",
+      "isCollage": false
+    },
+    {
+      "sku": "TRN-1138",
+      "nameEn": "Nutgrass  Powder",
+      "nameTa": "கோரைக்கிழங்கு பொடி",
+      "category": "Hair Care",
+      "assignedImage": "/images/products/packaged/pouch_138.png",
+      "verificationStatus": "Verified Individual Packaging Image",
+      "isCollage": false
+    },
+    {
+      "sku": "TRN-1139",
+      "nameEn": "Black Cumin  Powder",
+      "nameTa": "கருஞ்சீரகம் பொடி",
+      "category": "Hair Care",
+      "assignedImage": "/images/products/packaged/pouch_139.png",
+      "verificationStatus": "Verified Individual Packaging Image",
+      "isCollage": false
+    },
+    {
+      "sku": "TRN-1140",
+      "nameEn": "Red Fruit Creeper  Powder",
+      "nameTa": "கருடக்கிழங்கு பொடி",
+      "category": "Hair Care",
+      "assignedImage": "/images/products/packaged/pouch_140.png",
+      "verificationStatus": "Verified Individual Packaging Image",
+      "isCollage": false
+    },
+    {
+      "sku": "TRN-1141",
+      "nameEn": "Senna Flowers Powder",
+      "nameTa": "ஆவாரம்பூ பொடி",
+      "category": "Skin Care",
+      "assignedImage": "/images/products/packaged/pouch_141.png",
+      "verificationStatus": "Verified Individual Packaging Image",
+      "isCollage": false
+    },
+    {
+      "sku": "TRN-1142",
+      "nameEn": "Alkanet Roots  Powder",
+      "nameTa": "வேம்பாலம்பட்டை பொடி",
+      "category": "Skin Care",
+      "assignedImage": "/images/products/packaged/pouch_142.png",
+      "verificationStatus": "Verified Individual Packaging Image",
+      "isCollage": false
+    },
+    {
+      "sku": "TRN-1143",
+      "nameEn": "Camel Grass  Powder - 1",
+      "nameTa": "வெட்டிவேர் பொடி -1",
+      "category": "Skin Care",
+      "assignedImage": "/images/products/packaged/pouch_143.png",
+      "verificationStatus": "Verified Individual Packaging Image",
+      "isCollage": false
+    },
+    {
+      "sku": "TRN-1144",
+      "nameEn": "Camel Grass  Powder - 2",
+      "nameTa": "வெட்டிவேர் பொடி -2",
+      "category": "Skin Care",
+      "assignedImage": "/images/products/packaged/pouch_144.png",
+      "verificationStatus": "Verified Individual Packaging Image",
+      "isCollage": false
+    },
+    {
+      "sku": "TRN-1145",
+      "nameEn": "Bilva Leaves  Powder",
+      "nameTa": "வில்வ இலை பொடி",
+      "category": "Skin Care",
+      "assignedImage": "/images/products/packaged/pouch_145.png",
+      "verificationStatus": "Verified Individual Packaging Image",
+      "isCollage": false
+    },
+    {
+      "sku": "TRN-1146",
+      "nameEn": "Bilva Fruit  Powder",
+      "nameTa": "வில்வ பழம் பொடி",
+      "category": "Skin Care",
+      "assignedImage": "/images/products/packaged/pouch_146.png",
+      "verificationStatus": "Verified Individual Packaging Image",
+      "isCollage": false
+    },
+    {
+      "sku": "TRN-1147",
+      "nameEn": "Indian Rose  Powder - 1",
+      "nameTa": "ரோஸ் பொடி -1",
+      "category": "Skin Care",
+      "assignedImage": "/images/products/packaged/pouch_147.png",
+      "verificationStatus": "Verified Individual Packaging Image",
+      "isCollage": false
+    },
+    {
+      "sku": "TRN-1148",
+      "nameEn": "Indian Rose  Powder - 2",
+      "nameTa": "ரோஸ் பொடி -2",
+      "category": "Skin Care",
+      "assignedImage": "/images/products/packaged/pouch_148.png",
+      "verificationStatus": "Verified Individual Packaging Image",
+      "isCollage": false
+    },
+    {
+      "sku": "TRN-1149",
+      "nameEn": "Fuller Earth  Powder",
+      "nameTa": "முல்தானி மட்டி பொடி",
+      "category": "Skin Care",
+      "assignedImage": "/images/products/packaged/pouch_149.png",
+      "verificationStatus": "Verified Individual Packaging Image",
+      "isCollage": false
+    },
+    {
+      "sku": "TRN-1150",
+      "nameEn": "Indian madder  Powder",
+      "nameTa": "மஞ்சிஷ்டா பொடி",
+      "category": "Skin Care",
+      "assignedImage": "/images/products/packaged/pouch_150.png",
+      "verificationStatus": "Verified Individual Packaging Image",
+      "isCollage": false
+    },
+    {
+      "sku": "TRN-1151",
+      "nameEn": "Indian Rennet  Powder",
+      "nameTa": "பன்னீர் பூ பொடி",
+      "category": "Skin Care",
+      "assignedImage": "/images/products/packaged/pouch_151.png",
+      "verificationStatus": "Verified Individual Packaging Image",
+      "isCollage": false
+    },
+    {
+      "sku": "TRN-1152",
+      "nameEn": "Alam Stone  Powder",
+      "nameTa": "படிகாரம் பொடி",
+      "category": "Skin Care",
+      "assignedImage": "/images/products/packaged/pouch_152.png",
+      "verificationStatus": "Verified Individual Packaging Image",
+      "isCollage": false
+    },
+    {
+      "sku": "TRN-1153",
+      "nameEn": "Rough Chaff  Powder",
+      "nameTa": "நாயுருவி அரிசி பொடி",
+      "category": "Skin Care",
+      "assignedImage": "/images/products/packaged/pouch_153.png",
+      "verificationStatus": "Verified Individual Packaging Image",
+      "isCollage": false
+    },
+    {
+      "sku": "TRN-1154",
+      "nameEn": "Sweet Basil  Powder",
+      "nameTa": "திருநீற்று பச்சிலை பொடி",
+      "category": "Skin Care",
+      "assignedImage": "/images/products/packaged/pouch_154.png",
+      "verificationStatus": "Verified Individual Packaging Image",
+      "isCollage": false
+    },
+    {
+      "sku": "TRN-1155",
+      "nameEn": "Wild Turmeric  Powder",
+      "nameTa": "கஸ்தூரி மஞ்சள் பொடி",
+      "category": "Skin Care",
+      "assignedImage": "/images/products/packaged/pouch_155.png",
+      "verificationStatus": "Verified Individual Packaging Image",
+      "isCollage": false
+    },
+    {
+      "sku": "TRN-1156",
+      "nameEn": "Lemon Peel  Powder",
+      "nameTa": "எலுமிச்சை தோல் பொடி",
+      "category": "Skin Care",
+      "assignedImage": "/images/products/packaged/pouch_156.png",
+      "verificationStatus": "Verified Individual Packaging Image",
+      "isCollage": false
+    },
+    {
+      "sku": "TRN-1157",
+      "nameEn": "White Dammer  Powder",
+      "nameTa": "குங்கிலியம் பொடி",
+      "category": "Aromatherapy&Incense",
+      "assignedImage": "/images/products/packaged/pouch_157.png",
+      "verificationStatus": "Verified Individual Packaging Image",
+      "isCollage": false
+    },
+    {
+      "sku": "TRN-1158",
+      "nameEn": "Turmeric  Powder",
+      "nameTa": "விரலி மஞ்சள் பொடி",
+      "category": "Spices & Culinary",
+      "assignedImage": "/images/products/packaged/pouch_158.png",
+      "verificationStatus": "Verified Individual Packaging Image",
+      "isCollage": false
+    },
+    {
+      "sku": "TRN-1159",
+      "nameEn": "Garlic  Powder",
+      "nameTa": "பூண்டு பொடி",
+      "category": "Spices & Culinary",
+      "assignedImage": "/images/products/packaged/pouch_159.png",
+      "verificationStatus": "Verified Individual Packaging Image",
+      "isCollage": false
+    },
+    {
+      "sku": "TRN-1160",
+      "nameEn": "Cinnamon  Powder",
+      "nameTa": "இலவங்கம் பொடி",
+      "category": "Spices & Culinary",
+      "assignedImage": "/images/products/packaged/pouch_160.png",
+      "verificationStatus": "Verified Individual Packaging Image",
+      "isCollage": false
+    },
+    {
+      "sku": "TRN-1161",
+      "nameEn": "Bishop Weed  Powder",
+      "nameTa": "ஓமம் பொடி",
+      "category": "Spices & Culinary",
+      "assignedImage": "/images/products/packaged/pouch_161.png",
+      "verificationStatus": "Verified Individual Packaging Image",
+      "isCollage": false
+    },
+    {
+      "sku": "TRN-1162",
+      "nameEn": "Dry Ginger Powder",
+      "nameTa": "சுக்கு பொடி",
+      "category": "Spices & Culinary",
+      "assignedImage": "/images/products/packaged/pouch_162.png",
+      "verificationStatus": "Verified Individual Packaging Image",
+      "isCollage": false
+    }
+  ]
+}
