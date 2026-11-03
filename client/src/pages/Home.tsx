@@ -220,11 +220,9 @@ function SiteHeader({
           <button className="mobile-menu-button" aria-label="Open menu" onClick={onMenu}><Menu size={22} /></button>
           <button className="logo-button" onClick={() => setLocation("/")}><BrandMark /></button>
           <nav className="desktop-nav" aria-label="Primary navigation">
-            <button onClick={() => setLocation("/products")}>Shop All</button>
-            <button onClick={() => setLocation("/categories/seeds")}>Seeds</button>
-            <button onClick={() => setLocation("/categories/raw-powders")}>Raw Powders</button>
-            <button onClick={() => setLocation("/categories/herbs")}>Herbs</button>
-            <button onClick={() => setLocation("/about")}>About Us</button>
+            <button onClick={() => setLocation("/")} className="active font-bold">Home</button>
+            <button onClick={() => setLocation("/products")}>Products</button>
+            <button onClick={() => setLocation("/about")}>About</button>
             <button onClick={() => setLocation("/contact")}>Contact</button>
           </nav>
           <div className="header-actions">
@@ -1240,11 +1238,10 @@ function MobileMenu({
           <button className="close-button" onClick={onClose}><X size={20} /></button>
         </div>
         <nav>
-          <a href="#shop" onClick={onClose}>Shop All <ArrowRight size={16} /></a>
-          <a href="#shop" onClick={() => onCategory("Seeds")}>Seeds <ArrowRight size={16} /></a>
-          <a href="#shop" onClick={() => onCategory("Raw Powders")}>Raw Powders <ArrowRight size={16} /></a>
-          <a href="#shop" onClick={() => onCategory("Herbs")}>Herbs <ArrowRight size={16} /></a>
-          <a href="#story" onClick={onClose}>About Us <ArrowRight size={16} /></a>
+          <button onClick={() => { onClose(); setLocation("/"); }}>Home <ArrowRight size={16} /></button>
+          <button onClick={() => { onClose(); setLocation("/products"); }}>Products <ArrowRight size={16} /></button>
+          <button onClick={() => { onClose(); setLocation("/about"); }}>About <ArrowRight size={16} /></button>
+          <button onClick={() => { onClose(); setLocation("/contact"); }}>Contact <ArrowRight size={16} /></button>
           <button onClick={() => { onClose(); setLocation("/track-order"); }}>Track Order <ArrowRight size={16} /></button>
         </nav>
         <div className="mobile-menu-foot">
@@ -1585,11 +1582,11 @@ export default function Home() {
               </div>
             </div>
             <div className="catalog-result-line">
-              <span>{filteredProducts.length} {filteredProducts.length === 1 ? "product" : "products"} ready to ship</span>
-              <span className="organic-note"><span className="organic-dot" /> Small-batch selection</span>
+              <span>Showing {Math.min(8, filteredProducts.length)} of {allProducts.length} botanicals</span>
+              <span className="organic-note"><span className="organic-dot" /> Handpicked featured selection</span>
             </div>
             <div className="product-grid">
-              {filteredProducts.map((product) => (
+              {filteredProducts.slice(0, 8).map((product) => (
                 <ProductCard
                   key={product.id}
                   product={product}
@@ -1600,6 +1597,20 @@ export default function Home() {
                 />
               ))}
             </div>
+            {allProducts.length > 8 && (
+              <div className="mt-8 pt-6 border-t border-[#F0EBE0] text-center">
+                <p className="text-xs text-slate-500 mb-3">
+                  Explore our entire authentic catalogue of {allProducts.length} pure seeds, raw powders, and herbs.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setLocation("/products")}
+                  className="dark-button inline-flex items-center gap-2 py-3 px-6 text-xs font-semibold rounded-xl"
+                >
+                  View All Products ({allProducts.length}) <ArrowRight size={16} />
+                </button>
+              </div>
+            )}
             {filteredProducts.length === 0 && (
               <div className="empty-results">
                 <Search size={28} />
@@ -1665,10 +1676,10 @@ export default function Home() {
           </div>
           <div className="footer-column">
             <span className="footer-title">Quick links</span>
-            <button onClick={() => setLocation("/products")} className="text-left text-xs text-[#DFE7D7] hover:text-white block py-1">Shop All</button>
-            <button onClick={() => setLocation("/categories/seeds")} className="text-left text-xs text-[#DFE7D7] hover:text-white block py-1">Seeds</button>
-            <button onClick={() => setLocation("/categories/raw-powders")} className="text-left text-xs text-[#DFE7D7] hover:text-white block py-1">Raw Powders</button>
-            <button onClick={() => setLocation("/categories/herbs")} className="text-left text-xs text-[#DFE7D7] hover:text-white block py-1">Herbs</button>
+            <button onClick={() => setLocation("/")} className="text-left text-xs text-[#DFE7D7] hover:text-white block py-1">Home</button>
+            <button onClick={() => setLocation("/products")} className="text-left text-xs text-[#DFE7D7] hover:text-white block py-1">Products</button>
+            <button onClick={() => setLocation("/about")} className="text-left text-xs text-[#DFE7D7] hover:text-white block py-1">About</button>
+            <button onClick={() => setLocation("/contact")} className="text-left text-xs text-[#DFE7D7] hover:text-white block py-1">Contact</button>
           </div>
           <div className="footer-column">
             <span className="footer-title">Customer care</span>

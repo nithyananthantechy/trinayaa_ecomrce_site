@@ -199,11 +199,9 @@ export default function Catalog() {
           <button className="mobile-menu-button" aria-label="Open menu" onClick={() => setLocation("/")}><Menu size={22} /></button>
           <button className="logo-button" onClick={() => setLocation("/")}><BrandMark /></button>
           <nav className="desktop-nav" aria-label="Primary navigation">
-            <button onClick={() => { setSelectedCategory("All"); setLocation("/products"); }} className={selectedCategory === "All" && !categoryParams?.slug ? "font-bold underline underline-offset-4" : ""}>Shop All</button>
-            <button onClick={() => { setSelectedCategory("Seeds"); setLocation("/categories/seeds"); }} className={selectedCategory === "Seeds" ? "font-bold underline underline-offset-4" : ""}>Seeds</button>
-            <button onClick={() => { setSelectedCategory("Raw Powders"); setLocation("/categories/raw-powders"); }} className={selectedCategory === "Raw Powders" ? "font-bold underline underline-offset-4" : ""}>Raw Powders</button>
-            <button onClick={() => { setSelectedCategory("Herbs"); setLocation("/categories/herbs"); }} className={selectedCategory === "Herbs" ? "font-bold underline underline-offset-4" : ""}>Herbs</button>
-            <button onClick={() => setLocation("/about")}>About Us</button>
+            <button onClick={() => setLocation("/")}>Home</button>
+            <button onClick={() => { setSelectedCategory("All"); setLocation("/products"); }} className="active font-bold">Products</button>
+            <button onClick={() => setLocation("/about")}>About</button>
             <button onClick={() => setLocation("/contact")}>Contact</button>
           </nav>
           <div className="header-actions">
@@ -447,10 +445,10 @@ export default function Catalog() {
           </div>
           <div className="footer-column">
             <span className="footer-title">Quick links</span>
-            <button onClick={() => setLocation("/products")} className="text-left text-xs text-[#DFE7D7] hover:text-white block py-1">Shop All</button>
-            <button onClick={() => setLocation("/categories/seeds")} className="text-left text-xs text-[#DFE7D7] hover:text-white block py-1">Seeds</button>
-            <button onClick={() => setLocation("/categories/raw-powders")} className="text-left text-xs text-[#DFE7D7] hover:text-white block py-1">Raw Powders</button>
-            <button onClick={() => setLocation("/categories/herbs")} className="text-left text-xs text-[#DFE7D7] hover:text-white block py-1">Herbs</button>
+            <button onClick={() => setLocation("/")} className="text-left text-xs text-[#DFE7D7] hover:text-white block py-1">Home</button>
+            <button onClick={() => setLocation("/products")} className="text-left text-xs text-[#DFE7D7] hover:text-white block py-1">Products</button>
+            <button onClick={() => setLocation("/about")} className="text-left text-xs text-[#DFE7D7] hover:text-white block py-1">About</button>
+            <button onClick={() => setLocation("/contact")} className="text-left text-xs text-[#DFE7D7] hover:text-white block py-1">Contact</button>
           </div>
           <div className="footer-column">
             <span className="footer-title">Customer Care</span>
@@ -482,3 +480,4 @@ export default function Catalog() {
     </div>
   );
 }
+

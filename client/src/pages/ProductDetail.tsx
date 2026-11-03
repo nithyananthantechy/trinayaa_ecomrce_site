@@ -279,30 +279,16 @@ export default function ProductDetail() {
             <button
               type="button"
               className="nav-item"
+              onClick={() => setLocation("/")}
+            >
+              Home
+            </button>
+            <button
+              type="button"
+              className="nav-item active font-bold"
               onClick={() => setLocation("/products")}
             >
-              Shop All
-            </button>
-            <button
-              type="button"
-              className={`nav-item ${product.category === "Seeds" ? "active" : ""}`}
-              onClick={() => setLocation("/categories/seeds")}
-            >
-              Seeds
-            </button>
-            <button
-              type="button"
-              className={`nav-item ${product.category === "Raw Powders" ? "active" : ""}`}
-              onClick={() => setLocation("/categories/raw-powders")}
-            >
-              Raw Powders
-            </button>
-            <button
-              type="button"
-              className={`nav-item ${product.category === "Herbs" ? "active" : ""}`}
-              onClick={() => setLocation("/categories/herbs")}
-            >
-              Herbs
+              Products
             </button>
             <button
               type="button"
@@ -811,10 +797,10 @@ export default function ProductDetail() {
           </div>
           <div className="footer-column">
             <span className="footer-title">Quick links</span>
-            <button onClick={() => setLocation("/products")} className="text-left text-xs text-[#DFE7D7] hover:text-white block py-1">Shop All</button>
-            <button onClick={() => setLocation("/categories/seeds")} className="text-left text-xs text-[#DFE7D7] hover:text-white block py-1">Seeds</button>
-            <button onClick={() => setLocation("/categories/raw-powders")} className="text-left text-xs text-[#DFE7D7] hover:text-white block py-1">Raw Powders</button>
-            <button onClick={() => setLocation("/categories/herbs")} className="text-left text-xs text-[#DFE7D7] hover:text-white block py-1">Herbs</button>
+            <button onClick={() => setLocation("/")} className="text-left text-xs text-[#DFE7D7] hover:text-white block py-1">Home</button>
+            <button onClick={() => setLocation("/products")} className="text-left text-xs text-[#DFE7D7] hover:text-white block py-1">Products</button>
+            <button onClick={() => setLocation("/about")} className="text-left text-xs text-[#DFE7D7] hover:text-white block py-1">About</button>
+            <button onClick={() => setLocation("/contact")} className="text-left text-xs text-[#DFE7D7] hover:text-white block py-1">Contact</button>
           </div>
           <div className="footer-column">
             <span className="footer-title">Customer Care</span>
@@ -846,3 +832,4 @@ export default function ProductDetail() {
     </div>
   );
 }
+

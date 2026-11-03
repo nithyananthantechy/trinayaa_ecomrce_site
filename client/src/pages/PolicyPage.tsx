@@ -286,11 +286,9 @@ export default function PolicyPage() {
           <button className="mobile-menu-button" aria-label="Open menu" onClick={() => setLocation("/")}><Menu size={22} /></button>
           <button className="logo-button" onClick={() => setLocation("/")}><BrandMark /></button>
           <nav className="desktop-nav" aria-label="Primary navigation">
-            <button onClick={() => setLocation("/")}>Shop All</button>
-            <button onClick={() => setLocation("/")}>Seeds</button>
-            <button onClick={() => setLocation("/")}>Raw Powders</button>
-            <button onClick={() => setLocation("/")}>Herbs</button>
-            <button onClick={() => setLocation("/about")}>About Us</button>
+            <button onClick={() => setLocation("/")}>Home</button>
+            <button onClick={() => setLocation("/products")}>Products</button>
+            <button onClick={() => setLocation("/about")}>About</button>
             <button onClick={() => setLocation("/contact")}>Contact</button>
           </nav>
           <div className="header-actions">
@@ -391,10 +389,10 @@ export default function PolicyPage() {
           </div>
           <div className="footer-column">
             <span className="footer-title">Quick links</span>
-            <button onClick={() => setLocation("/")} className="text-left text-xs text-[#DFE7D7] hover:text-white block py-1">Shop All</button>
-            <button onClick={() => setLocation("/")} className="text-left text-xs text-[#DFE7D7] hover:text-white block py-1">Seeds</button>
-            <button onClick={() => setLocation("/")} className="text-left text-xs text-[#DFE7D7] hover:text-white block py-1">Raw Powders</button>
-            <button onClick={() => setLocation("/")} className="text-left text-xs text-[#DFE7D7] hover:text-white block py-1">Herbs</button>
+            <button onClick={() => setLocation("/")} className="text-left text-xs text-[#DFE7D7] hover:text-white block py-1">Home</button>
+            <button onClick={() => setLocation("/products")} className="text-left text-xs text-[#DFE7D7] hover:text-white block py-1">Products</button>
+            <button onClick={() => setLocation("/about")} className="text-left text-xs text-[#DFE7D7] hover:text-white block py-1">About</button>
+            <button onClick={() => setLocation("/contact")} className="text-left text-xs text-[#DFE7D7] hover:text-white block py-1">Contact</button>
           </div>
           <div className="footer-column">
             <span className="footer-title">Customer Care</span>

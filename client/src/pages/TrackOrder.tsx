@@ -70,12 +70,10 @@ export default function TrackOrder() {
         <div className="site-header-inner">
           <button className="logo-button" onClick={() => setLocation("/")}><BrandMark /></button>
           <nav className="desktop-nav track-nav">
-            <a href="/">Shop All</a>
-            <a href="/">Seeds</a>
-            <a href="/">Raw Powders</a>
-            <a href="/">Herbs</a>
-            <a href="/#story">About Us</a>
-            <button onClick={() => toast.info("Write to support@trinayaa.in and we will be in touch.")}>Contact</button>
+            <button onClick={() => setLocation("/")}>Home</button>
+            <button onClick={() => setLocation("/products")}>Products</button>
+            <button onClick={() => setLocation("/about")}>About</button>
+            <button onClick={() => setLocation("/contact")}>Contact</button>
           </nav>
           <div className="header-actions">
             <button className="icon-action account-action" onClick={() => setLocation("/")}><ShieldCheck size={20} /><span>Store</span></button>
