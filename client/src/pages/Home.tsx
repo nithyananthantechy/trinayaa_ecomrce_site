@@ -168,7 +168,7 @@ function BrandMark({ inverse = false }: { inverse?: boolean }) {
     <div className={`brand-mark ${inverse ? "brand-mark-inverse" : ""}`} aria-label="Trinayaa home">
       <img
         src={inverse ? "/images/brand/trinayaa_logo_white.png" : "/images/brand/trinayaa_logo.png"}
-        alt="TRINAYAA — Pure Seeds · Raw Powders · True Herbs"
+        alt="TRINAYAA"
         className="h-10 md:h-11 w-auto object-contain"
         onError={(e) => {
           const target = e.currentTarget;

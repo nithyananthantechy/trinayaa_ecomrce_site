@@ -6,7 +6,7 @@ function BrandMark() {
     <div className="brand-mark" aria-label="Trinayaa home">
       <img
         src="/images/brand/trinayaa_logo.png"
-        alt="TRINAYAA — Pure Seeds · Raw Powders · True Herbs"
+        alt="TRINAYAA"
         className="h-10 md:h-11 w-auto object-contain"
       />
     </div>
@@ -376,7 +376,7 @@ export default function PolicyPage() {
             <div className="brand-mark brand-mark-inverse" aria-label="Trinayaa home">
               <img
                 src="/images/brand/trinayaa_logo_white.png"
-                alt="TRINAYAA — Pure Seeds · Raw Powders · True Herbs"
+                alt="TRINAYAA"
                 className="h-10 md:h-11 w-auto object-contain"
               />
             </div>
