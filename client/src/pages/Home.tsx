@@ -1290,8 +1290,11 @@ export default function Home() {
       try {
         localStorage.removeItem("trinayaa_session_token");
         localStorage.removeItem("manus-cookie");
+        const freshGuestToken = "gst_" + Math.random().toString(36).substring(2, 10) + Date.now().toString(36);
+        localStorage.setItem("trinayaa_guest_token", freshGuestToken);
         sessionStorage.clear();
       } catch (e) {}
+      setCart([]);
       toast.success("Signed out successfully");
       refetchUser();
       cartQuery.refetch();
@@ -1300,23 +1303,27 @@ export default function Home() {
 
   // Sync server cart into local state on load or update
   useEffect(() => {
-    if (cartQuery.data?.items && cartQuery.data.items.length > 0) {
-      const serverItems: CartItem[] = cartQuery.data.items.map((item: any) => ({
-        id: item.productId,
-        sku: item.sku,
-        name: item.nameEn,
-        nameTa: item.nameTa,
-        category: "Botanicals",
-        price: item.unitPrice,
-        image: item.primaryImage || "/images/products/packaged/pouch_001.png",
-        description: "",
-        sizes: [{ label: item.packSize, price: item.unitPrice }],
-        size: item.packSize,
-        unitPrice: item.unitPrice,
-        quantity: item.quantity,
-        slug: item.slug,
-      }));
-      setCart(serverItems);
+    if (cartQuery.data) {
+      if (cartQuery.data.items && cartQuery.data.items.length > 0) {
+        const serverItems: CartItem[] = cartQuery.data.items.map((item: any) => ({
+          id: item.productId,
+          sku: item.sku,
+          name: item.nameEn,
+          nameTa: item.nameTa,
+          category: "Botanicals",
+          price: item.unitPrice,
+          image: item.primaryImage || "/images/products/packaged/pouch_001.png",
+          description: "",
+          sizes: [{ label: item.packSize, price: item.unitPrice }],
+          size: item.packSize,
+          unitPrice: item.unitPrice,
+          quantity: item.quantity,
+          slug: item.slug,
+        }));
+        setCart(serverItems);
+      } else {
+        setCart([]);
+      }
     }
   }, [cartQuery.data]);
 
