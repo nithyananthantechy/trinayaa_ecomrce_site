@@ -411,8 +411,17 @@ export const productsRepo = {
     }
 
     if (options.category && options.category !== "All") {
-      query += " AND (c.name = ? OR p.categoryId = ?)";
-      params.push(options.category, options.category);
+      const cat = options.category.toLowerCase().replace(/[^a-z0-9]/g, "");
+      if (cat.includes("seed")) {
+        query += " AND (p.productType = 'Seed' OR c.slug = 'natural-seeds' OR c.name LIKE '%Seed%')";
+      } else if (cat.includes("powder")) {
+        query += " AND (p.productType = 'Powder' OR c.slug = 'raw-powders' OR c.name LIKE '%Powder%')";
+      } else if (cat.includes("herb")) {
+        query += " AND (p.productType IN ('Herb', 'Whole ingredient') OR c.slug = 'herbs' OR c.name LIKE '%Herb%')";
+      } else {
+        query += " AND (c.name = ? OR c.slug = ? OR p.categoryId = ? OR c.name LIKE ?)";
+        params.push(options.category, options.category, options.category, `%${options.category}%`);
+      }
     }
 
     if (options.search && options.search.trim()) {
@@ -685,12 +694,22 @@ function formatProduct(p: any) {
 
   const discountPercent = p.mrp > p.sellingPrice ? Math.round(((p.mrp - p.sellingPrice) / p.mrp) * 100) : 0;
 
+  const botanicalCategory =
+    p.productType === "Seed"
+      ? "Seeds"
+      : p.productType === "Powder"
+      ? "Raw Powders"
+      : "Herbs";
+
   return {
     ...p,
     id: p.id,
     name: p.nameEn,
     nameTa: p.nameTa,
-    category: p.categoryName || "Herbs",
+    category: p.categoryName || botanicalCategory,
+    botanicalCategory,
+    categoryName: p.categoryName || botanicalCategory,
+    productType: p.productType || "Herb",
     price: p.sellingPrice,
     compareAt: p.mrp > p.sellingPrice ? p.mrp : undefined,
     discountPercent,

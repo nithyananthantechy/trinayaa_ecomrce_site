@@ -80,8 +80,14 @@ export default function AdminDashboard() {
   const { data: currentUser, isLoading: userLoading } = trpc.auth.me.useQuery();
   const logoutMutation = trpc.auth.logout.useMutation({
     onSuccess: () => {
+      try {
+        sessionStorage.removeItem("manus-cookie");
+        sessionStorage.removeItem("trinayaa_session_token");
+        localStorage.removeItem("trinayaa_session_token");
+        localStorage.removeItem("manus-cookie");
+      } catch (e) {}
       toast.success("Logged out successfully");
-      setLocation("/admin/login");
+      window.location.href = "/admin/login";
     },
   });
 
@@ -530,8 +536,14 @@ export default function AdminDashboard() {
             >
               <RefreshCw size={15} />
             </button>
-            <a href="/" target="_blank" className="inline-flex items-center gap-2 bg-[#123D28] hover:bg-[#1A4D33] text-white text-xs font-semibold py-2 px-3.5 rounded-lg shadow-sm transition-all">
-              Customer Storefront <ExternalLink size={13} />
+            <a
+              href="/"
+              target="_blank"
+              className="inline-flex items-center gap-2 bg-[#123D28] hover:bg-[#1F5638] text-white font-bold text-xs py-2.5 px-4 rounded-xl shadow-sm transition-all border border-[#123D28]"
+              title="Open Customer Storefront"
+            >
+              <span className="text-white font-bold tracking-wide">Customer Storefront</span>
+              <ExternalLink size={14} className="text-[#E8BF83]" />
             </a>
           </div>
         </header>
@@ -809,7 +821,6 @@ export default function AdminDashboard() {
                   <button
                     onClick={() => {
                       setIsAddingProduct(true);
-                      setLocation("/admin/products/new");
                     }}
                     className="dark-button text-xs py-2 px-4"
                   >

@@ -220,10 +220,10 @@ function SiteHeader({
           <button className="mobile-menu-button" aria-label="Open menu" onClick={onMenu}><Menu size={22} /></button>
           <button className="logo-button" onClick={() => setLocation("/")}><BrandMark /></button>
           <nav className="desktop-nav" aria-label="Primary navigation">
-            <a href="#shop" onClick={() => window.dispatchEvent(new CustomEvent("trinayaa-filter", { detail: "All" }))}>Shop All</a>
-            <a href="#shop" onClick={() => window.dispatchEvent(new CustomEvent("trinayaa-filter", { detail: "Seeds" }))}>Seeds</a>
-            <a href="#shop" onClick={() => window.dispatchEvent(new CustomEvent("trinayaa-filter", { detail: "Raw Powders" }))}>Raw Powders</a>
-            <a href="#shop" onClick={() => window.dispatchEvent(new CustomEvent("trinayaa-filter", { detail: "Herbs" }))}>Herbs</a>
+            <button onClick={() => setLocation("/products")}>Shop All</button>
+            <button onClick={() => setLocation("/categories/seeds")}>Seeds</button>
+            <button onClick={() => setLocation("/categories/raw-powders")}>Raw Powders</button>
+            <button onClick={() => setLocation("/categories/herbs")}>Herbs</button>
             <button onClick={() => setLocation("/about")}>About Us</button>
             <button onClick={() => setLocation("/contact")}>Contact</button>
           </nav>
@@ -1290,6 +1290,11 @@ export default function Home() {
 
   const logoutMutation = trpc.auth.logout.useMutation({
     onSuccess: () => {
+      try {
+        localStorage.removeItem("trinayaa_session_token");
+        localStorage.removeItem("manus-cookie");
+        sessionStorage.clear();
+      } catch (e) {}
       toast.success("Signed out successfully");
       refetchUser();
       cartQuery.refetch();
@@ -1326,7 +1331,7 @@ export default function Home() {
         sku: p.sku,
         name: p.nameEn,
         nameTa: p.nameTa,
-        category: p.category || "Herbs",
+        category: p.category || (p.productType === "Seed" ? "Seeds" : p.productType === "Powder" ? "Raw Powders" : "Herbs"),
         price: p.price,
         compareAt: p.compareAt,
         discountPercent: p.discountPercent,
@@ -1513,8 +1518,8 @@ export default function Home() {
               className={`category-card ${category.className}`}
               key={category.label}
               onClick={() => {
-                setActiveCategory(category.label);
-                scrollToShop();
+                const slug = category.label.toLowerCase().replace(/\s+/g, '-');
+                setLocation(`/categories/${slug}`);
               }}
             >
               <div>
@@ -1542,10 +1547,7 @@ export default function Home() {
               </div>
               <button
                 className="outline-link"
-                onClick={() => {
-                  setActiveCategory("All");
-                  setSearch("");
-                }}
+                onClick={() => setLocation("/products")}
               >
                 View all products <ArrowRight size={16} />
               </button>
@@ -1593,7 +1595,7 @@ export default function Home() {
                   product={product}
                   isWishlisted={wishlist.has(product.id)}
                   onWishlist={() => toggleWishlist(product.id)}
-                  onDetails={() => setSelectedProduct(product)}
+                  onDetails={() => setLocation(`/products/${(product as any).slug || product.id}`)}
                   onAdd={() => addToCart(product)}
                 />
               ))}
@@ -1663,10 +1665,10 @@ export default function Home() {
           </div>
           <div className="footer-column">
             <span className="footer-title">Quick links</span>
-            <a href="#shop">Shop All</a>
-            <a href="#shop">Seeds</a>
-            <a href="#shop">Raw Powders</a>
-            <a href="#shop">Herbs</a>
+            <button onClick={() => setLocation("/products")} className="text-left text-xs text-[#DFE7D7] hover:text-white block py-1">Shop All</button>
+            <button onClick={() => setLocation("/categories/seeds")} className="text-left text-xs text-[#DFE7D7] hover:text-white block py-1">Seeds</button>
+            <button onClick={() => setLocation("/categories/raw-powders")} className="text-left text-xs text-[#DFE7D7] hover:text-white block py-1">Raw Powders</button>
+            <button onClick={() => setLocation("/categories/herbs")} className="text-left text-xs text-[#DFE7D7] hover:text-white block py-1">Herbs</button>
           </div>
           <div className="footer-column">
             <span className="footer-title">Customer care</span>
