@@ -81,6 +81,13 @@ async function startServer() {
   }
   app.use("/uploads", express.static(uploadsDir));
 
+  // Serve static images (including AI generated product images)
+  const imagesDir = path.resolve(process.cwd(), "client", "public", "images");
+  if (!fs.existsSync(imagesDir)) {
+    fs.mkdirSync(imagesDir, { recursive: true });
+  }
+  app.use("/images", express.static(imagesDir));
+
   // Health check endpoints (Liveness & Readiness probe)
   const healthCheckHandler = (_req: express.Request, res: express.Response) => {
     res.json({

@@ -146,6 +146,17 @@ export async function generateAiProductImage(
 
   fs.writeFileSync(filePath, imageBuffer);
 
+  // Also sync to dist/public/images/products/ai_generated if dist exists in production
+  try {
+    const distOutDir = path.resolve(process.cwd(), "dist/public/images/products/ai_generated");
+    if (!fs.existsSync(distOutDir)) {
+      fs.mkdirSync(distOutDir, { recursive: true });
+    }
+    fs.writeFileSync(path.join(distOutDir, filename), imageBuffer);
+  } catch (syncErr) {
+    console.warn("[AI Image] Failed to sync to dist/public:", syncErr);
+  }
+
   // Log audit event safely
   try {
     db.auditLogsRepo.log(
