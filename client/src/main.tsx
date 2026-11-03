@@ -57,8 +57,12 @@ const trpcClient = trpc.createClient({
               return { Authorization: `Bearer ${token}` };
             }
           }
+          const localToken = localStorage.getItem("trinayaa_session_token");
+          if (localToken) {
+            return { Authorization: `Bearer ${localToken}` };
+          }
         } catch {
-          // sessionStorage unavailable
+          // storage unavailable
         }
         return {};
       },

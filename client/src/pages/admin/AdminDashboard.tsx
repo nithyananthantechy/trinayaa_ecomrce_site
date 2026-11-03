@@ -433,18 +433,23 @@ export default function AdminDashboard() {
   const totalPages = Math.ceil(products.length / pageSize) || 1;
 
   return (
-    <div className="min-h-screen bg-[#FBF8F0] text-[#1A2C20] flex font-sans">
+    <div className="min-h-screen bg-[#F8FAFC] text-[#0F172A] flex font-sans">
       {/* Sidebar */}
       <aside className="w-64 bg-[#123D28] text-white flex flex-col justify-between shrink-0 hidden md:flex border-r border-[#1F5638]">
         <div>
           <div className="p-5 border-b border-[#1F5638] flex items-center justify-between">
-            <div>
-              <div className="font-serif text-xl font-bold tracking-wider text-[#FBF8F0]">TRINAYAA</div>
-              <div className="text-[9px] uppercase tracking-widest text-[#E8BF83] font-semibold mt-0.5">
-                Admin Console
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-white/10 p-1.5 flex items-center justify-center shrink-0 border border-white/15 shadow-inner">
+                <img src="/images/brand/emblem_crisp.png" alt="TRINAYAA" className="w-full h-full object-contain filter brightness-110 drop-shadow" />
+              </div>
+              <div>
+                <div className="font-serif text-lg font-bold tracking-wider text-[#FBF8F0] leading-tight">TRINAYAA</div>
+                <div className="text-[9px] uppercase tracking-widest text-[#E8BF83] font-semibold mt-0.5">
+                  Admin Console
+                </div>
               </div>
             </div>
-            <a href="/" target="_blank" title="View Storefront" className="text-[#DFE7D7] hover:text-white p-1">
+            <a href="/" target="_blank" title="View Storefront" className="text-[#DFE7D7] hover:text-white p-1.5 rounded-lg hover:bg-white/10 transition-colors">
               <ExternalLink size={16} />
             </a>
           </div>
@@ -501,13 +506,13 @@ export default function AdminDashboard() {
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0 overflow-y-auto">
         {/* Top Header */}
-        <header className="bg-[#FFFDF8] border-b border-[#DEDFD5] px-6 py-4 flex items-center justify-between sticky top-0 z-20">
+        <header className="bg-white border-b border-slate-200/90 px-6 py-4 flex items-center justify-between sticky top-0 z-20 shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
           <div>
-            <h1 className="font-serif text-xl font-bold text-[#123D28] capitalize">
+            <h1 className="font-serif text-xl font-bold text-[#123D28] capitalize tracking-tight">
               {activeTab === "overview" ? "Dashboard Overview" : activeTab.replace("-", " ")}
             </h1>
-            <p className="text-[11px] text-[#6C7167]">
-              TRINAYAA Botanical Ecommerce Management System · Pan India
+            <p className="text-[11px] text-slate-500 font-medium">
+              TRINAYAA Botanical Ecommerce Management System · Pan India Operations
             </p>
           </div>
           <div className="flex items-center gap-3">
@@ -520,12 +525,12 @@ export default function AdminDashboard() {
                 refetchInventory();
                 toast.success("Refreshed live data");
               }}
-              className="p-2 border border-[#DEDFD5] rounded-md text-[#123D28] hover:bg-[#FBF8F0]"
+              className="p-2 border border-slate-200 rounded-lg text-slate-700 hover:bg-slate-50 hover:text-[#123D28] transition-colors"
               title="Refresh Live Data"
             >
               <RefreshCw size={15} />
             </button>
-            <a href="/" target="_blank" className="dark-button text-xs py-1.5 px-3">
+            <a href="/" target="_blank" className="inline-flex items-center gap-2 bg-[#123D28] hover:bg-[#1A4D33] text-white text-xs font-semibold py-2 px-3.5 rounded-lg shadow-sm transition-all">
               Customer Storefront <ExternalLink size={13} />
             </a>
           </div>
@@ -540,65 +545,75 @@ export default function AdminDashboard() {
             <div className="space-y-6">
               {/* Primary 11 Metric Cards */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                <div className="bg-[#FFFDF8] border border-[#DEDFD5] p-4 rounded-xl shadow-xs">
-                  <div className="flex items-center justify-between text-[#6C7167] mb-1.5 text-xs font-semibold">
+                <div className="bg-white border border-slate-200/90 p-5 rounded-2xl shadow-xs hover:shadow-md transition-shadow">
+                  <div className="flex items-center justify-between text-slate-500 mb-2 text-xs font-semibold">
                     <span>Total Products</span>
-                    <Package size={16} className="text-[#123D28]" />
+                    <div className="w-8 h-8 rounded-lg bg-emerald-50 text-[#123D28] flex items-center justify-center">
+                      <Package size={16} />
+                    </div>
                   </div>
-                  <div className="text-2xl font-bold font-serif text-[#123D28]">{stats.totalProducts}</div>
-                  <div className="text-[11px] text-[#6C7167] mt-1">
-                    <span className="text-[#1F5638] font-bold">{stats.activeProducts} published</span> · {stats.draftProducts} drafts
+                  <div className="text-3xl font-extrabold tracking-tight text-slate-900">{stats.totalProducts}</div>
+                  <div className="text-xs text-slate-500 mt-2 flex items-center gap-1.5">
+                    <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[11px] font-bold bg-emerald-50 text-emerald-700">{stats.activeProducts} published</span>
+                    <span>· {stats.draftProducts} drafts</span>
                   </div>
                 </div>
 
-                <div className="bg-[#FFFDF8] border border-[#DEDFD5] p-4 rounded-xl shadow-xs">
-                  <div className="flex items-center justify-between text-[#6C7167] mb-1.5 text-xs font-semibold">
+                <div className="bg-white border border-slate-200/90 p-5 rounded-2xl shadow-xs hover:shadow-md transition-shadow">
+                  <div className="flex items-center justify-between text-slate-500 mb-2 text-xs font-semibold">
                     <span>Verified Revenue</span>
-                    <DollarSign size={16} className="text-[#AE6A2B]" />
+                    <div className="w-8 h-8 rounded-lg bg-amber-50 text-amber-700 flex items-center justify-center">
+                      <DollarSign size={16} />
+                    </div>
                   </div>
-                  <div className="text-2xl font-bold font-serif text-[#123D28]">
+                  <div className="text-3xl font-extrabold tracking-tight text-slate-900">
                     ₹{stats.totalRevenue.toLocaleString("en-IN")}
                   </div>
-                  <div className="text-[11px] text-[#6C7167] mt-1">From verified gateway payments</div>
+                  <div className="text-xs text-slate-500 mt-2">From verified gateway payments</div>
                 </div>
 
-                <div className="bg-[#FFFDF8] border border-[#DEDFD5] p-4 rounded-xl shadow-xs">
-                  <div className="flex items-center justify-between text-[#6C7167] mb-1.5 text-xs font-semibold">
+                <div className="bg-white border border-slate-200/90 p-5 rounded-2xl shadow-xs hover:shadow-md transition-shadow">
+                  <div className="flex items-center justify-between text-slate-500 mb-2 text-xs font-semibold">
                     <span>Total Orders</span>
-                    <ShoppingBag size={16} className="text-[#123D28]" />
+                    <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-700 flex items-center justify-center">
+                      <ShoppingBag size={16} />
+                    </div>
                   </div>
-                  <div className="text-2xl font-bold font-serif text-[#123D28]">{stats.totalOrders}</div>
-                  <div className="text-[11px] text-[#6C7167] mt-1">
-                    <span className="text-amber-700 font-bold">{stats.pendingOrders} pending</span> · {stats.completedOrders} completed
+                  <div className="text-3xl font-extrabold tracking-tight text-slate-900">{stats.totalOrders}</div>
+                  <div className="text-xs text-slate-500 mt-2 flex items-center gap-1.5">
+                    <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[11px] font-bold bg-amber-50 text-amber-700">{stats.pendingOrders} pending</span>
+                    <span>· {stats.completedOrders} completed</span>
                   </div>
                 </div>
 
-                <div className="bg-[#FFFDF8] border border-[#DEDFD5] p-4 rounded-xl shadow-xs">
-                  <div className="flex items-center justify-between text-[#6C7167] mb-1.5 text-xs font-semibold">
+                <div className="bg-white border border-slate-200/90 p-5 rounded-2xl shadow-xs hover:shadow-md transition-shadow">
+                  <div className="flex items-center justify-between text-slate-500 mb-2 text-xs font-semibold">
                     <span>Low Stock Alerts</span>
-                    <AlertTriangle size={16} className="text-amber-600" />
+                    <div className="w-8 h-8 rounded-lg bg-rose-50 text-rose-700 flex items-center justify-center">
+                      <AlertTriangle size={16} />
+                    </div>
                   </div>
-                  <div className="text-2xl font-bold font-serif text-amber-700">{stats.lowStockProducts}</div>
-                  <div className="text-[11px] text-[#6C7167] mt-1">Items with stock &lt; 10 units</div>
+                  <div className="text-3xl font-extrabold tracking-tight text-rose-700">{stats.lowStockProducts}</div>
+                  <div className="text-xs text-slate-500 mt-2">Items with stock &lt; 10 units</div>
                 </div>
               </div>
 
               {/* Secondary Metrics Row */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div className="bg-[#FFFDF8] border border-[#DEDFD5] p-4 rounded-xl shadow-xs">
-                  <div className="text-[#6C7167] text-xs font-semibold mb-1">Botanical Categories</div>
-                  <div className="text-xl font-bold font-serif text-[#123D28]">{stats.totalCategories}</div>
-                  <div className="text-[11px] text-[#6C7167] mt-1">Tamil & English taxonomies</div>
+                <div className="bg-white border border-slate-200/90 p-5 rounded-2xl shadow-xs">
+                  <div className="text-slate-500 text-xs font-semibold mb-1">Botanical Categories</div>
+                  <div className="text-2xl font-bold text-slate-900">{stats.totalCategories}</div>
+                  <div className="text-xs text-slate-500 mt-1">Tamil & English taxonomies</div>
                 </div>
-                <div className="bg-[#FFFDF8] border border-[#DEDFD5] p-4 rounded-xl shadow-xs">
-                  <div className="text-[#6C7167] text-xs font-semibold mb-1">Registered Customers</div>
-                  <div className="text-xl font-bold font-serif text-[#123D28]">{stats.totalCustomers}</div>
-                  <div className="text-[11px] text-[#6C7167] mt-1">Verified phone & email accounts</div>
+                <div className="bg-white border border-slate-200/90 p-5 rounded-2xl shadow-xs">
+                  <div className="text-slate-500 text-xs font-semibold mb-1">Registered Customers</div>
+                  <div className="text-2xl font-bold text-slate-900">{stats.totalCustomers}</div>
+                  <div className="text-xs text-slate-500 mt-1">Verified phone & email accounts</div>
                 </div>
-                <div className="bg-[#FFFDF8] border border-[#DEDFD5] p-4 rounded-xl shadow-xs">
-                  <div className="text-[#6C7167] text-xs font-semibold mb-1">Active Festival Campaigns</div>
-                  <div className="text-xl font-bold font-serif text-[#123D28]">{stats.activeCampaigns}</div>
-                  <div className="text-[11px] text-[#6C7167] mt-1">
+                <div className="bg-white border border-slate-200/90 p-5 rounded-2xl shadow-xs">
+                  <div className="text-slate-500 text-xs font-semibold mb-1">Active Festival Campaigns</div>
+                  <div className="text-2xl font-bold text-slate-900">{stats.activeCampaigns}</div>
+                  <div className="text-xs text-slate-500 mt-1 truncate">
                     {stats.activePromotionSummary?.[0]?.name || "No campaign active"}
                   </div>
                 </div>
@@ -607,7 +622,7 @@ export default function AdminDashboard() {
               {/* Low Stock Alerts & Recently Updated Products */}
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 {/* Low Stock Card */}
-                <div className="bg-[#FFFDF8] border border-[#DEDFD5] rounded-xl p-5 shadow-xs">
+                <div className="bg-white border border-slate-200/90 rounded-2xl p-5 shadow-xs">
                   <div className="flex items-center justify-between mb-3">
                     <h3 className="font-serif text-base font-bold text-[#123D28] flex items-center gap-2">
                       <AlertTriangle size={16} className="text-amber-600" /> Low Stock Warning (&lt;10 Units)
@@ -642,7 +657,7 @@ export default function AdminDashboard() {
                 </div>
 
                 {/* Recently Updated Products */}
-                <div className="bg-[#FFFDF8] border border-[#DEDFD5] rounded-xl p-5 shadow-xs">
+                <div className="bg-white border border-slate-200/90 rounded-2xl p-5 shadow-xs">
                   <div className="flex items-center justify-between mb-3">
                     <h3 className="font-serif text-base font-bold text-[#123D28] flex items-center gap-2">
                       <Clock size={16} className="text-[#123D28]" /> Recently Updated Botanicals
@@ -679,7 +694,7 @@ export default function AdminDashboard() {
               </div>
 
               {/* Recent Orders Section */}
-              <div className="bg-[#FFFDF8] border border-[#DEDFD5] rounded-xl p-5 shadow-xs">
+              <div className="bg-white border border-slate-200/90 rounded-2xl p-5 shadow-xs">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="font-serif text-lg font-bold text-[#123D28]">Recent Store Orders</h3>
                   <button
@@ -804,7 +819,7 @@ export default function AdminDashboard() {
               </div>
 
               {/* Products Table */}
-              <div className="bg-[#FFFDF8] border border-[#DEDFD5] rounded-xl shadow-xs overflow-hidden">
+              <div className="bg-white border border-slate-200/90 rounded-2xl shadow-xs overflow-hidden">
                 <div className="overflow-x-auto">
                   <table className="w-full text-left text-xs border-collapse">
                     <thead className="bg-[#FBF8F0] border-b border-[#DEDFD5] text-[#6C7167] font-semibold">
@@ -1074,7 +1089,7 @@ export default function AdminDashboard() {
               </div>
 
               {/* Inventory Table */}
-              <div className="bg-[#FFFDF8] border border-[#DEDFD5] rounded-xl shadow-xs overflow-hidden">
+              <div className="bg-white border border-slate-200/90 rounded-2xl shadow-xs overflow-hidden">
                 <div className="overflow-x-auto">
                   <table className="w-full text-left text-xs border-collapse">
                     <thead className="bg-[#FBF8F0] border-b border-[#DEDFD5] text-[#6C7167] font-semibold">
@@ -1127,7 +1142,7 @@ export default function AdminDashboard() {
               </div>
 
               {/* Audit Log Section */}
-              <div className="bg-[#FFFDF8] border border-[#DEDFD5] rounded-xl p-5 shadow-xs">
+              <div className="bg-white border border-slate-200/90 rounded-2xl p-5 shadow-xs">
                 <h3 className="font-serif text-base font-bold text-[#123D28] mb-3 flex items-center gap-2">
                   <Clock size={16} /> Stock & Inventory Change Audit Trail
                 </h3>
@@ -1198,7 +1213,7 @@ export default function AdminDashboard() {
                 </button>
               </div>
 
-              <div className="bg-[#FFFDF8] border border-[#DEDFD5] rounded-xl shadow-xs overflow-hidden">
+              <div className="bg-white border border-slate-200/90 rounded-2xl shadow-xs overflow-hidden">
                 <div className="overflow-x-auto">
                   <table className="w-full text-left text-xs border-collapse">
                     <thead className="bg-[#FBF8F0] border-b border-[#DEDFD5] text-[#6C7167] font-semibold">
@@ -1279,7 +1294,7 @@ export default function AdminDashboard() {
           {/* 6. CUSTOMERS */}
           {/* ========================================== */}
           {activeTab === "customers" && (
-            <div className="bg-[#FFFDF8] border border-[#DEDFD5] rounded-xl shadow-xs overflow-hidden">
+            <div className="bg-white border border-slate-200/90 rounded-2xl shadow-xs overflow-hidden">
               <div className="p-4 border-b border-[#DEDFD5]">
                 <h3 className="font-serif text-lg font-bold text-[#123D28]">Registered Customer Accounts</h3>
               </div>
@@ -1732,7 +1747,7 @@ export default function AdminDashboard() {
       {/* 1. Order Detail Modal */}
       {selectedOrder && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-[#FFFDF8] border border-[#DEDFD5] rounded-xl max-w-xl w-full max-h-[90vh] overflow-y-auto p-6 shadow-xl">
+          <div className="bg-white border border-slate-200/90 rounded-2xl max-w-xl w-full max-h-[90vh] overflow-y-auto p-6 shadow-xl">
             <div className="flex items-center justify-between border-b border-[#DEDFD5] pb-3 mb-4">
               <div>
                 <span className="text-[10px] uppercase font-bold tracking-wider text-[#AE6A2B]">Order Details</span>
@@ -1890,7 +1905,7 @@ export default function AdminDashboard() {
       {/* 2. Edit / Add Product Modal */}
       {(editingProduct || isAddingProduct) && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-[#FFFDF8] border border-[#DEDFD5] rounded-xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-6 shadow-xl">
+          <div className="bg-white border border-slate-200/90 rounded-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-6 shadow-xl">
             <div className="flex items-center justify-between border-b border-[#DEDFD5] pb-3 mb-4">
               <h3 className="font-serif text-xl font-bold text-[#123D28]">
                 {editingProduct ? `Edit ${editingProduct.nameEn}` : "Add New Botanical Product"}
@@ -2115,7 +2130,7 @@ export default function AdminDashboard() {
       {/* 3. Product Image Gallery Modal */}
       {galleryProduct && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-[#FFFDF8] border border-[#DEDFD5] rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6 shadow-xl space-y-4">
+          <div className="bg-white border border-slate-200/90 rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6 shadow-xl space-y-4">
             <div className="flex items-center justify-between border-b border-[#DEDFD5] pb-3">
               <div>
                 <span className="text-[10px] uppercase font-bold tracking-wider text-[#AE6A2B]">Image Gallery</span>
@@ -2233,7 +2248,7 @@ export default function AdminDashboard() {
       {/* 4. Category Modal */}
       {(isAddingCategory || editingCategory) && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-[#FFFDF8] border border-[#DEDFD5] rounded-xl max-w-md w-full p-6 shadow-xl">
+          <div className="bg-white border border-slate-200/90 rounded-2xl max-w-md w-full p-6 shadow-xl">
             <div className="flex items-center justify-between border-b border-[#DEDFD5] pb-3 mb-4">
               <h3 className="font-serif text-lg font-bold text-[#123D28]">
                 {editingCategory ? `Edit Category: ${editingCategory.name}` : "Create New Category"}
@@ -2337,7 +2352,7 @@ export default function AdminDashboard() {
       {/* 5. Inventory Adjust Dialog */}
       {inventoryAdjustProduct && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-[#FFFDF8] border border-[#DEDFD5] rounded-xl max-w-md w-full p-6 shadow-xl">
+          <div className="bg-white border border-slate-200/90 rounded-2xl max-w-md w-full p-6 shadow-xl">
             <div className="flex items-center justify-between border-b border-[#DEDFD5] pb-3 mb-4">
               <div>
                 <span className="text-[10px] uppercase font-bold tracking-wider text-[#AE6A2B]">Stock Adjustment</span>
@@ -2427,7 +2442,7 @@ export default function AdminDashboard() {
       {/* 6. Campaign Modal */}
       {isAddingCampaign && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-[#FFFDF8] border border-[#DEDFD5] rounded-xl max-w-md w-full p-6 shadow-xl">
+          <div className="bg-white border border-slate-200/90 rounded-2xl max-w-md w-full p-6 shadow-xl">
             <div className="flex items-center justify-between border-b border-[#DEDFD5] pb-3 mb-4">
               <h3 className="font-serif text-lg font-bold text-[#123D28]">Create Festival Offer Campaign</h3>
               <button onClick={() => setIsAddingCampaign(false)} className="text-[#6C7167] hover:text-[#123D28]">

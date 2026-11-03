@@ -7,8 +7,8 @@ import { COOKIE_NAME } from "@shared/const";
 
 export default function AdminLogin() {
   const [, setLocation] = useLocation();
-  const [email, setEmail] = useState("admin@trinayaa.in");
-  const [password, setPassword] = useState("Admin@Trinayaa2026!");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
   const loginMutation = trpc.auth.adminLogin.useMutation({
@@ -22,7 +22,9 @@ export default function AdminLogin() {
       } catch (e) {
         // storage unavailable
       }
-      window.location.href = "/admin";
+      setTimeout(() => {
+        window.location.href = "/admin";
+      }, 200);
     },
     onError: (err) => {
       toast.error("Authentication failed", {
@@ -34,6 +36,10 @@ export default function AdminLogin() {
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
+    if (!email || !password) {
+      toast.error("Please enter your administrator email and password");
+      return;
+    }
     setLoading(true);
     loginMutation.mutate({ email, password });
   };
@@ -48,10 +54,10 @@ export default function AdminLogin() {
           <ArrowLeft size={16} /> Back to Storefront
         </button>
 
-        <div className="bg-[#FFFDF8] border border-[#DEDFD5] rounded-xl p-6 sm:p-8 shadow-sm">
+        <div className="bg-white border border-[#E5DECF] rounded-2xl p-6 sm:p-8 shadow-sm">
           <div className="text-center mb-6">
-            <div className="w-14 h-14 mx-auto mb-3 rounded-full bg-[#123D28] text-white flex items-center justify-center shadow-md">
-              <Leaf size={26} />
+            <div className="w-16 h-16 mx-auto mb-3 rounded-2xl bg-[#123D28] p-2.5 flex items-center justify-center shadow-md">
+              <img src="/images/brand/emblem_crisp.png" alt="TRINAYAA" className="w-full h-full object-contain filter brightness-110 drop-shadow" />
             </div>
             <h1 className="font-serif text-2xl font-bold text-[#123D28] tracking-tight">
               TRINAYAA Admin
@@ -69,6 +75,7 @@ export default function AdminLogin() {
                 <input
                   type="email"
                   required
+                  autoComplete="username"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="admin@trinayaa.in"
@@ -84,6 +91,7 @@ export default function AdminLogin() {
                 <input
                   type="password"
                   required
+                  autoComplete="current-password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••••••"

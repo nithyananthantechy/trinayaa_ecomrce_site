@@ -1,4 +1,17 @@
-import { ArrowLeft, CheckCircle2, Mail, MapPin, Phone, ShieldCheck, Truck } from "lucide-react";
+import { ArrowLeft, CheckCircle2, Mail, MapPin, Phone, ShieldCheck, Truck, Leaf, Menu, UserRound, ShoppingBag, Search, Instagram, Facebook, Youtube } from "lucide-react";
+import { trpc } from "@/lib/trpc";
+
+function BrandMark() {
+  return (
+    <div className="brand-mark" aria-label="Trinayaa home">
+      <img
+        src="/images/brand/trinayaa_logo.png"
+        alt="TRINAYAA — Pure Seeds · Raw Powders · True Herbs"
+        className="h-10 md:h-11 w-auto object-contain"
+      />
+    </div>
+  );
+}
 import { useLocation, useRoute } from "wouter";
 
 interface PolicyContent {
@@ -251,26 +264,42 @@ export default function PolicyPage() {
 
   return (
     <div className="site-shell min-h-screen bg-[#FBF8F0] text-[#123D28]">
-      {/* Top Header Bar */}
-      <header className="border-b border-[#E5DECF] bg-white sticky top-0 z-20">
-        <div className="max-w-5xl mx-auto px-4 py-4 flex items-center justify-between">
-          <button
-            onClick={() => setLocation("/")}
-            className="flex items-center gap-2 text-sm font-semibold tracking-wide hover:opacity-80 transition-opacity"
-          >
-            <ArrowLeft size={18} />
-            <span>Back to Store</span>
-          </button>
-          <div className="text-center cursor-pointer" onClick={() => setLocation("/")}>
-            <span className="text-xl font-bold tracking-widest uppercase block">TRINAYAA</span>
-            <span className="text-[10px] tracking-wider text-[#6B7280] uppercase block">Pure Seeds · Raw Powders · True Herbs</span>
+      {/* Top Utility Bar */}
+      <div className="utility-bar">
+        <div className="utility-inner">
+          <div className="utility-links">
+            <span><Leaf size={13} /> Pure Herbs</span><i />
+            <span>Natural Seeds</span><i />
+            <span>Raw Powders</span>
           </div>
-          <button
-            onClick={() => setLocation("/track-order")}
-            className="text-xs font-medium text-[#123D28] underline underline-offset-4 hover:opacity-80"
-          >
-            Track Order
-          </button>
+          <div className="utility-links utility-right">
+            <span><Truck size={14} /> Pan India Delivery <small>(T&C Apply)</small></span><i />
+            <button onClick={() => setLocation("/contact")}>Support</button><i />
+            <button onClick={() => setLocation("/track-order")}>Track Order</button>
+          </div>
+        </div>
+      </div>
+
+      {/* Main Storefront Header */}
+      <header className="site-header">
+        <div className="site-header-inner">
+          <button className="mobile-menu-button" aria-label="Open menu" onClick={() => setLocation("/")}><Menu size={22} /></button>
+          <button className="logo-button" onClick={() => setLocation("/")}><BrandMark /></button>
+          <nav className="desktop-nav" aria-label="Primary navigation">
+            <button onClick={() => setLocation("/")}>Shop All</button>
+            <button onClick={() => setLocation("/")}>Seeds</button>
+            <button onClick={() => setLocation("/")}>Raw Powders</button>
+            <button onClick={() => setLocation("/")}>Herbs</button>
+            <button onClick={() => setLocation("/about")}>About Us</button>
+            <button onClick={() => setLocation("/contact")}>Contact</button>
+          </nav>
+          <div className="header-actions">
+            <button className="icon-action" onClick={() => setLocation("/")}><ArrowLeft size={18} /><span>Store</span></button>
+            <button className="icon-action cart-action" aria-label="Open cart" onClick={() => setLocation("/")}>
+              <ShoppingBag size={23} />
+              <span>Cart</span>
+            </button>
+          </div>
         </div>
       </header>
 
@@ -342,15 +371,55 @@ export default function PolicyPage() {
         </div>
       </main>
 
-      {/* Footer */}
-      <footer className="border-t border-[#E5DECF] bg-white py-6 mt-16 text-center text-xs text-[#718096]">
-        <div className="max-w-4xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
-          <span>© 2026 TRINAYAA ENTERPRISES. All rights reserved.</span>
-          <div className="flex gap-4">
+      {/* Official Site Footer */}
+      <footer className="site-footer">
+        <div className="footer-inner container-wide">
+          <div className="footer-brand">
+            <div className="brand-mark brand-mark-inverse" aria-label="Trinayaa home">
+              <img
+                src="/images/brand/trinayaa_logo_white.png"
+                alt="TRINAYAA — Pure Seeds · Raw Powders · True Herbs"
+                className="h-10 md:h-11 w-auto object-contain"
+              />
+            </div>
+            <p>Pure seeds. Raw powders.<br />True herbs.</p>
+            <div className="socials">
+              <a href="#footer" aria-label="Instagram"><Instagram size={16} /></a>
+              <a href="#footer" aria-label="Facebook"><Facebook size={16} /></a>
+              <a href="#footer" aria-label="Youtube"><Youtube size={16} /></a>
+            </div>
+          </div>
+          <div className="footer-column">
+            <span className="footer-title">Quick links</span>
+            <button onClick={() => setLocation("/")} className="text-left text-xs text-[#DFE7D7] hover:text-white block py-1">Shop All</button>
+            <button onClick={() => setLocation("/")} className="text-left text-xs text-[#DFE7D7] hover:text-white block py-1">Seeds</button>
+            <button onClick={() => setLocation("/")} className="text-left text-xs text-[#DFE7D7] hover:text-white block py-1">Raw Powders</button>
+            <button onClick={() => setLocation("/")} className="text-left text-xs text-[#DFE7D7] hover:text-white block py-1">Herbs</button>
+          </div>
+          <div className="footer-column">
+            <span className="footer-title">Customer Care</span>
+            <button onClick={() => setLocation("/contact")} className="text-left text-xs text-[#DFE7D7] hover:text-white block py-1">Contact Us</button>
+            <button onClick={() => setLocation("/track-order")} className="text-left text-xs text-[#DFE7D7] hover:text-white block py-1">Track Order</button>
+            <button onClick={() => setLocation("/policies/shipping")} className="text-left text-xs text-[#DFE7D7] hover:text-white block py-1">Shipping Policy</button>
+            <button onClick={() => setLocation("/policies/returns")} className="text-left text-xs text-[#DFE7D7] hover:text-white block py-1">Returns &amp; Refunds</button>
+          </div>
+          <div className="footer-column">
+            <span className="footer-title">Headquarters</span>
+            <p className="text-xs text-[#DFE7D7]/80 leading-relaxed">
+              TRINAYAA ENTERPRISES<br />
+              42, Kongu Nagar, Erode,<br />
+              Tamil Nadu – 638002, India<br />
+              support@trinayaa.in
+            </p>
+          </div>
+        </div>
+        <div className="footer-bottom container-wide">
+          <span>&copy; 2026 TRINAYAA ENTERPRISES. All rights reserved.</span>
+          <div className="footer-policies">
             <button onClick={() => setLocation("/policies/shipping")} className="hover:underline">Shipping</button>
             <button onClick={() => setLocation("/policies/returns")} className="hover:underline">Returns</button>
-            <button onClick={() => setLocation("/policies/privacy")} className="hover:underline">Privacy</button>
-            <button onClick={() => setLocation("/policies/terms")} className="hover:underline">Terms</button>
+            <button onClick={() => setLocation("/policies/privacy")} className="hover:underline">Privacy Policy</button>
+            <button onClick={() => setLocation("/policies/terms")} className="hover:underline">Terms &amp; Conditions</button>
           </div>
         </div>
       </footer>

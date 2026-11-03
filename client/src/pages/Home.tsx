@@ -242,7 +242,7 @@ function SiteHeader({
               onClick={onAccount}
             >
               <UserRound size={22} />
-              <span>{currentUser ? currentUser.name.split(" ")[0] : "Account"}</span>
+              <span>{currentUser ? (currentUser.role === "ADMIN" || currentUser.role === "SUPER_ADMIN" ? "Admin" : currentUser.name.split(" ")[0]) : "Account"}</span>
             </button>
             <button className="icon-action cart-action" aria-label="Open cart" onClick={onCart}>
               <ShoppingBag size={23} />
@@ -1107,12 +1107,43 @@ function AccountModal({
       <section className="checkout-modal max-w-lg p-6 bg-[#FFFDF8]" role="dialog" aria-modal="true">
         <div className="modal-head pb-3 border-b border-[#DEDFD5]">
           <div>
-            <span className="eyebrow">Account Overview</span>
+            <span className="eyebrow">{currentUser.role === "ADMIN" || currentUser.role === "SUPER_ADMIN" ? "Administrator Session" : "Account Overview"}</span>
             <h2>Welcome, {currentUser.name}</h2>
-            <p className="text-xs text-[#6C7167]">{currentUser.email}</p>
+            <p className="text-xs text-[#6C7167]">{currentUser.email} {currentUser.role === "ADMIN" && "· Authorized Store Administrator"}</p>
           </div>
           <button className="close-button" onClick={onClose}><X size={20} /></button>
         </div>
+
+        {Boolean(currentUser.role === "ADMIN" || currentUser.role === "SUPER_ADMIN") && (
+          <div className="my-4 p-4 rounded-xl bg-[#123D28] text-white space-y-3">
+            <div className="flex items-center gap-2 font-bold text-sm text-[#E8BF83]">
+              <ShieldCheck size={18} /> Administrator Account
+            </div>
+            <p className="text-xs text-[#DFE7D7] leading-relaxed">
+              You are signed in with administrator privileges. Catalogue management, inventory controls, order tracking, and store policies are accessed directly via the Admin Console.
+            </p>
+            <div className="flex gap-2 pt-1">
+              <button
+                onClick={() => {
+                  onClose();
+                  setLocation("/admin");
+                }}
+                className="px-3 py-1.5 bg-[#E8BF83] hover:bg-[#D4AF37] text-[#123D28] font-bold rounded text-xs transition-colors"
+              >
+                Go to Admin Console &rarr;
+              </button>
+              <button
+                onClick={() => {
+                  onLogout();
+                  onClose();
+                }}
+                className="px-3 py-1.5 bg-white/10 hover:bg-white/20 text-white rounded text-xs transition-colors"
+              >
+                Sign Out
+              </button>
+            </div>
+          </div>
+        )}
 
         <div className="py-4 space-y-4 text-xs">
           <div className="flex items-center justify-between p-3 bg-[#FBF8F0] border border-[#DEDFD5] rounded-md">
@@ -1446,7 +1477,11 @@ export default function Home() {
         onMenu={() => setMenuOpen(true)}
         onAccount={() => {
           if (currentUser) {
-            setAccountModalOpen(true);
+            if (currentUser.role === "ADMIN" || currentUser.role === "SUPER_ADMIN") {
+              setLocation("/admin");
+            } else {
+              setAccountModalOpen(true);
+            }
           } else {
             setAuthModalOpen(true);
           }

@@ -7,6 +7,8 @@ import { ThemeProvider } from "./contexts/ThemeContext";
 import Home from "./pages/Home";
 import TrackOrder from "./pages/TrackOrder";
 import PolicyPage from "./pages/PolicyPage";
+import About from "./pages/About";
+import Contact from "./pages/Contact";
 import AdminLogin from "./pages/admin/AdminLogin";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 
@@ -17,8 +19,8 @@ function Router() {
       <Route path="/products" component={Home} />
       <Route path="/products/:slug" component={Home} />
       <Route path="/categories/:slug" component={Home} />
-      <Route path="/about" component={PolicyPage} />
-      <Route path="/contact" component={PolicyPage} />
+      <Route path="/about" component={About} />
+      <Route path="/contact" component={Contact} />
       <Route path="/policies/:type" component={PolicyPage} />
       <Route path="/track-order" component={TrackOrder} />
       <Route path="/admin/login" component={AdminLogin} />
