@@ -1,22 +1,47 @@
 import fs from "fs";
 import path from "path";
+import { execFile } from "child_process";
+import { promisify } from "util";
 import * as db from "./db";
 
+const execFileAsync = promisify(execFile);
+
 export interface GenerateAiProductImageInput {
-  prompt: string;
+  prompt?: string;
   model?: string;
   aspectRatio?: string;
   hfToken?: string;
+  mode?: "template" | "ai";
+  productName?: string;
+  tamilName?: string;
+  bowlType?: "green" | "gold" | "brown" | "black" | "red";
+}
+
+function buildOptimizedPackagingPrompt(userPrompt: string): string {
+  const base = userPrompt.trim();
+  if (base.toLowerCase().includes("upright vertical standup") && base.toLowerCase().includes("pouch")) {
+    return base;
+  }
+  return `Commercial product photography of a tall upright vertical standup kraft paper ziplock pouch bag standing tall in center, officially branded TRINAYAA in forest green botanical typography with dark green product title banner. In foreground bottom right corner, a round rustic wooden bowl filled with authentic fresh organic botanicals (${base}). Warm morning sunlight from side window, rustic wooden table surface, soft green herbal leaves in background, award-winning authentic Indian wellness packaging, sharp focus on the upright pouch, 8k resolution, photorealistic commercial studio photography, crisp details, no flatlay, no paper envelope on plate, no drawing, no cartoon`;
 }
 
 export async function generateAiProductImage(
   input: GenerateAiProductImageInput,
   adminName: string
 ) {
-  const { prompt, model = "black-forest-labs/FLUX.1-schnell", aspectRatio = "1:1", hfToken } = input;
+  const {
+    prompt = "Organic Botanical Herbal Powder",
+    model = "trinayaa-template",
+    aspectRatio = "1:1",
+    hfToken,
+    mode = model.includes("template") ? "template" : "ai",
+    productName,
+    tamilName = "",
+    bowlType = "green",
+  } = input;
+
   const token = hfToken || process.env.HF_TOKEN || process.env.HUGGINGFACE_API_KEY || "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";
 
-  // Compute dimensions based on aspect ratio
   let width = 1024;
   let height = 1024;
   if (aspectRatio === "3:4" || aspectRatio === "4:5") {
@@ -35,134 +60,138 @@ export async function generateAiProductImage(
     fs.mkdirSync(outDir, { recursive: true });
   }
 
-  let extension = "jpg";
-  let imageBuffer: Buffer | null = null;
-  let providerUsed = "Hugging Face Inference";
-
-  // 1. Try Hugging Face Inference API if token is provided
-  if (token && (model.includes("/") || model.startsWith("black-forest-labs") || model.startsWith("stabilityai"))) {
-    try {
-      const endpoints = [
-        `https://router.huggingface.co/hf-inference/models/${encodeURIComponent(model)}`,
-        `https://api-inference.huggingface.co/models/${encodeURIComponent(model)}`,
-      ];
-      for (const hfUrl of endpoints) {
-        try {
-          const hfRes = await fetch(hfUrl, {
-            method: "POST",
-            headers: {
-              Authorization: `Bearer ${token}`,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              inputs: prompt,
-              parameters: { width, height },
-            }),
-            signal: AbortSignal.timeout(15000),
-          });
-
-          if (hfRes.ok) {
-            const arrayBuf = await hfRes.arrayBuffer();
-            if (arrayBuf.byteLength > 5000) {
-              imageBuffer = Buffer.from(arrayBuf);
-              providerUsed = `Hugging Face Router (${model.split("/").pop() || model})`;
-              break;
-            }
-          }
-        } catch {
-          // Continue to next endpoint or Pollinations
-        }
-      }
-    } catch {
-      // Continue to Pollinations
-    }
-  }
-
-  // 2. High-speed FLUX.1 Schnell via Pollinations (Guaranteed photorealistic output)
-  if (!imageBuffer) {
-    try {
-      const pollinationsModel = model.toLowerCase().includes("sdxl") ? "turbo" : "flux";
-      const pollUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(
-        prompt
-      )}?width=${width}&height=${height}&model=${pollinationsModel}&nologo=true&seed=${Math.floor(
-        Math.random() * 1000000
-      )}`;
-
-      const pRes = await fetch(pollUrl, { signal: AbortSignal.timeout(25000) });
-      if (pRes.ok) {
-        const arrayBuf = await pRes.arrayBuffer();
-        if (arrayBuf.byteLength > 5000) {
-          imageBuffer = Buffer.from(arrayBuf);
-          providerUsed = `FLUX.1 Schnell High-Speed API`;
-        }
-      }
-    } catch {
-      // Offline fallback
-    }
-  }
-
-  // 3. Resilient Offline Fallback (Pick from authentic high-res botanical packaging)
-  if (!imageBuffer) {
-    try {
-      const packagedDir = path.resolve(process.cwd(), "client/public/images/products/packaged");
-      const sampleFiles = ["pouch_001.png", "pouch_002.png", "pouch_003.png", "pouch_004.png", "pouch_005.png"];
-      const randomSample = sampleFiles[Math.floor(Math.random() * sampleFiles.length)];
-      const samplePath = path.join(packagedDir, randomSample);
-      if (fs.existsSync(samplePath)) {
-        imageBuffer = fs.readFileSync(samplePath);
-        extension = "png";
-        providerUsed = "TRINAYAA Botanical Studio (Offline Engine)";
-      }
-    } catch {
-      // Fallback
-    }
-  }
-
-  if (!imageBuffer) {
-    extension = "svg";
-    providerUsed = "TRINAYAA Botanical Studio Vector";
-    const svgContent = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
-      <defs>
-        <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stop-color="#FBF8F0"/>
-          <stop offset="50%" stop-color="#F3EAD8"/>
-          <stop offset="100%" stop-color="#E5DECF"/>
-        </linearGradient>
-      </defs>
-      <rect width="100%" height="100%" fill="url(#bg)"/>
-      <circle cx="${width / 2}" cy="${height / 2 - 40}" r="140" fill="#123D28" opacity="0.08"/>
-      <text x="${width / 2}" y="${height / 2 - 80}" font-family="serif" font-size="64" font-weight="bold" fill="#722D2E" text-anchor="middle">TRINAYAA</text>
-      <text x="${width / 2}" y="${height / 2 - 20}" font-family="sans-serif" font-size="20" font-weight="bold" letter-spacing="4" fill="#123D28" text-anchor="middle">AI BOTANICAL STUDIO</text>
-      <rect x="${width / 2 - 280}" y="${height / 2 + 30}" width="560" height="110" rx="12" fill="#FFFFFF" stroke="#DEDFD5" stroke-width="1"/>
-      <text x="${width / 2}" y="${height / 2 + 75}" font-family="sans-serif" font-size="16" fill="#3D453E" text-anchor="middle">${prompt.slice(0, 50)}...</text>
-      <text x="${width / 2}" y="${height / 2 + 105}" font-family="sans-serif" font-size="12" fill="#6C7167" text-anchor="middle">Model: ${model} • Ready for packaging</text>
-    </svg>`;
-    imageBuffer = Buffer.from(svgContent);
-  }
-
-  const filename = `trn_ai_${Date.now()}_${Math.floor(Math.random() * 1000)}.${extension}`;
+  const filename = `trn_pkg_${Date.now()}_${Math.floor(Math.random() * 1000)}.jpg`;
   const filePath = path.join(outDir, filename);
   const publicUrl = `/images/products/ai_generated/${filename}`;
 
-  fs.writeFileSync(filePath, imageBuffer);
+  let providerUsed = "TRINAYAA Official Packaging Template Engine";
+  let success = false;
 
-  // Also sync to dist/public/images/products/ai_generated if dist exists in production
+  // 1. PRIMARY: Official TRINAYAA Brand Template Composer (100% Client Match)
+  if (mode === "template" || model.includes("template")) {
+    const finalNameEn = (productName || prompt).replace(/^(Authentic |Organic |Natural )/i, "").trim();
+    try {
+      const composerScript = path.resolve(process.cwd(), "server/compose_template.py");
+      await execFileAsync("python", [
+        composerScript,
+        "--name", finalNameEn,
+        "--tamil", tamilName || "",
+        "--type", bowlType || "green",
+        "--out", filePath,
+      ]);
+
+      if (fs.existsSync(filePath) && fs.statSync(filePath).size > 10000) {
+        success = true;
+        providerUsed = "TRINAYAA Official Master Packaging Template (100% Brand Consistency)";
+      }
+    } catch (composeErr) {
+      console.warn("[AI Image] Template composer python failed, falling back to AI:", composeErr);
+    }
+  }
+
+  // 2. GENERATIVE AI: FLUX.1 / Hugging Face with Packaging-Optimized Framing
+  if (!success) {
+    let imageBuffer: Buffer | null = null;
+    const finalAiPrompt = buildOptimizedPackagingPrompt(prompt);
+
+    // Try Hugging Face Router if token provided and model is HF model
+    if (token && model.includes("/")) {
+      try {
+        const endpoints = [
+          `https://router.huggingface.co/hf-inference/models/${encodeURIComponent(model)}`,
+          `https://api-inference.huggingface.co/models/${encodeURIComponent(model)}`,
+        ];
+        for (const hfUrl of endpoints) {
+          try {
+            const hfRes = await fetch(hfUrl, {
+              method: "POST",
+              headers: {
+                Authorization: `Bearer ${token}`,
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                inputs: finalAiPrompt,
+                parameters: { width, height },
+              }),
+              signal: AbortSignal.timeout(15000),
+            });
+
+            if (hfRes.ok) {
+              const arrayBuf = await hfRes.arrayBuffer();
+              if (arrayBuf.byteLength > 5000) {
+                imageBuffer = Buffer.from(arrayBuf);
+                providerUsed = `Hugging Face Router (${model.split("/").pop() || model})`;
+                break;
+              }
+            }
+          } catch {}
+        }
+      } catch {}
+    }
+
+    // Try High-speed FLUX.1 Engine with packaging-optimized prompt
+    if (!imageBuffer) {
+      try {
+        const pollinationsModel = model.toLowerCase().includes("sdxl") ? "turbo" : "flux";
+        const pollUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(
+          finalAiPrompt
+        )}?width=${width}&height=${height}&model=${pollinationsModel}&nologo=true&seed=${Math.floor(
+          Math.random() * 1000000
+        )}`;
+
+        const pRes = await fetch(pollUrl, { signal: AbortSignal.timeout(25000) });
+        if (pRes.ok) {
+          const arrayBuf = await pRes.arrayBuffer();
+          if (arrayBuf.byteLength > 5000) {
+            imageBuffer = Buffer.from(arrayBuf);
+            providerUsed = `FLUX.1 Schnell Packaging Studio`;
+          }
+        }
+      } catch {}
+    }
+
+    // Fallback: If AI fails, use master template composer
+    if (!imageBuffer) {
+      try {
+        const composerScript = path.resolve(process.cwd(), "server/compose_template.py");
+        await execFileAsync("python", [
+          composerScript,
+          "--name", productName || prompt || "ORGANIC BOTANICAL",
+          "--tamil", tamilName || "",
+          "--type", bowlType || "green",
+          "--out", filePath,
+        ]);
+        if (fs.existsSync(filePath)) {
+          success = true;
+          providerUsed = "TRINAYAA Master Packaging Engine (Offline Fallback)";
+        }
+      } catch {}
+    } else {
+      fs.writeFileSync(filePath, imageBuffer);
+      success = true;
+    }
+  }
+
+  // Dual-directory sync to dist/public/images/products/ai_generated
   try {
     const distOutDir = path.resolve(process.cwd(), "dist/public/images/products/ai_generated");
     if (!fs.existsSync(distOutDir)) {
       fs.mkdirSync(distOutDir, { recursive: true });
     }
-    fs.writeFileSync(path.join(distOutDir, filename), imageBuffer);
+    const distFilePath = path.join(distOutDir, filename);
+    if (fs.existsSync(filePath)) {
+      fs.copyFileSync(filePath, distFilePath);
+    }
   } catch (syncErr) {
     console.warn("[AI Image] Failed to sync to dist/public:", syncErr);
   }
 
-  // Log audit event safely
+  // Safe Audit Logging
   try {
     db.auditLogsRepo.log(
       adminName || "Admin",
       "AI_PRODUCT_IMAGE_GENERATED",
-      `Generated product image via ${providerUsed}. Model: ${model}. Prompt: "${prompt.slice(0, 80)}"`
+      `Generated packaging image via ${providerUsed}. Name: "${productName || prompt}". URL: ${publicUrl}`
     );
   } catch (err) {
     console.warn("[AI Image] Audit log failed:", err);
@@ -171,7 +200,7 @@ export async function generateAiProductImage(
   return {
     success: true,
     imageUrl: publicUrl,
-    prompt,
+    prompt: productName || prompt,
     model,
     provider: providerUsed,
   };
@@ -193,6 +222,7 @@ export async function assignAiImageToProduct(
   // Update product image
   db.productsRepo.update(target.id, {
     image: imageUrl,
+    primaryImage: imageUrl,
   });
 
   try {

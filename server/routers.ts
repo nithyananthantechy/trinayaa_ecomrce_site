@@ -1428,19 +1428,23 @@ export const appRouter = router({
       }),
     }),
 
-    // --- AI PRODUCT IMAGE GENERATOR (HUGGING FACE & FLUX) ---
+    // --- AI PRODUCT IMAGE GENERATOR (HUGGING FACE & TEMPLATE ENGINE) ---
     aiImage: router({
       generate: adminProcedure
         .input(
           z.object({
-            prompt: z.string().min(3),
-            model: z.string().optional().default("black-forest-labs/FLUX.1-schnell"),
+            prompt: z.string().optional().default(""),
+            model: z.string().optional().default("trinayaa-template"),
             aspectRatio: z.string().optional().default("1:1"),
             hfToken: z.string().optional(),
+            mode: z.enum(["template", "ai"]).optional().default("template"),
+            productName: z.string().optional(),
+            tamilName: z.string().optional(),
+            bowlType: z.enum(["green", "gold", "brown", "black", "red"]).optional().default("green"),
           })
         )
         .mutation(async ({ input, ctx }) => {
-          return generateAiProductImage(input, ctx.user.name || "Admin");
+          return generateAiProductImage(input, ctx.user?.name || "Admin");
         }),
 
       assignToProduct: adminProcedure
