@@ -1498,7 +1498,7 @@ export default function Home() {
             <h1>Pure Seeds.<br /><em>Raw Powders.</em><br /><span>True Herbs.</span></h1>
             <p className="hero-tagline">Nature's wisdom, your wellness.</p>
             <p>Carefully sourced natural herbs, pure seeds and raw herbal powders for your everyday wellness journey.</p>
-            <button className="dark-button hero-button" onClick={scrollToShop}>
+            <button className="dark-button hero-button" onClick={() => setLocation("/products")}>
               Explore Products <ArrowRight size={17} />
             </button>
             <div className="hero-notes">
@@ -1535,98 +1535,111 @@ export default function Home() {
           ))}
         </section>
 
-        <section className="catalog-section" id="shop">
-          <div className="container-wide">
-            <div className="section-heading">
+                {/* Brand Heritage & Purity Philosophy Section */}
+        <section className="brand-philosophy-section container-wide py-16" aria-label="About TRINAYAA Brand">
+          <div className="text-center max-w-3xl mx-auto mb-12">
+            <span className="eyebrow text-xs font-bold uppercase tracking-widest text-[#8E734B] block mb-2">
+              TRADITION &amp; HERBAL INTEGRITY
+            </span>
+            <h2 className="font-serif text-3xl md:text-4xl font-bold text-[#123D28] leading-tight">
+              Rooted in Tamil Nadu’s <em>Botanical Wisdom</em>
+            </h2>
+            <p className="text-sm md:text-base text-[#4B5046] mt-4 leading-relaxed font-sans">
+              From the fertile river basins of Erode and pristine foothills of the Western Ghats, TRINAYAA brings 100% pure, unadulterated botanical seeds, raw herbal powders, and whole herbs directly to your home.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8 mb-12">
+            <div className="bg-white border border-[#E5DECF] rounded-3xl p-6 sm:p-8 flex flex-col justify-between hover:shadow-md transition-shadow">
               <div>
-                <span className="eyebrow">Curated with care</span>
-                <h2>Featured <em>products</em></h2>
-              </div>
-              <button
-                className="outline-link"
-                onClick={() => setLocation("/products")}
-              >
-                View all products <ArrowRight size={16} />
-              </button>
-            </div>
-            <div className="catalog-toolbar">
-              <div className="filter-chips">
-                {(["All", "Seeds", "Raw Powders", "Herbs"] as Category[]).map((category) => (
-                  <button
-                    key={category}
-                    className={activeCategory === category ? "is-active" : ""}
-                    onClick={() => setActiveCategory(category)}
-                  >
-                    {category}
-                  </button>
-                ))}
-              </div>
-              <div className="catalog-tools">
-                <label className="catalog-search">
-                  <Search size={16} />
-                  <input
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    placeholder="Search catalog"
-                  />
-                </label>
-                <label className="sort-select">
-                  <span>Sort by</span>
-                  <select value={sort} onChange={(e) => setSort(e.target.value)}>
-                    <option value="featured">Featured</option>
-                    <option value="price-low">Price: low to high</option>
-                    <option value="price-high">Price: high to low</option>
-                  </select>
-                  <ChevronDown size={15} />
-                </label>
-              </div>
-            </div>
-            <div className="catalog-result-line">
-              <span>Showing {Math.min(8, filteredProducts.length)} of {allProducts.length} botanicals</span>
-              <span className="organic-note"><span className="organic-dot" /> Handpicked featured selection</span>
-            </div>
-            <div className="product-grid">
-              {filteredProducts.slice(0, 8).map((product) => (
-                <ProductCard
-                  key={product.id}
-                  product={product}
-                  isWishlisted={wishlist.has(product.id)}
-                  onWishlist={() => toggleWishlist(product.id)}
-                  onDetails={() => setLocation(`/products/${(product as any).slug || product.id}`)}
-                  onAdd={() => addToCart(product)}
-                />
-              ))}
-            </div>
-            {allProducts.length > 8 && (
-              <div className="mt-8 pt-6 border-t border-[#F0EBE0] text-center">
-                <p className="text-xs text-slate-500 mb-3">
-                  Explore our entire authentic catalogue of {allProducts.length} pure seeds, raw powders, and herbs.
+                <div className="w-12 h-12 rounded-2xl bg-[#123D28] text-white flex items-center justify-center mb-5 shadow-xs">
+                  <Leaf size={24} />
+                </div>
+                <h3 className="font-serif text-xl font-bold text-[#123D28] mb-2">
+                  Direct Farm Sourcing
+                </h3>
+                <p className="text-xs text-[#8E734B] font-semibold mb-3">
+                  நேரடி இயற்கை கொள்முதல்
                 </p>
+                <p className="text-xs text-[#52574C] leading-relaxed">
+                  We partner directly with local farming collectives across Erode and traditional herbal cultivating tracts. No middlemen, no commercial blending—just pure single-origin harvest.
+                </p>
+              </div>
+              <div className="mt-6 pt-4 border-t border-[#F0EBE0] flex items-center gap-2 text-[11px] font-bold text-[#123D28]">
+                <CheckCircle2 size={14} className="text-[#AE6A2B]" /> 100% Traceable Harvest
+              </div>
+            </div>
+
+            <div className="bg-white border border-[#E5DECF] rounded-3xl p-6 sm:p-8 flex flex-col justify-between hover:shadow-md transition-shadow">
+              <div>
+                <div className="w-12 h-12 rounded-2xl bg-[#AE6A2B] text-white flex items-center justify-center mb-5 shadow-xs">
+                  <Sparkles size={24} />
+                </div>
+                <h3 className="font-serif text-xl font-bold text-[#123D28] mb-2">
+                  Traditional Processing
+                </h3>
+                <p className="text-xs text-[#8E734B] font-semibold mb-3">
+                  பாரம்பரிய முறையில் தயாரிப்பு
+                </p>
+                <p className="text-xs text-[#52574C] leading-relaxed">
+                  Carefully cleaned and processed using traditional solar and shade drying methods followed by slow micro-pulverization to retain volatile essential oils and therapeutic potency.
+                </p>
+              </div>
+              <div className="mt-6 pt-4 border-t border-[#F0EBE0] flex items-center gap-2 text-[11px] font-bold text-[#123D28]">
+                <CheckCircle2 size={14} className="text-[#AE6A2B]" /> Retained Essential Oils
+              </div>
+            </div>
+
+            <div className="bg-white border border-[#E5DECF] rounded-3xl p-6 sm:p-8 flex flex-col justify-between hover:shadow-md transition-shadow">
+              <div>
+                <div className="w-12 h-12 rounded-2xl bg-[#123D28] text-white flex items-center justify-center mb-5 shadow-xs">
+                  <ShieldCheck size={24} />
+                </div>
+                <h3 className="font-serif text-xl font-bold text-[#123D28] mb-2">
+                  Zero Preservatives Promise
+                </h3>
+                <p className="text-xs text-[#8E734B] font-semibold mb-3">
+                  100% கலப்படமற்ற தூய்மை
+                </p>
+                <p className="text-xs text-[#52574C] leading-relaxed">
+                  Absolutely no maltodextrin, artificial food colors, anti-caking agents, or chemical preservatives. Every airtight pouch contains only 100% pure botanical powder or whole herb.
+                </p>
+              </div>
+              <div className="mt-6 pt-4 border-t border-[#F0EBE0] flex items-center gap-2 text-[11px] font-bold text-[#123D28]">
+                <CheckCircle2 size={14} className="text-[#AE6A2B]" /> Lab Tested Purity
+              </div>
+            </div>
+          </div>
+
+          {/* Central Call to Action Card */}
+          <div className="bg-[#FAF6EE] border border-[#E5DECF] rounded-3xl p-8 sm:p-10 text-center relative overflow-hidden">
+            <div className="max-w-2xl mx-auto relative z-10">
+              <span className="eyebrow text-xs font-bold uppercase tracking-widest text-[#AE6A2B] block mb-2">
+                162 AUTHENTIC BOTANICALS READY TO SHIP
+              </span>
+              <h3 className="font-serif text-2xl sm:text-3xl font-bold text-[#123D28] mb-3">
+                Explore Our Complete Botanical Catalogue
+              </h3>
+              <p className="text-xs sm:text-sm text-[#4B5046] mb-6 leading-relaxed">
+                Discover our full range of 24 natural seeds, 63 raw herbal powders, and 75 whole herbs—all categorized, searchable, and delivered fresh across India.
+              </p>
+              <div className="flex flex-wrap items-center justify-center gap-3">
                 <button
                   type="button"
                   onClick={() => setLocation("/products")}
-                  className="dark-button inline-flex items-center gap-2 py-3 px-6 text-xs font-semibold rounded-xl"
+                  className="dark-button inline-flex items-center gap-2 py-3 px-6 text-sm font-semibold rounded-xl shadow-xs"
                 >
-                  View All Products ({allProducts.length}) <ArrowRight size={16} />
+                  Browse Products (162) <ArrowRight size={16} />
                 </button>
-              </div>
-            )}
-            {filteredProducts.length === 0 && (
-              <div className="empty-results">
-                <Search size={28} />
-                <h3>No botanicals found</h3>
-                <p>Try another search or browse every product.</p>
                 <button
-                  className="text-button"
-                  onClick={() => {
-                    setSearch("");
-                    setActiveCategory("All");
-                  }}
+                  type="button"
+                  onClick={() => setLocation("/about")}
+                  className="inline-flex items-center gap-2 py-3 px-6 text-sm font-semibold rounded-xl bg-white text-[#123D28] border border-[#E5DECF] hover:bg-[#F2ECE0] transition-colors"
                 >
-                  Clear filters <ArrowRight size={15} />
+                  Our Heritage Story &rarr;
                 </button>
               </div>
-            )}
+            </div>
           </div>
         </section>
 
@@ -1638,7 +1651,7 @@ export default function Home() {
           </div>
           <div className="offer-copy">
             <p>Carefully packed and sent from our shelves to your doorstep, anywhere in India.</p>
-            <button className="light-button" onClick={scrollToShop}>Shop the collection <ArrowRight size={16} /></button>
+            <button className="light-button" onClick={() => setLocation("/products")}>Shop the collection <ArrowRight size={16} /></button>
           </div>
         </section>
 
@@ -1656,7 +1669,7 @@ export default function Home() {
               <span><CheckCircle2 size={18} /> Honest, simple ingredients</span>
               <span><CheckCircle2 size={18} /> Packed fresh in India</span>
             </div>
-            <button className="text-button" onClick={() => toast.info("Our sourcing story is coming soon.")}>Read our story <ArrowRight size={16} /></button>
+            <button className="text-button" onClick={() => setLocation("/about")}>Read our story <ArrowRight size={16} /></button>
           </div>
         </section>
 
