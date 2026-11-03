@@ -57,11 +57,13 @@ const MODELS = [
   },
 ];
 
+const DEFAULT_HF_TOKEN = "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";
+
 export default function AiImageStudioTab() {
   const [prompt, setPrompt] = useState(PRESETS[0].prompt);
   const [model, setModel] = useState("black-forest-labs/FLUX.1-schnell");
   const [aspectRatio, setAspectRatio] = useState<"1:1" | "3:4" | "16:9">("1:1");
-  const [hfToken, setHfToken] = useState(() => localStorage.getItem("trinayaa_hf_token") || "");
+  const [hfToken, setHfToken] = useState(() => localStorage.getItem("trinayaa_hf_token") || DEFAULT_HF_TOKEN);
   const [showTokenInput, setShowTokenInput] = useState(false);
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
   const [selectedProductId, setSelectedProductId] = useState<string>("");
@@ -152,7 +154,7 @@ export default function AiImageStudioTab() {
           onClick={() => setShowTokenInput(!showTokenInput)}
           className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold bg-white/10 hover:bg-white/20 transition-colors border border-white/20 text-[#FBF8F0]"
         >
-          <Key size={14} /> {hfToken ? "HF Token Configured" : "Configure HF Token"}
+          <Key size={14} className="text-[#E8BF83]" /> {hfToken ? "✓ HF Token Active" : "Configure HF Token"}
         </button>
       </div>
 
@@ -308,15 +310,16 @@ export default function AiImageStudioTab() {
           <button
             type="submit"
             disabled={generateMutation.isPending}
-            className="w-full py-3.5 px-6 rounded-xl font-bold text-xs uppercase tracking-wider bg-[#123D28] hover:bg-[#0E3020] text-white shadow-md flex items-center justify-center gap-2 transition-all disabled:opacity-60 cursor-pointer"
+            style={{ backgroundColor: "#123D28", color: "#FFFFFF" }}
+            className="w-full py-4 px-6 rounded-xl font-bold text-sm uppercase tracking-wider text-white shadow-lg hover:shadow-xl hover:!bg-[#0E3020] active:scale-[0.99] flex items-center justify-center gap-2.5 transition-all disabled:opacity-60 cursor-pointer border-none"
           >
             {generateMutation.isPending ? (
               <>
-                <RefreshCw size={16} className="animate-spin" /> Generating Photorealistic Visual...
+                <RefreshCw size={18} className="animate-spin text-[#E8BF83]" /> Generating Photorealistic Visual...
               </>
             ) : (
               <>
-                <Sparkles size={16} /> Generate Product Visual
+                <Sparkles size={18} className="text-[#E8BF83]" /> Generate Product Visual
               </>
             )}
           </button>
@@ -384,7 +387,8 @@ export default function AiImageStudioTab() {
                   type="button"
                   onClick={handleAssign}
                   disabled={!selectedProductId || assignMutation.isPending}
-                  className="w-full py-2.5 px-4 rounded-lg font-bold text-xs bg-[#722D2E] hover:bg-[#5C2324] text-white shadow-xs flex items-center justify-center gap-1.5 transition-all disabled:opacity-50 cursor-pointer"
+                  style={{ backgroundColor: "#722D2E", color: "#FFFFFF" }}
+                  className="w-full py-3 px-4 rounded-xl font-bold text-xs uppercase tracking-wider text-white shadow-md hover:!bg-[#5C2324] active:scale-[0.99] flex items-center justify-center gap-2 transition-all disabled:opacity-50 cursor-pointer border-none"
                 >
                   {assignMutation.isPending ? (
                     <>
@@ -392,7 +396,7 @@ export default function AiImageStudioTab() {
                     </>
                   ) : (
                     <>
-                      <Check size={14} /> Set as Live Product Image
+                      <Check size={16} /> Set as Live Product Image
                     </>
                   )}
                 </button>

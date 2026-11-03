@@ -487,8 +487,13 @@ export default function AdminDashboard() {
                     : "text-[#DFE7D7] hover:bg-[#123D28]/60 hover:text-white"
                 }`}
               >
-                <Icon size={16} />
-                <span>{label}</span>
+                <Icon size={16} className={id === "ai_image" ? "text-[#E8BF83]" : ""} />
+                <span className="truncate">{label}</span>
+                {id === "ai_image" && (
+                  <span className="ml-auto text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-[#AE6A2B] text-white font-extrabold shadow-xs">
+                    AI
+                  </span>
+                )}
               </button>
             ))}
           </nav>
