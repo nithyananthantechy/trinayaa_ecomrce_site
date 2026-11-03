@@ -204,7 +204,7 @@ function SiteHeader({
           </div>
           <div className="utility-links utility-right">
             <span><Truck size={14} /> Pan India Delivery <small>(T&C Apply)</small></span><i />
-            <button onClick={() => toast.info("Our care team replies within one business day: support@trinayaa.in")}>Support</button><i />
+            <button onClick={() => setLocation("/contact")}>Support</button><i />
             <button onClick={() => setLocation("/track-order")}>Track Order</button>
             {currentUser?.role === "ADMIN" && (
               <>
