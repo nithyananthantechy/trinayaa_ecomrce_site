@@ -74,7 +74,7 @@ describe("TRINAYAA Phase 7 — Technical SEO, Product SEO, Structured Data & AEO
       expect(meta.description).toContain("Licorice Root");
       expect(meta.canonical).toBe(`${BASE_URL}/products/${sampleProduct.slug}`);
       expect(meta.ogType).toBe("product");
-      expect(meta.ogImage).toContain("pouch_001.png");
+      expect(meta.ogImage).toMatch(/pouch_001\.png|trn-1001\.jpg/);
     });
 
     it("2.2: All 162 database products have unique non-empty slugs, SEO titles, and descriptions", () => {

@@ -22,22 +22,22 @@ def compose_trinayaa_packaging(name_en, name_ta, bowl_type, out_path):
     if np.sum(green_pixels) > 0 and bowl_type != "green":
         intensity = (arr[green_pixels, 0] + arr[green_pixels, 1] + arr[green_pixels, 2]) / 3.0
         
-        if bowl_type == "gold" or bowl_type == "yellow":
-            # Golden turmeric / fenugreek seeds
-            arr[green_pixels, 0] = np.clip(intensity * 1.5, 0, 255)
+        if bowl_type in ("gold", "yellow"):
+            # Golden turmeric / fenugreek seeds / mustard
+            arr[green_pixels, 0] = np.clip(intensity * 1.50, 0, 255)
             arr[green_pixels, 1] = np.clip(intensity * 1.15, 0, 255)
             arr[green_pixels, 2] = np.clip(intensity * 0.35, 0, 255)
-        elif bowl_type == "brown" or bowl_type == "root":
+        elif bowl_type in ("brown", "root"):
             # Earthy brown root / powder (Ashwagandha, Licorice, Triphala)
             arr[green_pixels, 0] = np.clip(intensity * 1.25, 0, 255)
             arr[green_pixels, 1] = np.clip(intensity * 0.85, 0, 255)
             arr[green_pixels, 2] = np.clip(intensity * 0.55, 0, 255)
-        elif bowl_type == "black" or bowl_type == "seed":
+        elif bowl_type in ("black", "seed"):
             # Black kalonji / chia / black sesame
             arr[green_pixels, 0] = np.clip(intensity * 0.45, 0, 255)
             arr[green_pixels, 1] = np.clip(intensity * 0.48, 0, 255)
             arr[green_pixels, 2] = np.clip(intensity * 0.50, 0, 255)
-        elif bowl_type == "red" or bowl_type == "hibiscus":
+        elif bowl_type in ("red", "hibiscus"):
             # Red herbal petals / bark (Hibiscus, Rose, Cinnamon)
             arr[green_pixels, 0] = np.clip(intensity * 1.55, 0, 255)
             arr[green_pixels, 1] = np.clip(intensity * 0.45, 0, 255)
@@ -46,16 +46,18 @@ def compose_trinayaa_packaging(name_en, name_ta, bowl_type, out_path):
     im = Image.fromarray(arr.astype(np.uint8))
     draw = ImageDraw.Draw(im)
 
-    # 2. Draw crisp deep green banner
-    banner_box = (388, 545, 882, 615)
+    # 2. Draw crisp deep green banner (x: 385 to 885, y: 545 to 615)
+    banner_box = (385, 545, 885, 615)
     draw.rounded_rectangle(banner_box, radius=8, fill=(30, 57, 14))
 
     # 3. Dynamic font sizing for English product name
     clean_en = name_en.strip().upper()
-    font_size_en = 38
-    if len(clean_en) > 22:
+    font_size_en = 36
+    if len(clean_en) > 26:
+        font_size_en = 24
+    elif len(clean_en) > 20:
         font_size_en = 28
-    elif len(clean_en) > 16:
+    elif len(clean_en) > 15:
         font_size_en = 32
 
     font_en = None
@@ -76,22 +78,31 @@ def compose_trinayaa_packaging(name_en, name_ta, bowl_type, out_path):
 
     bbox_en = draw.textbbox((0, 0), clean_en, font=font_en)
     tw_en = bbox_en[2] - bbox_en[0]
-    th_en = bbox_en[3] - bbox_en[1]
+    th_en = bbox_en[3] - bbox_en[0]
     tx_en = (banner_box[0] + banner_box[2] - tw_en) // 2
-    ty_en = (banner_box[1] + banner_box[3] - th_en) // 2 - 3
+    ty_en = (banner_box[1] + banner_box[3] - th_en) // 2 - 2
     draw.text((tx_en, ty_en), clean_en, font=font_en, fill=(255, 255, 255))
 
-    # 4. Clean and redraw Tamil name on kraft paper
+    # 4. Seamlessly wipe out the entire old Tamil text area
+    # In master image, original Tamil text was at y=660..695.
+    # We cleanly fill the full space from y=616 to y=718 between banner and seals (102px high).
+    # Using seamless gradient matching the exact natural kraft paper tones.
+    y_start = 616
+    y_end = 718
+    for y in range(y_start, y_end + 1):
+        ratio = (y - y_start) / float(y_end - y_start)
+        r = int(254 * (1.0 - ratio) + 250 * ratio)
+        g = int(250 * (1.0 - ratio) + 245 * ratio)
+        b = int(238 * (1.0 - ratio) + 232 * ratio)
+        draw.line([(370, y), (900, y)], fill=(r, g, b))
+
+    # 5. Draw clean new Tamil name centered
     if name_ta and name_ta.strip():
         clean_ta = name_ta.strip()
-        tamil_box = (388, 624, 882, 672)
-        # Sample realistic kraft paper background
-        draw.rectangle(tamil_box, fill=(244, 227, 207))
-
-        font_size_ta = 32
-        if len(clean_ta) > 22:
+        font_size_ta = 34
+        if len(clean_ta) > 24:
             font_size_ta = 24
-        elif len(clean_ta) > 16:
+        elif len(clean_ta) > 18:
             font_size_ta = 28
 
         font_ta = None
@@ -114,8 +125,8 @@ def compose_trinayaa_packaging(name_en, name_ta, bowl_type, out_path):
         tw_ta = bbox_ta[2] - bbox_ta[0]
         th_ta = bbox_ta[3] - bbox_ta[1]
         tx_ta = (banner_box[0] + banner_box[2] - tw_ta) // 2
-        ty_ta = (tamil_box[1] + tamil_box[3] - th_ta) // 2 - 2
-        draw.text((tx_ta, ty_ta), clean_ta, font=font_ta, fill=(30, 48, 20))
+        ty_ta = (y_start + y_end - th_ta) // 2 - 2
+        draw.text((tx_ta, ty_ta), clean_ta, font=font_ta, fill=(24, 45, 18))
 
     # Ensure parent directory exists
     os.makedirs(os.path.dirname(os.path.abspath(out_path)), exist_ok=True)
