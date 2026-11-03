@@ -240,68 +240,32 @@ export default function ProductDetail() {
 
   return (
     <div className="min-h-screen bg-[#FBF8F0] text-[#1f2937] flex flex-col font-sans">
-      {/* Utility Bar */}
-      <div className="utility-bar">
-        <div className="container-wide utility-inner">
-          <p className="utility-left">Pan-India Delivery &bull; 100% Pure &amp; Traditional Botanicals &bull; Direct from Erode</p>
-          <div className="utility-right">
-            <button
-              type="button"
-              onClick={() => setLocation("/track-order")}
-              className="utility-link"
-            >
-              Track Order
-            </button>
-            <span className="utility-sep">|</span>
-            <button
-              type="button"
-              onClick={() => setLocation("/contact")}
-              className="utility-link"
-            >
-              Support
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Main Header */}
+      {/* Single Clean Unified Navigation Bar */}
       <header className="site-header">
-        <div className="header-inner container-wide">
+        <div className="site-header-inner">
           <button
             type="button"
-            className="header-logo-button"
+            className="logo-button"
             onClick={() => setLocation("/")}
           >
             <BrandMark />
           </button>
 
-          <nav className="header-nav">
-            <button
-              type="button"
-              className="nav-item"
-              onClick={() => setLocation("/")}
-            >
+          <nav className="desktop-nav" aria-label="Primary navigation">
+            <button type="button" onClick={() => setLocation("/")}>
               Home
             </button>
             <button
               type="button"
-              className="nav-item active font-bold"
+              className="active font-bold"
               onClick={() => setLocation("/products")}
             >
               Products
             </button>
-            <button
-              type="button"
-              className="nav-item"
-              onClick={() => setLocation("/about")}
-            >
+            <button type="button" onClick={() => setLocation("/about")}>
               About
             </button>
-            <button
-              type="button"
-              className="nav-item"
-              onClick={() => setLocation("/contact")}
-            >
+            <button type="button" onClick={() => setLocation("/contact")}>
               Contact
             </button>
           </nav>
@@ -309,46 +273,45 @@ export default function ProductDetail() {
           <div className="header-actions">
             <button
               type="button"
-              className="action-btn"
+              className="icon-action"
               onClick={() => setLocation("/products")}
-              title="Search catalog"
+              title="Search products"
             >
               <Search size={18} />
             </button>
 
             <button
               type="button"
-              className="action-btn relative"
+              className="icon-action account-action"
+              onClick={() => {
+                if (currentUser?.role === "ADMIN" || currentUser?.role === "SUPER_ADMIN") {
+                  setLocation("/admin");
+                } else {
+                  setLocation("/");
+                }
+              }}
+              title="Account"
+            >
+              <UserRound size={20} />
+              <span>
+                {currentUser
+                  ? (currentUser.role === "ADMIN" || currentUser.role === "SUPER_ADMIN"
+                      ? "Admin"
+                      : currentUser.name.split(" ")[0])
+                  : "Account"}
+              </span>
+            </button>
+
+            <button
+              type="button"
+              className="icon-action cart-action"
               onClick={() => setLocation("/#cart")}
               title="Shopping Cart"
             >
-              <ShoppingBag size={18} />
-              {cartTotalItems > 0 && (
-                <span className="absolute -top-1 -right-1 bg-[#123D28] text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center">
-                  {cartTotalItems}
-                </span>
-              )}
+              <ShoppingBag size={20} />
+              <span>Cart</span>
+              {cartTotalItems > 0 && <b>{cartTotalItems}</b>}
             </button>
-
-            {currentUser?.role === "admin" ? (
-              <button
-                type="button"
-                className="action-btn text-[#AE6A2B]"
-                onClick={() => setLocation("/admin")}
-                title="Admin Console"
-              >
-                <UserRound size={18} />
-              </button>
-            ) : (
-              <button
-                type="button"
-                className="action-btn"
-                onClick={() => setLocation("/admin/login")}
-                title="Account"
-              >
-                <UserRound size={18} />
-              </button>
-            )}
           </div>
         </div>
       </header>
