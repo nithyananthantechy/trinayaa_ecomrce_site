@@ -28,17 +28,7 @@ import {
   AlertCircle
 } from "lucide-react";
 
-function BrandMark() {
-  return (
-    <div className="brand-mark cursor-pointer" aria-label="Trinayaa home">
-      <img
-        src="/images/brand/trinayaa_logo.png"
-        alt="TRINAYAA"
-        className="h-10 md:h-11 w-auto object-contain"
-      />
-    </div>
-  );
-}
+import BrandMark from "@/components/BrandMark";
 
 function TrustRow() {
   return (
@@ -744,13 +734,7 @@ export default function ProductDetail() {
       <footer className="site-footer">
         <div className="footer-inner container-wide">
           <div className="footer-brand">
-            <div className="brand-mark brand-mark-inverse" aria-label="Trinayaa home">
-              <img
-                src="/images/brand/trinayaa_logo_white.png"
-                alt="TRINAYAA"
-                className="h-10 md:h-11 w-auto object-contain"
-              />
-            </div>
+            <BrandMark inverse />
             <p>Pure seeds. Raw powders.<br />True herbs.</p>
             <div className="socials">
               <a href="#footer" aria-label="Instagram"><Instagram size={16} /></a>

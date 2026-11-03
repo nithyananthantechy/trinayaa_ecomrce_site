@@ -163,21 +163,7 @@ function formatINR(value: number) {
   return `₹${value.toLocaleString("en-IN")}`;
 }
 
-function BrandMark({ inverse = false }: { inverse?: boolean }) {
-  return (
-    <div className={`brand-mark ${inverse ? "brand-mark-inverse" : ""}`} aria-label="Trinayaa home">
-      <img
-        src={inverse ? "/images/brand/trinayaa_logo_white.png" : "/images/brand/trinayaa_logo.png"}
-        alt="TRINAYAA"
-        className="h-10 md:h-11 w-auto object-contain"
-        onError={(e) => {
-          const target = e.currentTarget;
-          target.style.display = "none";
-        }}
-      />
-    </div>
-  );
-}
+import BrandMark from "@/components/BrandMark";
 
 function SiteHeader({
   cartCount,
@@ -1035,6 +1021,9 @@ function AuthModal({
             <label className="block font-semibold mb-1">Email Address</label>
             <input
               type="email"
+              id="customer_signin_email"
+              name="customer_signin_email"
+              autoComplete="off"
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
@@ -1047,6 +1036,9 @@ function AuthModal({
             <label className="block font-semibold mb-1">Password</label>
             <input
               type="password"
+              id="customer_signin_password"
+              name="customer_signin_password"
+              autoComplete="new-password"
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
@@ -1072,6 +1064,13 @@ function AuthModal({
           <button type="submit" disabled={loading} className="dark-button full-button mt-4">
             {loading ? "Processing..." : tab === "signin" ? "Sign In" : "Register Account"} <ArrowRight size={16} />
           </button>
+
+          <div className="pt-2 text-center text-[11px] text-[#6C7167]">
+            <span>Store Administrator? </span>
+            <a href="/admin/login" className="text-[#123D28] font-bold hover:underline">
+              Access Admin Portal &rarr;
+            </a>
+          </div>
         </form>
       </section>
     </div>

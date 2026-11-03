@@ -9,6 +9,7 @@ import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import crypto from "node:crypto";
 import { checkRateLimit, resetRateLimit } from "./rateLimit";
+import { generateAiProductImage, assignAiImageToProduct } from "./aiImage";
 
 export const appRouter = router({
   system: systemRouter,
@@ -1425,6 +1426,33 @@ export const appRouter = router({
       getAuditLogs: adminProcedure.query(async () => {
         return db.telegramRepo.getAuditLogs();
       }),
+    }),
+
+    // --- AI PRODUCT IMAGE GENERATOR (HUGGING FACE & FLUX) ---
+    aiImage: router({
+      generate: adminProcedure
+        .input(
+          z.object({
+            prompt: z.string().min(3),
+            model: z.string().optional().default("black-forest-labs/FLUX.1-schnell"),
+            aspectRatio: z.string().optional().default("1:1"),
+            hfToken: z.string().optional(),
+          })
+        )
+        .mutation(async ({ input, ctx }) => {
+          return generateAiProductImage(input, ctx.user.name || "Admin");
+        }),
+
+      assignToProduct: adminProcedure
+        .input(
+          z.object({
+            productId: z.union([z.string(), z.number()]),
+            imageUrl: z.string(),
+          })
+        )
+        .mutation(async ({ input, ctx }) => {
+          return assignAiImageToProduct(input.productId, input.imageUrl, ctx.user.name || "Admin");
+        }),
     }),
   }),
 });

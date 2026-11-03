@@ -1,3 +1,4 @@
+import AiImageStudioTab from "./AiImageStudioTab";
 import { useState, useMemo, useEffect } from "react";
 import { useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
@@ -48,7 +49,8 @@ type AdminTab =
   | "import"
   | "content"
   | "settings"
-  | "telegram";
+  | "telegram"
+  | "ai_image";
 
 export default function AdminDashboard() {
   const [location, setLocation] = useLocation();
@@ -65,6 +67,7 @@ export default function AdminDashboard() {
     if (location.startsWith("/admin/content")) return "content";
     if (location.startsWith("/admin/settings")) return "settings";
     if (location.startsWith("/admin/telegram")) return "telegram";
+    if (location.startsWith("/admin/ai_image") || location.startsWith("/admin/generate-image") || location.startsWith("/admin/ai-image")) return "ai_image";
     return "overview";
   }, [location]);
 
@@ -473,6 +476,7 @@ export default function AdminDashboard() {
               { id: "content" as AdminTab, label: "Store Content", icon: FileText },
               { id: "settings" as AdminTab, label: "Store Settings", icon: Settings },
               { id: "telegram" as AdminTab, label: "Telegram Bot", icon: Bot },
+              { id: "ai_image" as AdminTab, label: "Generate Product Image", icon: Sparkles },
             ].map(({ id, label, icon: Icon }) => (
               <button
                 key={id}
@@ -1679,6 +1683,12 @@ export default function AdminDashboard() {
               </div>
             </div>
           )}
+
+          {/* ========================================== */}
+          {/* ========================================== */}
+          {/* 12. AI PRODUCT STUDIO (HUGGING FACE & FLUX) */}
+          {/* ========================================== */}
+          {activeTab === "ai_image" && <AiImageStudioTab />}
 
           {/* ========================================== */}
           {/* 11. TELEGRAM BOT MANAGEMENT */}

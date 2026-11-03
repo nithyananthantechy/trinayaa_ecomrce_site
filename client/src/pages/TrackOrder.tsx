@@ -4,17 +4,7 @@ import { useLocation } from "wouter";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 
-function BrandMark() {
-  return (
-    <div className="brand-mark" aria-label="Trinayaa home">
-      <img
-        src="/images/brand/trinayaa_logo.png"
-        alt="TRINAYAA"
-        className="h-10 w-auto object-contain"
-      />
-    </div>
-  );
-}
+import BrandMark from "@/components/BrandMark";
 
 export default function TrackOrder() {
   const [, setLocation] = useLocation();
