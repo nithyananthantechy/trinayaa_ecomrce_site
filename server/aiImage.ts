@@ -146,12 +146,16 @@ export async function generateAiProductImage(
 
   fs.writeFileSync(filePath, imageBuffer);
 
-  // Log audit event
-  db.auditLogsRepo.log({
-    action: "AI_PRODUCT_IMAGE_GENERATED",
-    adminName,
-    details: `Generated product image via ${providerUsed}. Model: ${model}. Prompt: "${prompt.slice(0, 80)}"`,
-  });
+  // Log audit event safely
+  try {
+    db.auditLogsRepo.log(
+      adminName || "Admin",
+      "AI_PRODUCT_IMAGE_GENERATED",
+      `Generated product image via ${providerUsed}. Model: ${model}. Prompt: "${prompt.slice(0, 80)}"`
+    );
+  } catch (err) {
+    console.warn("[AI Image] Audit log failed:", err);
+  }
 
   return {
     success: true,
@@ -180,11 +184,15 @@ export async function assignAiImageToProduct(
     image: imageUrl,
   });
 
-  db.auditLogsRepo.log({
-    action: "PRODUCT_IMAGE_UPDATED",
-    adminName,
-    details: `Updated image for product ${target.name} (${target.sku}) to ${imageUrl}`,
-  });
+  try {
+    db.auditLogsRepo.log(
+      adminName || "Admin",
+      "PRODUCT_IMAGE_UPDATED",
+      `Updated image for product ${target.name} (${target.sku}) to ${imageUrl}`
+    );
+  } catch (err) {
+    console.warn("[AI Image] Audit log failed:", err);
+  }
 
   return {
     success: true,
