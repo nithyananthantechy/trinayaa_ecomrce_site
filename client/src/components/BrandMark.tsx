@@ -17,26 +17,33 @@ export default function BrandMark({ inverse = false, className = "" }: BrandMark
         className="h-9 sm:h-10 md:h-11 w-auto object-contain flex-shrink-0"
       />
       <div className="flex flex-col justify-center leading-none">
-        <span
-          className={`font-serif text-lg sm:text-xl font-bold tracking-[0.14em] leading-none ${
+        {/* TRINAYAA stretched across to cover full width of subtext */}
+        <div
+          className={`font-serif text-lg sm:text-xl font-bold flex justify-between w-full leading-none select-none ${
             inverse ? "text-white" : "text-[#6B1D2F]"
           }`}
           style={{ fontFamily: "'Cinzel', Georgia, serif" }}
         >
-          TRINAYAA
-        </span>
+          <span>T</span>
+          <span>R</span>
+          <span>I</span>
+          <span>N</span>
+          <span>A</span>
+          <span>Y</span>
+          <span>A</span>
+          <span>A</span>
+        </div>
         <div
-          className={`flex items-center gap-1 text-[7px] sm:text-[8px] md:text-[8.5px] font-bold tracking-[0.15em] uppercase mt-1 leading-none ${
+          className={`flex items-center justify-between gap-1 text-[6.5px] sm:text-[7.5px] md:text-[8px] font-bold tracking-[0.14em] uppercase mt-1 leading-none ${
             inverse ? "text-[#E5DECF]" : "text-[#123D28]"
           }`}
           style={{ fontFamily: "Montserrat, system-ui, sans-serif" }}
         >
-          <span className="text-[6.5px]">🍃</span>
-          <span>PURE SEEDS · RAW POWDERS · TRUE HERBS</span>
-          <span className="text-[6.5px]">🍃</span>
+          <span className="text-[6px]">🍃</span>
+          <span className="whitespace-nowrap">PURE SEEDS · RAW POWDERS · TRUE HERBS</span>
+          <span className="text-[6px]">🍃</span>
         </div>
       </div>
     </div>
   );
 }
-
