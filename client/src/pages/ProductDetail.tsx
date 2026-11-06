@@ -1,3 +1,4 @@
+import { resolveProductImage, getCategoryPlaceholder } from "../lib/productImage";
 import { useState, useMemo } from "react";
 import { useLocation, useRoute } from "wouter";
 import { trpc } from "@/lib/trpc";
@@ -25,10 +26,12 @@ import {
   Plus,
   ArrowLeft,
   Award,
-  AlertCircle
+  AlertCircle,
+  Building2
 } from "lucide-react";
 
 import BrandMark from "@/components/BrandMark";
+import BulkEnquiryDialog from "@/components/BulkEnquiryDialog";
 
 function TrustRow() {
   return (
@@ -118,6 +121,7 @@ export default function ProductDetail() {
   const [quantity, setQuantity] = useState<number>(1);
   const [activeTab, setActiveTab] = useState<"about" | "ayurveda" | "usage" | "quality">("about");
   const [isWishlisted, setIsWishlisted] = useState<boolean>(false);
+  const [bulkDialogOpen, setBulkDialogOpen] = useState<boolean>(false);
 
   // Pack size multiplier calculation
   const packMultiplier = useMemo(() => {
@@ -342,11 +346,11 @@ export default function ProductDetail() {
           <div className="lg:col-span-6 space-y-4">
             <div className="relative aspect-square bg-[#FAF6EE] rounded-3xl border border-[#E5DECF] p-8 flex items-center justify-center overflow-hidden shadow-xs">
               <img
-                src={product.image || product.primaryImage || "/images/products/packaged/pouch_001.png"}
+                src={resolveProductImage(product.sku, product.category, product.productType, product.image || product.primaryImage)}
                 alt={product.nameEn}
                 className="w-full h-full object-contain max-h-[460px] drop-shadow-md hover:scale-105 transition-transform duration-300"
                 onError={(e: any) => {
-                  e.target.src = "/images/products/packaged/pouch_001.png";
+                  e.target.src = getCategoryPlaceholder(product.category, product.productType);
                 }}
               />
               {product.badge && (
@@ -527,6 +531,18 @@ export default function ProductDetail() {
               </button>
             </div>
 
+            {/* Wholesale / Bulk Enquiry Button */}
+            <div className="pt-1">
+              <button
+                type="button"
+                onClick={() => setBulkDialogOpen(true)}
+                className="w-full py-2.5 px-4 rounded-xl font-semibold text-xs bg-[#F5EFE3] hover:bg-[#EFE6D5] border border-[#DDD3BF] text-[#5C3D18] transition-all flex items-center justify-center gap-2 shadow-2xs"
+              >
+                <Building2 size={15} className="text-[#AE6A2B]" />
+                <span>Commercial / Clinic Buyer? <strong>Request Bulk / Wholesale Quote &rarr;</strong></span>
+              </button>
+            </div>
+
             {/* Delivery & Purity Badges */}
             <div className="p-4 bg-[#FAF6EE] rounded-2xl border border-[#E5DECF] space-y-2 text-xs text-slate-700">
               <div className="flex items-center gap-2">
@@ -696,12 +712,12 @@ export default function ProductDetail() {
                 >
                   <div className="relative aspect-square bg-[#FAF6EE] p-4 flex items-center justify-center">
                     <img
-                      src={rel.image || rel.primaryImage || "/images/products/packaged/pouch_001.png"}
+                      src={resolveProductImage(rel.sku, rel.category, rel.productType, rel.image || rel.primaryImage)}
                       alt={rel.nameEn}
                       loading="lazy"
                       className="w-full h-full object-contain group-hover:scale-105 transition-transform"
                       onError={(e: any) => {
-                        e.target.src = "/images/products/packaged/pouch_001.png";
+                        e.target.src = getCategoryPlaceholder(rel.category, rel.productType);
                       }}
                     />
                   </div>
@@ -776,6 +792,17 @@ export default function ProductDetail() {
           </div>
         </div>
       </footer>
+
+      {/* B2B Wholesale Enquiry Dialog */}
+      <BulkEnquiryDialog
+        open={bulkDialogOpen}
+        onClose={() => setBulkDialogOpen(false)}
+        initialProduct={{
+          sku: product.sku,
+          name: product.nameEn,
+          productId: product.id,
+        }}
+      />
     </div>
   );
 }

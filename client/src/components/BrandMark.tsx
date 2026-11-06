@@ -8,7 +8,7 @@ interface BrandMarkProps {
 export default function BrandMark({ inverse = false, className = "" }: BrandMarkProps) {
   return (
     <div
-      className={`brand-mark ${inverse ? "brand-mark-inverse" : ""} inline-flex items-center gap-2.5 sm:gap-3 select-none text-left ${className}`}
+      className={`brand-mark ${inverse ? "brand-mark-inverse" : ""} inline-flex items-center gap-2.5 sm:gap-3.5 select-none text-left ${className}`}
       aria-label="TRINAYAA — Pure Seeds · Raw Powders · True Herbs"
     >
       <img
@@ -16,10 +16,10 @@ export default function BrandMark({ inverse = false, className = "" }: BrandMark
         alt="TRINAYAA Emblem"
         className="h-9 sm:h-10 md:h-11 w-auto object-contain flex-shrink-0"
       />
-      <div className="flex flex-col justify-center leading-none">
-        {/* TRINAYAA stretched across to cover full width of subtext */}
+      <div className="flex flex-col justify-center leading-none min-w-[190px] sm:min-w-[210px]">
+        {/* TRINAYAA calibrated full-length letter distribution centered over tagline */}
         <div
-          className={`font-serif text-lg sm:text-xl font-bold flex justify-between w-full leading-none select-none ${
+          className={`font-serif text-[17px] sm:text-[19px] md:text-[20px] font-bold flex items-center justify-between w-full tracking-[0.08em] leading-none select-none px-0.5 ${
             inverse ? "text-white" : "text-[#6B1D2F]"
           }`}
           style={{ fontFamily: "'Cinzel', Georgia, serif" }}

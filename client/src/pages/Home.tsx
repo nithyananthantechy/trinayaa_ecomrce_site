@@ -1,3 +1,4 @@
+import { resolveProductImage, getCategoryPlaceholder } from "../lib/productImage";
 import {
   ArrowRight,
   Check,
@@ -190,6 +191,9 @@ function SiteHeader({
           </div>
           <div className="utility-links utility-right">
             <span><Truck size={14} /> Pan India Delivery <small>(T&C Apply)</small></span><i />
+            <button onClick={() => setLocation("/bulk-enquiry")} className="font-semibold text-emerald-900 bg-emerald-100/70 hover:bg-emerald-200/80 px-2 py-0.5 rounded text-[11px] transition-colors">
+              🏢 Bulk / B2B Quote
+            </button><i />
             <button onClick={() => setLocation("/contact")}>Support</button><i />
             <button onClick={() => setLocation("/track-order")}>Track Order</button>
             {currentUser?.role === "ADMIN" && (
@@ -208,6 +212,7 @@ function SiteHeader({
           <nav className="desktop-nav" aria-label="Primary navigation">
             <button onClick={() => setLocation("/")} className="active font-bold">Home</button>
             <button onClick={() => setLocation("/products")}>Products</button>
+            <button onClick={() => setLocation("/bulk-enquiry")}>Bulk Enquiry</button>
             <button onClick={() => setLocation("/about")}>About</button>
             <button onClick={() => setLocation("/contact")}>Contact</button>
           </nav>
@@ -273,7 +278,7 @@ function ProductCard({
           loading="lazy"
           decoding="async"
           onError={(e: any) => {
-            e.target.src = "/images/products/packaged/pouch_001.png";
+            e.target.src = getCategoryPlaceholder(product.category);
           }}
         />
         {product.badge && <span className="product-badge">{product.badge}</span>}
@@ -809,7 +814,7 @@ function ProductDetailModal({
           <img
             src={product.image}
             alt={product.name}
-            onError={(e: any) => { e.target.src = "/images/products/packaged/pouch_001.png"; }}
+            onError={(e: any) => { e.target.src = getCategoryPlaceholder(product.category); }}
           />
         </div>
         <div className="product-modal-copy">
@@ -1239,6 +1244,7 @@ function MobileMenu({
         <nav>
           <button onClick={() => { onClose(); setLocation("/"); }}>Home <ArrowRight size={16} /></button>
           <button onClick={() => { onClose(); setLocation("/products"); }}>Products <ArrowRight size={16} /></button>
+          <button onClick={() => { onClose(); setLocation("/bulk-enquiry"); }}>Bulk / Wholesale <ArrowRight size={16} /></button>
           <button onClick={() => { onClose(); setLocation("/about"); }}>About <ArrowRight size={16} /></button>
           <button onClick={() => { onClose(); setLocation("/contact"); }}>Contact <ArrowRight size={16} /></button>
           <button onClick={() => { onClose(); setLocation("/track-order"); }}>Track Order <ArrowRight size={16} /></button>
@@ -1340,7 +1346,7 @@ export default function Home() {
         discountPercent: p.discountPercent,
         stock: p.stock,
         stockAvailability: p.stockAvailability,
-        image: p.image || "/images/products/packaged/pouch_001.png",
+        image: resolveProductImage(p.sku, p.category, p.productType, p.image || p.primaryImage),
         badge: p.featured ? "Featured" : undefined,
         description: p.description || "",
         sizes: p.sizes || [{ label: "100 g", price: p.price }],
@@ -1639,6 +1645,13 @@ export default function Home() {
                 </button>
                 <button
                   type="button"
+                  onClick={() => setLocation("/bulk-enquiry")}
+                  className="inline-flex items-center gap-2 py-3 px-6 text-sm font-semibold rounded-xl bg-amber-50 hover:bg-amber-100 text-[#7C5329] border border-[#DECFB5] transition-colors"
+                >
+                  Request Wholesale / Bulk Quote &rarr;
+                </button>
+                <button
+                  type="button"
                   onClick={() => setLocation("/about")}
                   className="inline-flex items-center gap-2 py-3 px-6 text-sm font-semibold rounded-xl bg-white text-[#123D28] border border-[#E5DECF] hover:bg-[#F2ECE0] transition-colors"
                 >
@@ -1697,6 +1710,7 @@ export default function Home() {
             <span className="footer-title">Quick links</span>
             <button onClick={() => setLocation("/")} className="text-left text-xs text-[#DFE7D7] hover:text-white block py-1">Home</button>
             <button onClick={() => setLocation("/products")} className="text-left text-xs text-[#DFE7D7] hover:text-white block py-1">Products</button>
+            <button onClick={() => setLocation("/bulk-enquiry")} className="text-left text-xs text-[#DFE7D7] hover:text-white block py-1">Bulk / Wholesale</button>
             <button onClick={() => setLocation("/about")} className="text-left text-xs text-[#DFE7D7] hover:text-white block py-1">About</button>
             <button onClick={() => setLocation("/contact")} className="text-left text-xs text-[#DFE7D7] hover:text-white block py-1">Contact</button>
           </div>

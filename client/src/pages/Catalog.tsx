@@ -1,3 +1,4 @@
+import { resolveProductImage, getCategoryPlaceholder } from "../lib/productImage";
 import { useState, useMemo, useEffect } from "react";
 import { useLocation, useRoute } from "wouter";
 import { trpc } from "@/lib/trpc";
@@ -20,10 +21,12 @@ import {
   Youtube,
   ChevronRight,
   CheckCircle2,
-  X
+  X,
+  Building2
 } from "lucide-react";
 
 import BrandMark from "@/components/BrandMark";
+import BulkEnquiryDialog from "@/components/BulkEnquiryDialog";
 
 function TrustRow() {
   return (
@@ -49,6 +52,9 @@ export default function Catalog() {
   const [sort, setSort] = useState("featured");
   const [selectedCategory, setSelectedCategory] = useState<string>("All");
   const [wishlist, setWishlist] = useState<Set<string>>(new Set());
+  const [shoppingMode, setShoppingMode] = useState<"home" | "business">("home");
+  const [bulkDialogOpen, setBulkDialogOpen] = useState<boolean>(false);
+  const [bulkInitialProduct, setBulkInitialProduct] = useState<{ sku: string; name: string; productId?: string } | undefined>(undefined);
 
   // Determine active category from route slug if on /categories/:slug
   useEffect(() => {
@@ -226,6 +232,55 @@ export default function Catalog() {
         </div>
       </header>
 
+      {/* Mode Switcher: Shop for Home / Personal vs Shop for Business */}
+      <div className="bg-[#FAF7EB] border-b border-[#E5DECF] py-2.5">
+        <div className="container-wide px-4 flex flex-col sm:flex-row items-center justify-between gap-3">
+          <div className="inline-flex p-1 bg-[#ECE5D4] rounded-xl text-xs font-semibold shadow-2xs">
+            <button
+              type="button"
+              onClick={() => setShoppingMode("home")}
+              className={`px-4 py-1.5 rounded-lg transition-all flex items-center gap-1.5 ${
+                shoppingMode === "home"
+                  ? "bg-[#123D28] text-white shadow-xs font-bold"
+                  : "text-[#4A5546] hover:text-[#123D28]"
+              }`}
+            >
+              <span>🌿 Shop for Home / Personal</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setShoppingMode("business");
+                setBulkInitialProduct(undefined);
+                setBulkDialogOpen(true);
+              }}
+              className={`px-4 py-1.5 rounded-lg transition-all flex items-center gap-1.5 ${
+                shoppingMode === "business"
+                  ? "bg-[#123D28] text-white shadow-xs font-bold"
+                  : "text-[#4A5546] hover:text-[#123D28]"
+              }`}
+            >
+              <Building2 size={13} />
+              <span>🏢 Shop for Business (Wholesale)</span>
+            </button>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                setBulkInitialProduct(undefined);
+                setBulkDialogOpen(true);
+              }}
+              className="text-xs text-[#8E5E28] hover:text-[#6D451B] font-semibold flex items-center gap-1.5 bg-[#FFF9ED] hover:bg-[#FDF2DC] border border-[#DECFB5] px-3.5 py-1.5 rounded-lg transition-colors shadow-2xs"
+            >
+              <Building2 size={13} className="text-[#AE6A2B]" />
+              <span>Need 25kg+ commercial supply? <strong>Request Bulk Quote &rarr;</strong></span>
+            </button>
+          </div>
+        </div>
+      </div>
+
       {/* Catalog Category Banner */}
       <div className="bg-[#FAF3E5] border-b border-[#E5DECF] py-10 md:py-14">
         <div className="container-wide px-4">
@@ -337,12 +392,12 @@ export default function Catalog() {
               >
                 <div className="relative aspect-square bg-[#FAF6EE] p-4 overflow-hidden flex items-center justify-center">
                   <img
-                    src={p.image || p.primaryImage || "/images/products/packaged/pouch_001.png"}
+                    src={resolveProductImage(p.sku, p.category, p.productType, p.image || p.primaryImage)}
                     alt={p.nameEn}
                     loading="lazy"
                     className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-300"
                     onError={(e: any) => {
-                      e.target.src = "/images/products/packaged/pouch_001.png";
+                      e.target.src = getCategoryPlaceholder(p.category, p.productType);
                     }}
                   />
                   {p.badge && (
@@ -390,21 +445,41 @@ export default function Catalog() {
                         </div>
                       )}
                     </div>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        addToCartMutation.mutate({
-                          productId: p.id,
-                          quantity: 1,
-                          packSize: "100 g",
-                          guestToken,
-                        });
-                      }}
-                      className="px-3 py-2 bg-[#123D28] hover:bg-[#1A4D33] text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 shadow-xs transition-colors"
-                      title="Add to cart"
-                    >
-                      <ShoppingBag size={14} /> Add
-                    </button>
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setBulkInitialProduct({
+                            sku: p.sku,
+                            name: p.nameEn || p.name,
+                            productId: p.id,
+                          });
+                          setBulkDialogOpen(true);
+                        }}
+                        className="px-2 py-1.5 bg-[#FAF5EB] hover:bg-[#F0E6D2] text-[#7C5329] border border-[#DECFB5] rounded-lg text-xs font-semibold flex items-center gap-1 transition-colors"
+                        title="Enquire wholesale / bulk"
+                      >
+                        <Building2 size={13} />
+                        <span className="hidden sm:inline">Bulk</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          addToCartMutation.mutate({
+                            productId: p.id,
+                            quantity: 1,
+                            packSize: "100 g",
+                            guestToken,
+                          });
+                        }}
+                        className="px-3 py-1.5 bg-[#123D28] hover:bg-[#1A4D33] text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 shadow-xs transition-colors"
+                        title="Add to cart"
+                      >
+                        <ShoppingBag size={14} /> Add
+                      </button>
+                    </div>
                   </div>
                 </div>
               </article>
@@ -461,6 +536,13 @@ export default function Catalog() {
           </div>
         </div>
       </footer>
+
+      {/* Bulk Enquiry Modal */}
+      <BulkEnquiryDialog
+        open={bulkDialogOpen}
+        onClose={() => setBulkDialogOpen(false)}
+        initialProduct={bulkInitialProduct}
+      />
     </div>
   );
 }

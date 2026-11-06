@@ -35,8 +35,12 @@ import {
   FileText,
   Clock,
   Sparkles,
-  Info
+  Info,
+  Eye,
+  SlidersHorizontal,
+  Building2
 } from "lucide-react";
+import EnquiriesTab from "./EnquiriesTab";
 
 type AdminTab =
   | "overview"
@@ -44,6 +48,7 @@ type AdminTab =
   | "categories"
   | "inventory"
   | "orders"
+  | "enquiries"
   | "customers"
   | "offers"
   | "import"
@@ -61,6 +66,7 @@ export default function AdminDashboard() {
     if (location.startsWith("/admin/categories")) return "categories";
     if (location.startsWith("/admin/inventory")) return "inventory";
     if (location.startsWith("/admin/orders")) return "orders";
+    if (location.startsWith("/admin/enquiries")) return "enquiries";
     if (location.startsWith("/admin/customers")) return "customers";
     if (location.startsWith("/admin/offers")) return "offers";
     if (location.startsWith("/admin/import")) return "import";
@@ -470,6 +476,7 @@ export default function AdminDashboard() {
               { id: "categories" as AdminTab, label: "Categories", icon: FolderTree },
               { id: "inventory" as AdminTab, label: "Inventory & Stock", icon: Layers },
               { id: "orders" as AdminTab, label: "Orders", icon: ShoppingBag },
+              { id: "enquiries" as AdminTab, label: "Bulk Enquiries", icon: Building2 },
               { id: "customers" as AdminTab, label: "Customers", icon: Users },
               { id: "offers" as AdminTab, label: "Festival Offers", icon: Tag },
               { id: "import" as AdminTab, label: "Bulk Import / Export", icon: FileSpreadsheet },
@@ -1148,10 +1155,13 @@ export default function AdminDashboard() {
                           </td>
                           <td className="py-2.5 px-3 text-right">
                             <button
+                              type="button"
                               onClick={() => setInventoryAdjustProduct(item)}
-                              className="px-2.5 py-1 bg-[#123D28] text-white rounded text-[11px] font-semibold hover:bg-[#1F5638]"
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#123D28] hover:bg-[#1F5638] text-white rounded-lg text-xs font-semibold shadow-xs transition-all duration-150 hover:shadow-sm active:scale-95 cursor-pointer border border-[#0d2a1c]"
+                              style={{ backgroundColor: "#123D28", color: "#ffffff", display: "inline-flex", alignItems: "center" }}
                             >
-                              Update Stock
+                              <SlidersHorizontal size={13} className="text-emerald-300" />
+                              <span>Update Stock</span>
                             </button>
                           </td>
                         </tr>
@@ -1295,10 +1305,13 @@ export default function AdminDashboard() {
                           </td>
                           <td className="py-3 px-3 text-right">
                             <button
+                              type="button"
                               onClick={() => setSelectedOrder(o)}
-                              className="px-2.5 py-1 bg-[#123D28] text-white rounded text-[11px] font-semibold hover:bg-[#1F5638]"
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#123D28] hover:bg-[#1F5638] text-white rounded-lg text-xs font-semibold shadow-xs transition-all duration-150 hover:shadow-sm active:scale-95 cursor-pointer border border-[#0d2a1c]"
+                              style={{ backgroundColor: "#123D28", color: "#ffffff", display: "inline-flex", alignItems: "center" }}
                             >
-                              View
+                              <Eye size={13} className="text-emerald-300" />
+                              <span>View</span>
                             </button>
                           </td>
                         </tr>
@@ -1394,14 +1407,26 @@ export default function AdminDashboard() {
 
                       <div className="flex items-center gap-3">
                         <button
+                          type="button"
                           onClick={() => toggleCampaignMutation.mutate({ id: camp.id, isActive: !camp.isActive })}
-                          className={`px-3 py-1.5 rounded text-xs font-bold ${
+                          className={`inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-bold transition-all duration-150 shadow-xs active:scale-95 cursor-pointer border ${
                             camp.isActive
-                              ? "bg-emerald-700 text-white hover:bg-emerald-800"
-                              : "bg-gray-300 text-gray-700 hover:bg-gray-400"
+                              ? "bg-emerald-700 hover:bg-emerald-800 text-white border-emerald-800"
+                              : "bg-slate-200 hover:bg-slate-300 text-slate-700 border-slate-300"
                           }`}
+                          style={{
+                            backgroundColor: camp.isActive ? "#047857" : "#e2e8f0",
+                            color: camp.isActive ? "#ffffff" : "#334155",
+                            display: "inline-flex",
+                            alignItems: "center",
+                          }}
                         >
-                          {camp.isActive ? "ACTIVE" : "DISABLED"}
+                          <span
+                            className={`h-2 w-2 rounded-full ${
+                              camp.isActive ? "bg-emerald-300 animate-pulse" : "bg-slate-400"
+                            }`}
+                          />
+                          <span>{camp.isActive ? "ACTIVE" : "DISABLED"}</span>
                         </button>
                       </div>
                     </div>
@@ -1698,6 +1723,9 @@ export default function AdminDashboard() {
           {/* ========================================== */}
           {/* 11. TELEGRAM BOT MANAGEMENT */}
           {/* ========================================== */}
+          {activeTab === "enquiries" && <EnquiriesTab />}
+
+          {/* ========================================== */}
           {activeTab === "telegram" && (
             <div className="space-y-6">
               <div className="bg-[#FFFDF8] border border-[#DEDFD5] p-5 rounded-xl shadow-xs">
@@ -1722,10 +1750,19 @@ export default function AdminDashboard() {
                         </span>
                       </div>
                       <button
+                        type="button"
                         onClick={() => removeTelegramAdminMutation.mutate({ telegramId: adm.telegramId })}
-                        className="text-red-600 hover:text-red-800 text-[11px] font-semibold"
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-red-200 bg-red-50 hover:bg-red-600 text-red-700 hover:text-white text-xs font-semibold transition-all duration-150 shadow-2xs active:scale-95 cursor-pointer"
+                        style={{
+                          backgroundColor: "#fef2f2",
+                          borderColor: "#fecaca",
+                          color: "#b91c1c",
+                          display: "inline-flex",
+                          alignItems: "center",
+                        }}
                       >
-                        Revoke
+                        <Trash2 size={12} />
+                        <span>Revoke</span>
                       </button>
                     </div>
                   ))}

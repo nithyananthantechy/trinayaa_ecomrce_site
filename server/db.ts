@@ -276,6 +276,38 @@ function initTables(db: any) {
       createdAt TEXT NOT NULL
     );
 
+    CREATE TABLE IF NOT EXISTS business_enquiries (
+      id TEXT PRIMARY KEY,
+      enquiryNumber TEXT UNIQUE NOT NULL,
+      contactName TEXT NOT NULL,
+      companyName TEXT NOT NULL,
+      email TEXT NOT NULL,
+      phone TEXT NOT NULL,
+      buyerType TEXT NOT NULL,
+      deliveryCity TEXT NOT NULL,
+      deliveryState TEXT NOT NULL,
+      requirements TEXT,
+      gstNumber TEXT,
+      status TEXT NOT NULL DEFAULT 'NEW',
+      assignedTo TEXT,
+      internalNotes TEXT,
+      createdAt TEXT NOT NULL,
+      updatedAt TEXT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS business_enquiry_items (
+      id TEXT PRIMARY KEY,
+      enquiryId TEXT NOT NULL,
+      productId TEXT,
+      sku TEXT NOT NULL,
+      productName TEXT NOT NULL,
+      quantity REAL NOT NULL,
+      unit TEXT NOT NULL DEFAULT 'kg',
+      targetPrice REAL,
+      createdAt TEXT NOT NULL,
+      FOREIGN KEY (enquiryId) REFERENCES business_enquiries(id) ON DELETE CASCADE
+    );
+
     -- Performance Indexes
     CREATE INDEX IF NOT EXISTS idx_products_category ON products(categoryId);
     CREATE INDEX IF NOT EXISTS idx_products_sku ON products(sku);
@@ -288,6 +320,9 @@ function initTables(db: any) {
     CREATE INDEX IF NOT EXISTS idx_order_history_orderId ON order_status_history(orderId);
     CREATE INDEX IF NOT EXISTS idx_cart_items_cartId ON cart_items(cartId);
     CREATE INDEX IF NOT EXISTS idx_coupons_code ON coupons(code);
+    CREATE INDEX IF NOT EXISTS idx_enquiries_number ON business_enquiries(enquiryNumber);
+    CREATE INDEX IF NOT EXISTS idx_enquiries_status ON business_enquiries(status);
+    CREATE INDEX IF NOT EXISTS idx_enquiry_items_enquiryId ON business_enquiry_items(enquiryId);
   `);
 
   // Safe schema migrations for existing database tables
@@ -671,6 +706,62 @@ export const productsRepo = {
   }
 };
 
+// Deterministic Botanical & Category Placeholder Resolution
+const VERIFIED_BOTANICAL_SKUS = new Set([
+  // Batch 1 (Approved)
+  "TRN-1001", "TRN-1002", "TRN-1003", "TRN-1004", "TRN-1005",
+  "TRN-1006", "TRN-1007", "TRN-1008", "TRN-1009", "TRN-1010",
+  // Batch 2 (Verified botanical photography)
+  "TRN-1011", "TRN-1012", "TRN-1013", "TRN-1014", "TRN-1015",
+  "TRN-1016", "TRN-1017", "TRN-1018", "TRN-1021", "TRN-1022",
+  "TRN-1023", "TRN-1024", "TRN-1025", "TRN-1026", "TRN-1027",
+  "TRN-1028"
+]);
+
+export function resolveProductImage(sku?: string, category?: string, productType?: string, currentImage?: string): string {
+  if (currentImage && (currentImage.startsWith("http://") || currentImage.startsWith("https://") || currentImage.includes("/uploads/"))) {
+    return currentImage;
+  }
+  const cleanSku = (sku || "").toUpperCase().trim();
+  if (cleanSku && VERIFIED_BOTANICAL_SKUS.has(cleanSku)) {
+    return `/images/products/generated/${cleanSku}.webp`;
+  }
+  if (currentImage && currentImage.includes("/images/products/generated/")) {
+    return currentImage;
+  }
+  const normCat = (category || "").toLowerCase().trim();
+  const normType = (productType || "").toLowerCase().trim();
+
+  if (normType.includes("seed") || normCat.includes("seed")) {
+    return "/images/products/placeholders/placeholder_seeds.webp";
+  }
+  if (normType.includes("powder") || normCat.includes("powder")) {
+    return "/images/products/placeholders/placeholder_raw_powders.webp";
+  }
+  if (normCat.includes("hair")) {
+    return "/images/products/placeholders/placeholder_hair_care.webp";
+  }
+  if (normCat.includes("skin")) {
+    return "/images/products/placeholders/placeholder_skin_care.webp";
+  }
+  if (normCat.includes("drink") || normCat.includes("tea") || normCat.includes("welness")) {
+    return "/images/products/placeholders/placeholder_wellness_drinks.webp";
+  }
+  if (normCat.includes("spice") || normCat.includes("culinary")) {
+    return "/images/products/placeholders/placeholder_spices_culinary.webp";
+  }
+  if (normCat.includes("aroma") || normCat.includes("incense") || normCat.includes("resin")) {
+    return "/images/products/placeholders/placeholder_aromatherapy_incense.webp";
+  }
+  if (normCat.includes("health")) {
+    return "/images/products/placeholders/placeholder_health_care.webp";
+  }
+  if (normType.includes("herb") || normCat.includes("herb")) {
+    return "/images/products/placeholders/placeholder_herbs.webp";
+  }
+  return "/images/products/placeholders/placeholder_botanical_generic.webp";
+}
+
 function formatProduct(p: any) {
   let gallery: string[] = [];
   try {
@@ -701,6 +792,8 @@ function formatProduct(p: any) {
       ? "Raw Powders"
       : "Herbs";
 
+  const resolvedImg = resolveProductImage(p.sku, p.categoryName || botanicalCategory, p.productType, p.primaryImage);
+
   return {
     ...p,
     id: p.id,
@@ -713,11 +806,13 @@ function formatProduct(p: any) {
     price: p.sellingPrice,
     compareAt: p.mrp > p.sellingPrice ? p.mrp : undefined,
     discountPercent,
-    image: p.primaryImage || "/images/products/packaged/pouch_001.png",
+    image: resolvedImg,
+    primaryImage: p.primaryImage,
+    rawPrimaryImage: p.primaryImage,
     description: p.shortDesc || p.fullDesc || "",
     featured: Boolean(p.featured),
     sizes,
-    gallery: gallery.length > 0 ? gallery : [p.primaryImage || "/images/products/packaged/pouch_001.png"],
+    gallery: gallery.length > 0 ? gallery : [resolvedImg],
   };
 }
 
@@ -2288,3 +2383,224 @@ export const adminStatsRepo = {
     };
   }
 };
+
+// ==========================================
+// 15. B2B / BUSINESS BULK ENQUIRIES REPOSITORY
+// ==========================================
+export const businessEnquiriesRepo = {
+  create(data: {
+    contactName: string;
+    companyName: string;
+    email: string;
+    phone: string;
+    buyerType: string;
+    deliveryCity: string;
+    deliveryState: string;
+    requirements?: string;
+    gstNumber?: string;
+    items?: Array<{
+      productId?: string;
+      sku: string;
+      productName: string;
+      quantity: number;
+      unit?: string;
+      targetPrice?: number;
+    }>;
+  }) {
+    const db = getDatabase();
+    const id = "enq_" + crypto.randomUUID().replace(/-/g, "").substring(0, 16);
+    
+    // Generate sequential enquiry number: ENQ-10001+
+    const countRow = db.prepare("SELECT COUNT(*) as count FROM business_enquiries").get() as { count: number };
+    const enquiryNumber = `ENQ-${10001 + (countRow?.count || 0)}`;
+    const now = new Date().toISOString();
+
+    db.prepare(`
+      INSERT INTO business_enquiries (
+        id, enquiryNumber, contactName, companyName, email, phone, buyerType,
+        deliveryCity, deliveryState, requirements, gstNumber, status, createdAt, updatedAt
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'NEW', ?, ?)
+    `).run(
+      id,
+      enquiryNumber,
+      data.contactName.trim(),
+      data.companyName.trim(),
+      data.email.trim().toLowerCase(),
+      data.phone.trim(),
+      data.buyerType || "Retailer",
+      data.deliveryCity.trim(),
+      data.deliveryState.trim(),
+      data.requirements?.trim() || null,
+      data.gstNumber?.trim().toUpperCase() || null,
+      now,
+      now
+    );
+
+    if (data.items && data.items.length > 0) {
+      const insertItem = db.prepare(`
+        INSERT INTO business_enquiry_items (
+          id, enquiryId, productId, sku, productName, quantity, unit, targetPrice, createdAt
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `);
+      for (const item of data.items) {
+        const itemId = "eni_" + crypto.randomUUID().replace(/-/g, "").substring(0, 16);
+        insertItem.run(
+          itemId,
+          id,
+          item.productId || null,
+          item.sku,
+          item.productName,
+          Number(item.quantity) || 1,
+          item.unit || "kg",
+          item.targetPrice ? Number(item.targetPrice) : null,
+          now
+        );
+      }
+    }
+
+    return this.getById(id);
+  },
+
+  getById(id: string) {
+    const db = getDatabase();
+    const enquiry = db.prepare("SELECT * FROM business_enquiries WHERE id = ?").get(id) as any;
+    if (!enquiry) return null;
+    const items = db.prepare("SELECT * FROM business_enquiry_items WHERE enquiryId = ? ORDER BY createdAt ASC").all(id) as any[];
+    return { ...enquiry, items };
+  },
+
+  getByEnquiryNumber(enquiryNumber: string) {
+    const db = getDatabase();
+    const enquiry = db.prepare("SELECT * FROM business_enquiries WHERE enquiryNumber = ?").get(enquiryNumber) as any;
+    if (!enquiry) return null;
+    const items = db.prepare("SELECT * FROM business_enquiry_items WHERE enquiryId = ? ORDER BY createdAt ASC").all(enquiry.id) as any[];
+    return { ...enquiry, items };
+  },
+
+  list(params: {
+    search?: string;
+    status?: string;
+    limit?: number;
+    offset?: number;
+  } = {}) {
+    const db = getDatabase();
+    const limit = params.limit || 50;
+    const offset = params.offset || 0;
+
+    let query = "SELECT * FROM business_enquiries WHERE 1=1";
+    const args: any[] = [];
+
+    if (params.search && params.search.trim()) {
+      const s = `%${params.search.trim()}%`;
+      query += " AND (enquiryNumber LIKE ? OR companyName LIKE ? OR contactName LIKE ? OR phone LIKE ? OR email LIKE ?)";
+      args.push(s, s, s, s, s);
+    }
+
+    if (params.status && params.status !== "All") {
+      query += " AND status = ?";
+      args.push(params.status);
+    }
+
+    query += " ORDER BY createdAt DESC LIMIT ? OFFSET ?";
+    args.push(limit, offset);
+
+    const enquiries = db.prepare(query).all(...args) as any[];
+
+    // Fetch total count for pagination
+    let countQuery = "SELECT COUNT(*) as total FROM business_enquiries WHERE 1=1";
+    const countArgs: any[] = [];
+    if (params.search && params.search.trim()) {
+      const s = `%${params.search.trim()}%`;
+      countQuery += " AND (enquiryNumber LIKE ? OR companyName LIKE ? OR contactName LIKE ? OR phone LIKE ? OR email LIKE ?)";
+      countArgs.push(s, s, s, s, s);
+    }
+    if (params.status && params.status !== "All") {
+      countQuery += " AND status = ?";
+      countArgs.push(params.status);
+    }
+    const countRow = db.prepare(countQuery).get(...countArgs) as { total: number };
+
+    // Attach items to each enquiry
+    const getItems = db.prepare("SELECT * FROM business_enquiry_items WHERE enquiryId = ?");
+    const enriched = enquiries.map((enq) => ({
+      ...enq,
+      items: getItems.all(enq.id) as any[],
+    }));
+
+    return {
+      enquiries: enriched,
+      total: countRow?.total || 0,
+      limit,
+      offset,
+    };
+  },
+
+  updateStatus(id: string, status: string, internalNotes?: string, assignedTo?: string) {
+    const db = getDatabase();
+    const now = new Date().toISOString();
+    let query = "UPDATE business_enquiries SET status = ?, updatedAt = ?";
+    const args: any[] = [status, now];
+
+    if (internalNotes !== undefined) {
+      query += ", internalNotes = ?";
+      args.push(internalNotes);
+    }
+    if (assignedTo !== undefined) {
+      query += ", assignedTo = ?";
+      args.push(assignedTo);
+    }
+
+    query += " WHERE id = ?";
+    args.push(id);
+
+    db.prepare(query).run(...args);
+    return this.getById(id);
+  },
+
+  exportCsv() {
+    const db = getDatabase();
+    const enquiries = db.prepare("SELECT * FROM business_enquiries ORDER BY createdAt DESC").all() as any[];
+    const itemsStmt = db.prepare("SELECT * FROM business_enquiry_items WHERE enquiryId = ?");
+
+    const header = [
+      "Enquiry Number",
+      "Date",
+      "Status",
+      "Company Name",
+      "Contact Person",
+      "Phone",
+      "Email",
+      "Buyer Type",
+      "GSTIN",
+      "City",
+      "State",
+      "Requested Items",
+      "Requirements",
+      "Internal Notes",
+    ];
+
+    const rows = enquiries.map((enq) => {
+      const items = itemsStmt.all(enq.id) as any[];
+      const itemsSummary = items.map((i: any) => `${i.productName} (${i.sku}): ${i.quantity} ${i.unit}`).join(" | ");
+      return [
+        enq.enquiryNumber,
+        enq.createdAt,
+        enq.status,
+        `"${(enq.companyName || "").replace(/"/g, '""')}"`,
+        `"${(enq.contactName || "").replace(/"/g, '""')}"`,
+        enq.phone,
+        enq.email,
+        enq.buyerType,
+        enq.gstNumber || "N/A",
+        `"${(enq.deliveryCity || "").replace(/"/g, '""')}"`,
+        `"${(enq.deliveryState || "").replace(/"/g, '""')}"`,
+        `"${itemsSummary.replace(/"/g, '""')}"`,
+        `"${(enq.requirements || "").replace(/"/g, '""')}"`,
+        `"${(enq.internalNotes || "").replace(/"/g, '""')}"`,
+      ].join(",");
+    });
+
+    return [header.join(","), ...rows].join("\n");
+  },
+};
+

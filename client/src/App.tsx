@@ -13,6 +13,8 @@ import About from "./pages/About";
 import Contact from "./pages/Contact";
 import AdminLogin from "./pages/admin/AdminLogin";
 import AdminDashboard from "./pages/admin/AdminDashboard";
+import BulkEnquiryPage from "./pages/BulkEnquiryPage";
+import CustomerAssistantBot from "./components/CustomerAssistantBot";
 
 function Router() {
   return (
@@ -25,6 +27,7 @@ function Router() {
       <Route path="/contact" component={Contact} />
       <Route path="/policies/:type" component={PolicyPage} />
       <Route path="/track-order" component={TrackOrder} />
+      <Route path="/bulk-enquiry" component={BulkEnquiryPage} />
       <Route path="/admin/login" component={AdminLogin} />
       <Route path="/admin" component={AdminDashboard} />
       <Route path="/admin/:sub*" component={AdminDashboard} />
@@ -41,6 +44,7 @@ function App() {
         <TooltipProvider>
           <Toaster position="bottom-right" />
           <Router />
+          <CustomerAssistantBot />
         </TooltipProvider>
       </ThemeProvider>
     </ErrorBoundary>

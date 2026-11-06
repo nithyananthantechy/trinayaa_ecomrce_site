@@ -319,3 +319,44 @@ export const telegramAuditLogs = mysqlTable("telegram_audit_logs", {
 });
 
 export type TelegramAuditLog = typeof telegramAuditLogs.$inferSelect;
+
+// ==========================================
+// 12. B2B / BUSINESS BULK ENQUIRIES
+// ==========================================
+export const businessEnquiries = mysqlTable("business_enquiries", {
+  id: varchar("id", { length: 64 }).primaryKey(),
+  enquiryNumber: varchar("enquiryNumber", { length: 32 }).notNull().unique(), // e.g. ENQ-10001
+  contactName: varchar("contactName", { length: 255 }).notNull(),
+  companyName: varchar("companyName", { length: 255 }).notNull(),
+  email: varchar("email", { length: 320 }).notNull(),
+  phone: varchar("phone", { length: 32 }).notNull(),
+  buyerType: varchar("buyerType", { length: 64 }).notNull(), // 'Retailer' | 'Wholesaler' | 'Distributor' | 'Manufacturer' | 'Other'
+  deliveryCity: varchar("deliveryCity", { length: 128 }).notNull(),
+  deliveryState: varchar("deliveryState", { length: 128 }).notNull(),
+  requirements: text("requirements"),
+  gstNumber: varchar("gstNumber", { length: 32 }),
+  status: varchar("status", { length: 32 }).default("NEW").notNull(), // 'NEW' | 'CONTACTED' | 'QUOTATION_SENT' | 'NEGOTIATION' | 'CONVERTED' | 'CLOSED'
+  assignedTo: varchar("assignedTo", { length: 128 }),
+  internalNotes: text("internalNotes"),
+  createdAt: text("createdAt").notNull(),
+  updatedAt: text("updatedAt").notNull(),
+});
+
+export type BusinessEnquiry = typeof businessEnquiries.$inferSelect;
+export type InsertBusinessEnquiry = typeof businessEnquiries.$inferInsert;
+
+export const businessEnquiryItems = mysqlTable("business_enquiry_items", {
+  id: varchar("id", { length: 64 }).primaryKey(),
+  enquiryId: varchar("enquiryId", { length: 64 }).notNull(),
+  productId: varchar("productId", { length: 64 }),
+  sku: varchar("sku", { length: 64 }).notNull(),
+  productName: varchar("productName", { length: 255 }).notNull(),
+  quantity: double("quantity").notNull(),
+  unit: varchar("unit", { length: 32 }).default("kg").notNull(), // 'kg' | 'packs' | 'sacks'
+  targetPrice: double("targetPrice"),
+  createdAt: text("createdAt").notNull(),
+});
+
+export type BusinessEnquiryItem = typeof businessEnquiryItems.$inferSelect;
+export type InsertBusinessEnquiryItem = typeof businessEnquiryItems.$inferInsert;
+
