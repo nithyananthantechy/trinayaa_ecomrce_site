@@ -16,6 +16,7 @@ import AdminDashboard from "./pages/admin/AdminDashboard";
 import BulkEnquiryPage from "./pages/BulkEnquiryPage";
 import CustomerAccountPage from "./pages/CustomerAccountPage";
 import CustomerAssistantBot from "./components/CustomerAssistantBot";
+import FooterSamplesPage from "./pages/FooterSamplesPage";
 
 function Router() {
   return (
@@ -30,6 +31,7 @@ function Router() {
       <Route path="/track-order" component={TrackOrder} />
       <Route path="/bulk-enquiry" component={BulkEnquiryPage} />
       <Route path="/account" component={CustomerAccountPage} />
+      <Route path="/footer-samples" component={FooterSamplesPage} />
       <Route path="/admin/login" component={AdminLogin} />
       <Route path="/admin" component={AdminDashboard} />
       <Route path="/admin/:sub*" component={AdminDashboard} />
