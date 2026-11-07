@@ -1,3 +1,5 @@
+import SupportHelpdeskTab from "./SupportHelpdeskTab";
+import CustomerFeedbackTab from "./CustomerFeedbackTab";
 import AiImageStudioTab from "./AiImageStudioTab";
 import { useState, useMemo, useEffect } from "react";
 import { useLocation } from "wouter";
@@ -38,7 +40,9 @@ import {
   Info,
   Eye,
   SlidersHorizontal,
-  Building2
+  Building2,
+  LifeBuoy,
+  Star
 } from "lucide-react";
 import EnquiriesTab from "./EnquiriesTab";
 
@@ -49,6 +53,8 @@ type AdminTab =
   | "inventory"
   | "orders"
   | "enquiries"
+  | "helpdesk"
+  | "feedback"
   | "customers"
   | "offers"
   | "import"
@@ -67,6 +73,8 @@ export default function AdminDashboard() {
     if (location.startsWith("/admin/inventory")) return "inventory";
     if (location.startsWith("/admin/orders")) return "orders";
     if (location.startsWith("/admin/enquiries")) return "enquiries";
+    if (location.startsWith("/admin/helpdesk")) return "helpdesk";
+    if (location.startsWith("/admin/feedback")) return "feedback";
     if (location.startsWith("/admin/customers")) return "customers";
     if (location.startsWith("/admin/offers")) return "offers";
     if (location.startsWith("/admin/import")) return "import";
@@ -477,6 +485,8 @@ export default function AdminDashboard() {
               { id: "inventory" as AdminTab, label: "Inventory & Stock", icon: Layers },
               { id: "orders" as AdminTab, label: "Orders", icon: ShoppingBag },
               { id: "enquiries" as AdminTab, label: "Bulk Enquiries", icon: Building2 },
+    { id: "helpdesk" as AdminTab, label: "Support Helpdesk", icon: LifeBuoy },
+    { id: "feedback" as AdminTab, label: "Feedback & Reviews", icon: Star },
               { id: "customers" as AdminTab, label: "Customers", icon: Users },
               { id: "offers" as AdminTab, label: "Festival Offers", icon: Tag },
               { id: "import" as AdminTab, label: "Bulk Import / Export", icon: FileSpreadsheet },
@@ -1724,6 +1734,8 @@ export default function AdminDashboard() {
           {/* 11. TELEGRAM BOT MANAGEMENT */}
           {/* ========================================== */}
           {activeTab === "enquiries" && <EnquiriesTab />}
+          {activeTab === "helpdesk" && <SupportHelpdeskTab />}
+          {activeTab === "feedback" && <CustomerFeedbackTab />}
 
           {/* ========================================== */}
           {activeTab === "telegram" && (

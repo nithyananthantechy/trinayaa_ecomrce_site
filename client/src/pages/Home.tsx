@@ -173,12 +173,14 @@ function SiteHeader({
   onMenu,
   onAccount,
   currentUser,
+  wishlistCount,
 }: {
   cartCount: number;
   onCart: () => void;
   onMenu: () => void;
   onAccount: () => void;
   currentUser: any;
+  wishlistCount?: number;
 }) {
   const [, setLocation] = useLocation();
   return (
@@ -226,6 +228,22 @@ function SiteHeader({
                 onChange={(e) => window.dispatchEvent(new CustomEvent("trinayaa-search", { detail: e.target.value }))}
               />
             </label>
+            <button
+              className="icon-action wishlist-action"
+              aria-label="Wishlist"
+              onClick={() => {
+                if (currentUser) {
+                  window.location.href = "/account?tab=wishlist";
+                } else {
+                  toast.info("Please sign in to view your saved wishlist.");
+                }
+              }}
+              title="Saved Wishlist"
+            >
+              <Heart size={21} className={wishlistCount && wishlistCount > 0 ? "text-rose-600 fill-rose-600" : ""} />
+              <span>Wishlist</span>
+              {wishlistCount && wishlistCount > 0 ? <b>{wishlistCount}</b> : null}
+            </button>
             <button
               className="icon-action account-action"
               aria-label="Account"
@@ -328,6 +346,7 @@ function CartDrawer({
   onUpdate,
   onRemove,
   onCheckout,
+  onSaveForLater,
 }: {
   cart: CartItem[];
   open: boolean;
@@ -335,6 +354,7 @@ function CartDrawer({
   onUpdate: (id: string, size: string, delta: number) => void;
   onRemove: (id: string, size: string) => void;
   onCheckout: () => void;
+  onSaveForLater?: (id: string, size: string) => void;
 }) {
   const subtotal = cart.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0);
   return (
@@ -381,6 +401,15 @@ function CartDrawer({
                       </div>
                       <strong>{formatINR(item.unitPrice * item.quantity)}</strong>
                     </div>
+                    {onSaveForLater && (
+                      <button
+                        type="button"
+                        onClick={() => onSaveForLater(item.id, item.size)}
+                        className="text-[11px] text-[#AE6A2B] hover:text-[#123D28] font-semibold flex items-center gap-1 mt-1.5 transition-colors"
+                      >
+                        <Heart size={11} /> Save for later
+                      </button>
+                    )}
                   </div>
                 </div>
               ))}
@@ -1071,6 +1100,8 @@ export default function Home() {
   const [search, setSearch] = useState("");
   const [sort, setSort] = useState("featured");
   const [wishlist, setWishlist] = useState<Set<string>>(new Set());
+
+
   const [cart, setCart] = useState<CartItem[]>([]);
   const [cartOpen, setCartOpen] = useState(false);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
@@ -1091,6 +1122,31 @@ export default function Home() {
   const { data: dbProducts = [] } = trpc.products.list.useQuery({ limit: 200 });
   const { data: dbBanners } = trpc.content.getBanners.useQuery();
   const { data: currentUser, refetch: refetchUser } = trpc.auth.me.useQuery();
+
+  // Phase 3: Live Wishlist Sync
+  const { data: dbWishlistIds = [], refetch: refetchWishlistIds } = trpc.wishlist.getIds.useQuery(undefined, {
+    enabled: Boolean(currentUser),
+  });
+
+  useEffect(() => {
+    if (dbWishlistIds && dbWishlistIds.length > 0) {
+      setWishlist(new Set(dbWishlistIds));
+    }
+  }, [dbWishlistIds]);
+
+  const toggleWishlistMutation = trpc.wishlist.toggle.useMutation({
+    onSuccess: (res) => {
+      refetchWishlistIds();
+      toast.success(res.wishlisted ? "Added to your wishlist" : "Removed from your wishlist");
+    },
+  });
+
+  const saveForLaterMutation = trpc.wishlist.saveForLater.useMutation({
+    onSuccess: () => {
+      refetchWishlistIds();
+      toast.success("Saved item to your wishlist");
+    },
+  });
   const cartQuery = trpc.cart.get.useQuery({ guestToken });
 
   const addToCartMutation = trpc.cart.add.useMutation();
@@ -1308,6 +1364,7 @@ export default function Home() {
           }
         }}
         currentUser={currentUser}
+        wishlistCount={wishlist.size}
       />
       <main>
         <section className="hero-section">

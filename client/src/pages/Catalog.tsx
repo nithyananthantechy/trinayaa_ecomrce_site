@@ -52,6 +52,23 @@ export default function Catalog() {
   const [sort, setSort] = useState("featured");
   const [selectedCategory, setSelectedCategory] = useState<string>("All");
   const [wishlist, setWishlist] = useState<Set<string>>(new Set());
+
+  const { data: dbWishlistIds = [], refetch: refetchWishlistIds } = trpc.wishlist.getIds.useQuery(undefined, {
+    enabled: Boolean(currentUser),
+  });
+
+  useEffect(() => {
+    if (dbWishlistIds && dbWishlistIds.length > 0) {
+      setWishlist(new Set(dbWishlistIds));
+    }
+  }, [dbWishlistIds]);
+
+  const toggleWishlistMutation = trpc.wishlist.toggle.useMutation({
+    onSuccess: (res) => {
+      refetchWishlistIds();
+      toast.success(res.wishlisted ? "Added to your wishlist" : "Removed from your wishlist");
+    },
+  });
   const [shoppingMode, setShoppingMode] = useState<"home" | "business">("home");
   const [bulkDialogOpen, setBulkDialogOpen] = useState<boolean>(false);
   const [bulkInitialProduct, setBulkInitialProduct] = useState<{ sku: string; name: string; productId?: string } | undefined>(undefined);
@@ -124,6 +141,9 @@ export default function Catalog() {
   }, [dbProducts, search, sort]);
 
   const toggleWishlist = (id: string) => {
+    if (currentUser) {
+      toggleWishlistMutation.mutate({ productId: id });
+    }
     setWishlist((prev) => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
@@ -209,6 +229,22 @@ export default function Catalog() {
                 placeholder="Search catalog..."
               />
             </label>
+            <button
+              className="icon-action wishlist-action"
+              aria-label="Wishlist"
+              onClick={() => {
+                if (currentUser) {
+                  setLocation("/account?tab=wishlist");
+                } else {
+                  toast.info("Please sign in to view your saved wishlist.");
+                }
+              }}
+              title="Saved Wishlist"
+            >
+              <Heart size={21} className={wishlist.size > 0 ? "text-rose-600 fill-rose-600" : ""} />
+              <span>Wishlist</span>
+              {wishlist.size > 0 && <b>{wishlist.size}</b>}
+            </button>
             <button
               className="icon-action account-action"
               aria-label="Account"

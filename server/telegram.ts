@@ -117,6 +117,175 @@ export function clearProcessedCallbacks() {
 // 3. TELEGRAM API CLIENT & MESSAGING
 // ==========================================
 
+export const ADMIN_MAIN_KEYBOARD = {
+  keyboard: [
+    [{ text: "📊 Store Dashboard" }, { text: "📦 Recent Orders" }],
+    [{ text: "🌿 Products & Stock" }, { text: "🎉 Active Offers" }],
+    [{ text: "👥 Customers" }, { text: "❓ Help & Menu" }],
+  ],
+  resize_keyboard: true,
+  is_persistent: true,
+};
+
+export function getOverviewMessage() {
+  const stats = db.adminStatsRepo.getOverview();
+  const text = `📊 *TRINAYAA STORE METRICS*\n\n` +
+    `📦 *Products:*\n` +
+    `• Total: ${stats.totalProducts}\n` +
+    `• Active / Published: ${stats.activeProducts}\n` +
+    `• Low-Stock Alerts (<=10): *${stats.lowStockProducts}*\n\n` +
+    `🛍️ *Orders:*\n` +
+    `• Total Orders: ${stats.totalOrders}\n` +
+    `• Pending / In-progress: ${stats.pendingOrders}\n` +
+    `• Completed / Delivered: ${stats.completedOrders}\n\n` +
+    `💰 *Verified Revenue:* ₹${stats.totalRevenue.toLocaleString("en-IN")}\n` +
+    `🎉 *Active Festival Offers:* ${stats.activeCampaigns}\n` +
+    `👥 *Registered Customers:* ${stats.totalCustomers}`;
+
+  const keyboard = {
+    inline_keyboard: [
+      [
+        { text: "📦 Recent Orders", callback_data: "cmd_orders" },
+        { text: "🌿 Top Products", callback_data: "cmd_products" },
+      ],
+      [
+        { text: "🎉 Active Offers", callback_data: "cmd_offers" },
+        { text: "👥 Customers", callback_data: "cmd_customers" },
+      ],
+    ],
+  };
+
+  return { text, keyboard };
+}
+
+export function getOrdersListMessage(limit = 5) {
+  const orders = db.ordersRepo.listAll({ limit });
+  if (orders.length === 0) {
+    return {
+      text: "No orders found in database.",
+      keyboard: {
+        inline_keyboard: [
+          [{ text: "📊 Store Dashboard", callback_data: "cmd_stats" }],
+        ],
+      },
+    };
+  }
+  let reply = `📦 *RECENT ORDERS:*\n\n`;
+  const buttons: any[] = [];
+  for (const o of orders) {
+    reply += `• *${o.orderNumber}* — ₹${o.total} (${o.orderStatus})\n` +
+             `  Customer: ${o.customerName} (${maskPhone(o.customerPhone)})\n` +
+             `  Payment: ${o.paymentStatus} via ${o.paymentMethod}\n\n`;
+    buttons.push([{ text: `View ${o.orderNumber}`, callback_data: `view_order:${o.orderNumber}` }]);
+  }
+  buttons.push([
+    { text: "📊 Store Dashboard", callback_data: "cmd_stats" },
+    { text: "🌿 Products", callback_data: "cmd_products" },
+  ]);
+  return { text: reply, keyboard: { inline_keyboard: buttons } };
+}
+
+export function getProductsListMessage(limit = 8) {
+  const products = db.productsRepo.getAll({ limit });
+  if (products.length === 0) {
+    return {
+      text: "No products found in catalogue.",
+      keyboard: {
+        inline_keyboard: [
+          [{ text: "📊 Store Dashboard", callback_data: "cmd_stats" }],
+        ],
+      },
+    };
+  }
+  let reply = `🌿 *TOP CATALOGUE PRODUCTS:*\n\n`;
+  const buttons: any[] = [];
+  for (const p of products) {
+    reply += `• *${p.nameEn}* (\`${p.sku}\`)\n` +
+             `  Price: ₹${p.price} | Stock: ${p.stock} units (${p.stockAvailability})\n\n`;
+    buttons.push([{ text: `${p.sku} — ${p.nameEn.slice(0, 20)}`, callback_data: `view_product:${p.sku}` }]);
+  }
+  buttons.push([
+    { text: "📊 Store Dashboard", callback_data: "cmd_stats" },
+    { text: "📦 Recent Orders", callback_data: "cmd_orders" },
+  ]);
+  return { text: reply, keyboard: { inline_keyboard: buttons.slice(0, 7) } };
+}
+
+export function getOffersMessage() {
+  const campaigns = db.campaignsRepo.getActive();
+  if (campaigns.length === 0) {
+    return {
+      text: "No active festival campaigns currently running.",
+      keyboard: {
+        inline_keyboard: [
+          [{ text: "📊 Store Dashboard", callback_data: "cmd_stats" }, { text: "📦 Recent Orders", callback_data: "cmd_orders" }],
+        ],
+      },
+    };
+  }
+  let reply = `🎉 *ACTIVE FESTIVAL OFFERS:*\n\n`;
+  for (const c of campaigns) {
+    reply += `• *${c.name}* (Code: \`${c.code}\`)\n` +
+             `  Discount: ${c.discountType === "PERCENTAGE" ? `${c.discountValue}%` : `₹${c.discountValue}`}\n` +
+             `  Min Order: ₹${c.minOrderValue} | Max Discount: ₹${c.maxDiscount}\n` +
+             `  Valid until: ${new Date(c.endDate).toLocaleDateString()}\n\n`;
+  }
+  const keyboard = {
+    inline_keyboard: [
+      [{ text: "📊 Store Dashboard", callback_data: "cmd_stats" }, { text: "📦 Recent Orders", callback_data: "cmd_orders" }],
+    ],
+  };
+  return { text: reply, keyboard };
+}
+
+export function getCustomersSummaryMessage() {
+  const stats = db.adminStatsRepo.getOverview();
+  const customers = db.usersRepo.listCustomers(5, 0);
+  let reply = `👥 *CUSTOMER SUMMARY*\n\n` +
+    `• Total Registered: *${stats.totalCustomers}*\n\n` +
+    `*Recent Customers:*\n`;
+  for (const c of customers) {
+    reply += `• ${c.name || "Customer"} — ${maskPhone(c.phone)} (${maskEmail(c.email)})\n` +
+             `  Orders: ${c.totalOrders} | Spent: ₹${c.totalSpent}\n\n`;
+  }
+  const keyboard = {
+    inline_keyboard: [
+      [{ text: "📊 Store Dashboard", callback_data: "cmd_stats" }, { text: "📦 Recent Orders", callback_data: "cmd_orders" }],
+    ],
+  };
+  return { text: reply, keyboard };
+}
+
+export function getFullHelpText() {
+  return `🌿 *TRINAYAA Enterprise Admin Bot*\n` +
+    `Connected to Live Database & Service Layer\n\n` +
+    `*📊 Dashboard & Reports:*\n` +
+    `• \`/dashboard\` or \`/stats\` — Store overview, orders & revenue\n` +
+    `• \`/orders\` — View 5 most recent orders with quick actions\n` +
+    `• \`/order <ID>\` — Order details with masked info (e.g. \`/order TRN-10482\`)\n` +
+    `• \`/updateorder <ID> [Status]\` — Update order status\n` +
+    `• \`/customers\` — View customer base summary\n\n` +
+    `*🌿 Catalogue & Inventory:*\n` +
+    `• \`/products\` — Top catalogue products list\n` +
+    `• \`/product <SKU/Name>\` — Search product details & quick stock buttons\n` +
+    `• \`/addproduct\` — Guided wizard to create new product\n` +
+    `• \`/editproduct <SKU>\` — Edit product details\n` +
+    `• \`/updateprice <SKU> <Price> [MRP]\` — Update price in catalogue\n` +
+    `• \`/stock <SKU> [Qty]\` — View stock or set directly\n` +
+    `• \`/stockadd <SKU> <Qty> [Reason]\` — Add inventory (Restock)\n` +
+    `• \`/stocksub <SKU> <Qty> [Reason]\` — Subtract inventory (Adjustment)\n` +
+    `• \`/stockset <SKU> <Qty> [Reason]\` — Overwrite stock quantity\n` +
+    `• \`/uploadimage <SKU> <URL>\` — Attach image to product\n\n` +
+    `*🎉 Marketing & Offers:*\n` +
+    `• \`/offers\` — View active festival campaigns\n` +
+    `• \`/createoffer\` — Guided wizard to create festival coupon\n` +
+    `• \`/disableoffer <Code>\` — Deactivate coupon\n\n` +
+    `*👤 Administration:*\n` +
+    `• \`/admins\` — List authorized Telegram admins\n` +
+    `• \`/audit\` — View recent admin audit logs\n` +
+    `• \`/cancel\` — Cancel any active guided conversation`;
+}
+
 export async function sendTelegramMessage(chatId: string | number, text: string, replyMarkup?: any) {
   const token = process.env.TELEGRAM_BOT_TOKEN;
   if (!token || token.includes("PLACEHOLDER") || token.includes("placeholder")) {
@@ -209,6 +378,153 @@ export function initTelegramNotifications() {
       console.error("[Telegram Notification Broadcast Error]:", err);
     }
   });
+}
+
+
+// ==========================================
+// 4C. SUPPORT TICKET NOTIFICATIONS (PHASE 3)
+// ==========================================
+
+const dispatchedTicketAlerts = new Set<string>();
+
+export async function notifySupportTicketCreated(ticket: {
+  ticketNumber: string;
+  category: string;
+  priority: string;
+  subject: string;
+  customerName: string;
+}) {
+  try {
+    const eventKey = `ticket_created_${ticket.ticketNumber}`;
+    if (dispatchedTicketAlerts.has(eventKey)) return;
+    dispatchedTicketAlerts.add(eventKey);
+
+    const allowedIds = db.telegramRepo.getAllAllowedIds();
+    if (!allowedIds || allowedIds.length === 0) return;
+
+    const isUrgent = ticket.priority.toLowerCase() === "urgent" || ticket.priority.toLowerCase() === "high";
+    const icon = isUrgent ? "🚨" : "🎫";
+
+    const text = `${icon} *SUPPORT ALERT: NEW TICKET*
+
+` +
+      `• *Ticket:* \`${ticket.ticketNumber}\`
+` +
+      `• *Category:* ${ticket.category}
+` +
+      `• *Priority:* *${ticket.priority.toUpperCase()}*
+` +
+      `• *Subject:* ${ticket.subject}
+` +
+      `• *Customer:* ${ticket.customerName}
+` +
+      `• *Time:* ${new Date().toLocaleTimeString()}
+
+` +
+      `👉 _Open Admin Helpdesk to respond immediately._`;
+
+    for (const adminId of allowedIds) {
+      await sendTelegramMessage(adminId, text, {
+        inline_keyboard: [
+          [
+            { text: "📋 View in Helpdesk", url: "http://localhost:3000/admin?tab=helpdesk" }
+          ]
+        ]
+      });
+    }
+  } catch (err) {
+    console.error("[Telegram Ticket Notification Error]:", err);
+  }
+}
+
+export async function notifySupportTicketReply(ticket: {
+  ticketNumber: string;
+  subject: string;
+  senderType: string;
+  senderName: string;
+  message: string;
+}) {
+  try {
+    const allowedIds = db.telegramRepo.getAllAllowedIds();
+    if (!allowedIds || allowedIds.length === 0) return;
+
+    const icon = ticket.senderType === "CUSTOMER" ? "💬" : "👨‍💼";
+    const snippet = ticket.message.length > 120 ? ticket.message.slice(0, 117) + "..." : ticket.message;
+
+    const text = `${icon} *SUPPORT TICKET UPDATE*
+
+` +
+      `• *Ticket:* \`${ticket.ticketNumber}\`
+` +
+      `• *Subject:* ${ticket.subject}
+` +
+      `• *Reply by:* ${ticket.senderName} (${ticket.senderType})
+` +
+      `• *Message:* _"${snippet}"_
+` +
+      `• *Time:* ${new Date().toLocaleTimeString()}`;
+
+    for (const adminId of allowedIds) {
+      await sendTelegramMessage(adminId, text);
+    }
+  } catch (err) {
+    console.error("[Telegram Ticket Reply Alert Error]:", err);
+  }
+}
+
+// ==========================================
+// 4B. TELEGRAM LONG POLLING SERVICE
+// ==========================================
+
+let isPollingActive = false;
+let pollingOffset = 0;
+
+export async function startTelegramPolling() {
+  const token = process.env.TELEGRAM_BOT_TOKEN;
+  if (!token || token.includes("placeholder") || token.includes("PLACEHOLDER")) {
+    console.log("[Telegram Bot] No valid TELEGRAM_BOT_TOKEN found in environment, polling not started.");
+    return;
+  }
+  if (isPollingActive) return;
+  isPollingActive = true;
+  console.log("🤖 [Telegram Bot] Starting long polling for @trinayaa_admin_bot...");
+
+  // Clear any existing webhook so getUpdates polling works cleanly
+  try {
+    await fetch(`https://api.telegram.org/bot${token}/deleteWebhook?drop_pending_updates=false`);
+  } catch (e) {
+    // ignore
+  }
+
+  const poll = async () => {
+    if (!isPollingActive) return;
+    try {
+      const url = `https://api.telegram.org/bot${token}/getUpdates?offset=${pollingOffset}&timeout=20`;
+      const res = await fetch(url);
+      const data = (await res.json()) as any;
+      if (data && data.ok && Array.isArray(data.result)) {
+        for (const update of data.result) {
+          pollingOffset = update.update_id + 1;
+          try {
+            await handleTelegramUpdate(update);
+          } catch (updateErr) {
+            console.error("[Telegram Poll Update Error]:", updateErr);
+          }
+        }
+      }
+    } catch (err: any) {
+      await new Promise((r) => setTimeout(r, 2000));
+    }
+    if (isPollingActive) {
+      setImmediate(poll);
+    }
+  };
+
+  poll();
+}
+
+export function stopTelegramPolling() {
+  isPollingActive = false;
 }
 
 // ==========================================
@@ -381,21 +697,45 @@ async function handleCallbackQuery(cb: any) {
       break;
     }
 
+    case "cmd_stats":
+    case "cmd_dashboard": {
+      const { text, keyboard } = getOverviewMessage();
+      await sendTelegramMessage(chatId, text, keyboard);
+      db.telegramRepo.logAudit(userId, "CALLBACK_DASHBOARD");
+      break;
+    }
+
     case "cmd_orders": {
-      const orders = db.ordersRepo.listAll({ limit: 5 });
-      if (orders.length === 0) {
-        await sendTelegramMessage(chatId, "No orders found in database.");
-        return { ok: true };
-      }
-      let reply = `📦 *RECENT ORDERS:*\n\n`;
-      const buttons: any[] = [];
-      for (const o of orders) {
-        reply += `• *${o.orderNumber}* — ₹${o.total} (${o.orderStatus})\n` +
-                 `  Customer: ${o.customerName} (${maskPhone(o.customerPhone)})\n` +
-                 `  Payment: ${o.paymentStatus} via ${o.paymentMethod}\n\n`;
-        buttons.push([{ text: `View ${o.orderNumber}`, callback_data: `view_order:${o.orderNumber}` }]);
-      }
-      await sendTelegramMessage(chatId, reply, { inline_keyboard: buttons });
+      const { text, keyboard } = getOrdersListMessage(5);
+      await sendTelegramMessage(chatId, text, keyboard);
+      db.telegramRepo.logAudit(userId, "CALLBACK_ORDERS");
+      break;
+    }
+
+    case "cmd_products": {
+      const { text, keyboard } = getProductsListMessage(8);
+      await sendTelegramMessage(chatId, text, keyboard);
+      db.telegramRepo.logAudit(userId, "CALLBACK_PRODUCTS");
+      break;
+    }
+
+    case "cmd_offers": {
+      const { text, keyboard } = getOffersMessage();
+      await sendTelegramMessage(chatId, text, keyboard);
+      db.telegramRepo.logAudit(userId, "CALLBACK_OFFERS");
+      break;
+    }
+
+    case "cmd_customers": {
+      const { text, keyboard } = getCustomersSummaryMessage();
+      await sendTelegramMessage(chatId, text, keyboard);
+      db.telegramRepo.logAudit(userId, "CALLBACK_CUSTOMERS");
+      break;
+    }
+
+    case "cmd_full_help": {
+      await sendTelegramMessage(chatId, getFullHelpText(), ADMIN_MAIN_KEYBOARD);
+      db.telegramRepo.logAudit(userId, "CALLBACK_HELP");
       break;
     }
 
@@ -437,7 +777,13 @@ export async function handleTelegramUpdate(update: any) {
     db.telegramRepo.logAudit(userId, "UNAUTHORIZED_ATTEMPT", `User @${userName} tried to execute: ${text}`);
     await sendTelegramMessage(
       chatId,
-      `⛔ *Access Denied*\n\nYour Telegram ID \`${userId}\` is not authorized to manage TRINAYAA store.\nPlease contact the administrator to grant access.`
+      `⛔ *Access Denied*\n\n` +
+      `Your Telegram User ID is: \`${userId}\`\n\n` +
+      `To authorize this account:\n` +
+      `1. Open Admin Panel: http://localhost:3000/admin\n` +
+      `2. Go to **Telegram Bot** tab\n` +
+      `3. Enter ID: \`${userId}\` and click **Authorize Admin**\n\n` +
+      `_Once authorized, send /start or /help!_`
     );
     return { ok: true };
   }
@@ -462,82 +808,92 @@ export async function handleTelegramUpdate(update: any) {
     return await handleActiveSession(chatId, userId, userName, text, activeSession);
   }
 
-  // 5. Parse command and arguments
-  const [cmd, ...args] = text.split(/\s+/);
-  const command = cmd.toLowerCase();
+  // 5. Parse command and arguments with friendly natural language & keyboard intent matching
+  const parts = text.split(/\s+/);
+  let cmd = parts[0] || "";
+  let args = parts.slice(1);
+  let command = cmd.toLowerCase();
+  const lowerText = text.toLowerCase();
+
+  // Natural language & reply keyboard matching for zero-typing client UX
+  if (text.includes("Dashboard") || lowerText === "dashboard" || lowerText === "stats" || lowerText === "overview" || lowerText === "metrics") {
+    command = "/dashboard";
+    args = [];
+  } else if (text.includes("Recent Orders") || lowerText === "orders" || lowerText === "recent orders" || lowerText === "recent") {
+    command = "/orders";
+    args = [];
+  } else if (text.includes("Products") || lowerText === "products" || lowerText === "catalogue" || lowerText === "catalog") {
+    command = "/products";
+    args = [];
+  } else if (text.includes("Active Offers") || lowerText === "offers" || lowerText === "promotions" || lowerText === "coupons" || lowerText === "discount" || lowerText === "discounts") {
+    command = "/offers";
+    args = [];
+  } else if (text.includes("Customers") || lowerText === "customers" || lowerText === "users") {
+    command = "/customers";
+    args = [];
+  } else if (text.includes("Help & Menu") || lowerText === "help" || lowerText === "menu" || lowerText === "start" || lowerText === "hi" || lowerText === "hello" || text === "வணக்கம்") {
+    command = "/help";
+    args = [];
+  } else if (!command.startsWith("/")) {
+    if (command === "order") command = "/order";
+    else if (command === "product") command = "/product";
+    else if (command === "stock") command = "/stock";
+    else if (command === "stockadd") command = "/stockadd";
+    else if (command === "stocksub") command = "/stocksub";
+    else if (command === "stockset") command = "/stockset";
+  }
 
   try {
     switch (command) {
       case "/start":
-      case "/help": {
-        const helpText = `🌿 *TRINAYAA Enterprise Admin Bot*\n` +
-          `Connected to Live Database & Service Layer\n\n` +
-          `*📊 Dashboard & Reports:*\n` +
-          `• \`/dashboard\` or \`/stats\` — Store overview, orders & revenue\n` +
-          `• \`/orders\` — View 5 most recent orders with quick actions\n` +
-          `• \`/order <ID>\` — Order details with masked info (e.g. \`/order TRN-10482\`)\n` +
-          `• \`/updateorder <ID> [Status]\` — Update order status\n` +
-          `• \`/customers\` — View customer base summary\n\n` +
-          `*🌿 Catalogue & Inventory:*\n` +
-          `• \`/products\` — Top catalogue products list\n` +
-          `• \`/product <SKU/Name>\` — Search product details & quick stock buttons\n` +
-          `• \`/addproduct\` — Guided wizard to create new product\n` +
-          `• \`/editproduct <SKU>\` — Edit product details\n` +
-          `• \`/updateprice <SKU> <Price> [MRP]\` — Update price in catalogue\n` +
-          `• \`/stock <SKU> [Qty]\` — View stock or set directly\n` +
-          `• \`/stockadd <SKU> <Qty> [Reason]\` — Add inventory (Restock)\n` +
-          `• \`/stocksub <SKU> <Qty> [Reason]\` — Subtract inventory (Adjustment)\n` +
-          `• \`/stockset <SKU> <Qty> [Reason]\` — Overwrite stock quantity\n` +
-          `• \`/uploadimage <SKU> <URL>\` — Attach image to product\n\n` +
-          `*🎉 Marketing & Offers:*\n` +
-          `• \`/offers\` — View active festival campaigns\n` +
-          `• \`/createoffer\` — Guided wizard to create festival coupon\n` +
-          `• \`/disableoffer <Code>\` — Deactivate coupon\n\n` +
-          `*👤 Administration:*\n` +
-          `• \`/admins\` — List authorized Telegram admins\n` +
-          `• \`/audit\` — View recent admin audit logs\n` +
-          `• \`/cancel\` — Cancel any active guided conversation`;
-        await sendTelegramMessage(chatId, helpText);
+      case "/help":
+      case "/menu": {
+        const welcomeText = `🌿 *Welcome to TRINAYAA Enterprise Admin Bot*\n` +
+          `Connected to Live Store Database & Operations\n\n` +
+          `✨ *Quick 1-Tap Store Controls:*\n` +
+          `Tap any button on the persistent menu below, or use the interactive action buttons on this card.\n\n` +
+          `💡 *Zero Typing Required:*\n` +
+          `• Tap *📊 Store Dashboard* or *📦 Recent Orders* below for instant live numbers.\n` +
+          `• Tap *🌿 Products & Stock* to inspect items and restock instantly.\n` +
+          `• Type simple words like \`orders\`, \`stock\`, \`offers\` or \`வணக்கம்\` anytime!`;
+
+        const welcomeInlineKeyboard = {
+          inline_keyboard: [
+            [
+              { text: "📊 Store Dashboard", callback_data: "cmd_stats" },
+              { text: "📦 Recent Orders", callback_data: "cmd_orders" },
+            ],
+            [
+              { text: "🌿 Products & Stock", callback_data: "cmd_products" },
+              { text: "🎉 Active Offers", callback_data: "cmd_offers" },
+            ],
+            [
+              { text: "👥 Customers Base", callback_data: "cmd_customers" },
+              { text: "📋 Full Command Guide", callback_data: "cmd_full_help" },
+            ],
+          ],
+        };
+
+        // Send interactive card
+        await sendTelegramMessage(chatId, welcomeText, welcomeInlineKeyboard);
+        // Bind persistent touch keyboard to client device
+        await sendTelegramMessage(chatId, `👇 *Quick Touch Menu Active* — Tap any button below to manage your store:`, ADMIN_MAIN_KEYBOARD);
         db.telegramRepo.logAudit(userId, "/help");
         break;
       }
 
       case "/dashboard":
       case "/stats": {
-        const stats = db.adminStatsRepo.getOverview();
-        const msg = `📊 *TRINAYAA STORE METRICS*\n\n` +
-          `📦 *Products:*\n` +
-          `• Total: ${stats.totalProducts}\n` +
-          `• Active / Published: ${stats.activeProducts}\n` +
-          `• Low-Stock Alerts (<=10): *${stats.lowStockProducts}*\n\n` +
-          `🛍️ *Orders:*\n` +
-          `• Total Orders: ${stats.totalOrders}\n` +
-          `• Pending / In-progress: ${stats.pendingOrders}\n` +
-          `• Completed / Delivered: ${stats.completedOrders}\n\n` +
-          `💰 *Verified Revenue:* ₹${stats.totalRevenue.toLocaleString("en-IN")}\n` +
-          `🎉 *Active Festival Offers:* ${stats.activeCampaigns}\n` +
-          `👥 *Registered Customers:* ${stats.totalCustomers}`;
-        await sendTelegramMessage(chatId, msg);
+        const { text: msg, keyboard } = getOverviewMessage();
+        await sendTelegramMessage(chatId, msg, keyboard);
         db.telegramRepo.logAudit(userId, "/dashboard");
         break;
       }
 
       case "/orders":
       case "/recent": {
-        const orders = db.ordersRepo.listAll({ limit: 5 });
-        if (orders.length === 0) {
-          await sendTelegramMessage(chatId, "No orders found in database.");
-          break;
-        }
-        let reply = `📦 *RECENT ORDERS:*\n\n`;
-        const buttons: any[] = [];
-        for (const o of orders) {
-          reply += `• *${o.orderNumber}* — ₹${o.total} (${o.orderStatus})\n` +
-                   `  Customer: ${o.customerName} (${maskPhone(o.customerPhone)})\n` +
-                   `  Payment: ${o.paymentStatus} via ${o.paymentMethod}\n\n`;
-          buttons.push([{ text: `View ${o.orderNumber}`, callback_data: `view_order:${o.orderNumber}` }]);
-        }
-        await sendTelegramMessage(chatId, reply, { inline_keyboard: buttons });
+        const { text: reply, keyboard } = getOrdersListMessage(5);
+        await sendTelegramMessage(chatId, reply, keyboard);
         db.telegramRepo.logAudit(userId, "/orders");
         break;
       }
@@ -607,19 +963,8 @@ export async function handleTelegramUpdate(update: any) {
       }
 
       case "/products": {
-        const products = db.productsRepo.getAll({ limit: 8 });
-        if (products.length === 0) {
-          await sendTelegramMessage(chatId, "No products found in catalogue.");
-          break;
-        }
-        let reply = `🌿 *TOP CATALOGUE PRODUCTS:*\n\n`;
-        const buttons: any[] = [];
-        for (const p of products) {
-          reply += `• *${p.nameEn}* (\`${p.sku}\`)\n` +
-                   `  Price: ₹${p.price} | Stock: ${p.stock} units (${p.stockAvailability})\n\n`;
-          buttons.push([{ text: `${p.sku} — ${p.nameEn.slice(0, 20)}`, callback_data: `view_product:${p.sku}` }]);
-        }
-        await sendTelegramMessage(chatId, reply, { inline_keyboard: buttons.slice(0, 5) });
+        const { text: reply, keyboard } = getProductsListMessage(8);
+        await sendTelegramMessage(chatId, reply, keyboard);
         db.telegramRepo.logAudit(userId, "/products");
         break;
       }
@@ -902,19 +1247,8 @@ export async function handleTelegramUpdate(update: any) {
       }
 
       case "/offers": {
-        const campaigns = db.campaignsRepo.getActive();
-        if (campaigns.length === 0) {
-          await sendTelegramMessage(chatId, "No active festival campaigns currently running.");
-          break;
-        }
-        let reply = `🎉 *ACTIVE FESTIVAL OFFERS:*\n\n`;
-        for (const c of campaigns) {
-          reply += `• *${c.name}* (Code: \`${c.code}\`)\n` +
-                   `  Discount: ${c.discountType === "PERCENTAGE" ? `${c.discountValue}%` : `₹${c.discountValue}`}\n` +
-                   `  Min Order: ₹${c.minOrderValue} | Max Discount: ₹${c.maxDiscount}\n` +
-                   `  Valid until: ${new Date(c.endDate).toLocaleDateString()}\n\n`;
-        }
-        await sendTelegramMessage(chatId, reply);
+        const { text: reply, keyboard } = getOffersMessage();
+        await sendTelegramMessage(chatId, reply, keyboard);
         db.telegramRepo.logAudit(userId, "/offers");
         break;
       }
@@ -995,16 +1329,8 @@ export async function handleTelegramUpdate(update: any) {
       }
 
       case "/customers": {
-        const stats = db.adminStatsRepo.getOverview();
-        const customers = db.usersRepo.listCustomers(5, 0);
-        let reply = `👥 *CUSTOMER SUMMARY*\n\n` +
-          `• Total Registered: *${stats.totalCustomers}*\n\n` +
-          `*Recent Customers:*\n`;
-        for (const c of customers) {
-          reply += `• ${c.name || "Customer"} — ${maskPhone(c.phone)} (${maskEmail(c.email)})\n` +
-                   `  Orders: ${c.totalOrders} | Spent: ₹${c.totalSpent}\n\n`;
-        }
-        await sendTelegramMessage(chatId, reply);
+        const { text: reply, keyboard } = getCustomersSummaryMessage();
+        await sendTelegramMessage(chatId, reply, keyboard);
         db.telegramRepo.logAudit(userId, "/customers");
         break;
       }
