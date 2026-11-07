@@ -553,24 +553,6 @@ export default function AdminDashboard() {
     onError: (err) => toast.error(err.message),
   });
 
-  // Redirect if not logged in as Admin
-  if (!userLoading && (!currentUser || (currentUser.role !== "ADMIN" && currentUser.role !== "SUPER_ADMIN"))) {
-    return (
-      <div className="min-h-screen bg-[#FBF8F0] flex flex-col items-center justify-center p-6 text-center">
-        <div className="w-16 h-16 rounded-full bg-red-100 text-red-700 flex items-center justify-center mb-4">
-          <AlertTriangle size={32} />
-        </div>
-        <h2 className="font-serif text-2xl font-bold text-[#123D28] mb-2">Administrator Access Required</h2>
-        <p className="text-sm text-[#6C7167] max-w-sm mb-6 font-sans">
-          You must sign in with an authorized TRINAYAA administrator account to view the dashboard.
-        </p>
-        <button onClick={() => setLocation("/admin/login")} className="dark-button">
-          Go to Admin Login <ArrowRight size={16} />
-        </button>
-      </div>
-    );
-  }
-
   // Filtered products for pagination (Phase 6: stock level filter support)
   const filteredProducts = useMemo(() => {
     return products.filter((p: any) => {
@@ -591,7 +573,6 @@ export default function AdminDashboard() {
   const paginatedProducts = filteredProducts.slice(productPage * pageSize, (productPage + 1) * pageSize);
   const totalPages = Math.ceil(filteredProducts.length / pageSize) || 1;
 
-  
   // Phase 10: Grouped navigation and context definition
   const navGroups = useMemo(() => [
     {
@@ -678,6 +659,24 @@ export default function AdminDashboard() {
         return { group: "Overview", title: "Admin Console" };
     }
   }, [activeTab, products.length]);
+
+  // Redirect if not logged in as Admin
+  if (!userLoading && (!currentUser || (currentUser.role !== "ADMIN" && currentUser.role !== "SUPER_ADMIN"))) {
+    return (
+      <div className="min-h-screen bg-[#FBF8F0] flex flex-col items-center justify-center p-6 text-center">
+        <div className="w-16 h-16 rounded-full bg-red-100 text-red-700 flex items-center justify-center mb-4">
+          <AlertTriangle size={32} />
+        </div>
+        <h2 className="font-serif text-2xl font-bold text-[#123D28] mb-2">Administrator Access Required</h2>
+        <p className="text-sm text-[#6C7167] max-w-sm mb-6 font-sans">
+          You must sign in with an authorized TRINAYAA administrator account to view the dashboard.
+        </p>
+        <button onClick={() => setLocation("/admin/login")} className="dark-button">
+          Go to Admin Login <ArrowRight size={16} />
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] text-[#0F172A] flex font-sans">

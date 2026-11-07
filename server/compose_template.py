@@ -1,64 +1,154 @@
 import os
 import sys
 import argparse
-from PIL import Image, ImageDraw, ImageFont
+import cv2
 import numpy as np
+from PIL import Image, ImageDraw, ImageFont
 
-def compose_trinayaa_packaging(name_en, name_ta, bowl_type, out_path):
-    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    master_path = os.path.join(base_dir, "client", "public", "images", "products", "Trinayaa Moringa Leaf Pouch-3.png")
+def render_tamil_gdi(text, font_size=32, color_rgb=(24, 45, 18), width=520, height=80):
+    """Render Tamil text with Windows DirectWrite / GDI+ for 100% accurate Indic shaping."""
+    try:
+        import clr
+        clr.AddReference('System.Drawing')
+        import System
+        from System.Drawing import Bitmap, Graphics, Font, SolidBrush, Color, StringFormat, StringAlignment, GraphicsUnit, FontStyle
+        from System.Drawing.Text import TextRenderingHint
+        from System.Drawing.Imaging import ImageFormat
+        from System.IO import MemoryStream
 
-    if not os.path.exists(master_path):
-        raise FileNotFoundError(f"Master pouch image not found at {master_path}")
+        bmp = Bitmap(width, height)
+        g = Graphics.FromImage(bmp)
+        g.TextRenderingHint = TextRenderingHint.AntiAliasGridFit
 
-    im = Image.open(master_path).convert("RGB")
-    arr = np.array(im, dtype=np.float32)
+        font = Font('Nirmala UI', font_size, FontStyle.Bold, GraphicsUnit.Pixel)
+        brush = SolidBrush(Color.FromArgb(255, color_rgb[0], color_rgb[1], color_rgb[2]))
+        sf = StringFormat()
+        sf.Alignment = StringAlignment.Center
+        sf.LineAlignment = StringAlignment.Center
 
-    # 1. Bowl content tinting based on botanical type
-    bowl_mask = np.zeros(arr.shape[:2], dtype=bool)
-    bowl_mask[800:1150, 600:1050] = True
-    green_pixels = bowl_mask & (arr[:, :, 1] > arr[:, :, 0] + 5) & (arr[:, :, 1] > arr[:, :, 2] + 5)
+        from System.Drawing import RectangleF
+        rect = RectangleF(0, 0, width, height)
+        g.DrawString(text, font, brush, rect, sf)
 
-    if np.sum(green_pixels) > 0 and bowl_type != "green":
-        intensity = (arr[green_pixels, 0] + arr[green_pixels, 1] + arr[green_pixels, 2]) / 3.0
+        ms = MemoryStream()
+        bmp.Save(ms, ImageFormat.Png)
+        byte_arr = ms.ToArray()
         
-        if bowl_type in ("gold", "yellow"):
-            # Golden turmeric / fenugreek seeds / mustard
-            arr[green_pixels, 0] = np.clip(intensity * 1.50, 0, 255)
-            arr[green_pixels, 1] = np.clip(intensity * 1.15, 0, 255)
-            arr[green_pixels, 2] = np.clip(intensity * 0.35, 0, 255)
-        elif bowl_type in ("brown", "root"):
-            # Earthy brown root / powder (Ashwagandha, Licorice, Triphala)
-            arr[green_pixels, 0] = np.clip(intensity * 1.25, 0, 255)
-            arr[green_pixels, 1] = np.clip(intensity * 0.85, 0, 255)
-            arr[green_pixels, 2] = np.clip(intensity * 0.55, 0, 255)
-        elif bowl_type in ("black", "seed"):
-            # Black kalonji / chia / black sesame
-            arr[green_pixels, 0] = np.clip(intensity * 0.45, 0, 255)
-            arr[green_pixels, 1] = np.clip(intensity * 0.48, 0, 255)
-            arr[green_pixels, 2] = np.clip(intensity * 0.50, 0, 255)
-        elif bowl_type in ("red", "hibiscus"):
-            # Red herbal petals / bark (Hibiscus, Rose, Cinnamon)
-            arr[green_pixels, 0] = np.clip(intensity * 1.55, 0, 255)
-            arr[green_pixels, 1] = np.clip(intensity * 0.45, 0, 255)
-            arr[green_pixels, 2] = np.clip(intensity * 0.45, 0, 255)
+        import io
+        return Image.open(io.BytesIO(bytes(byte_arr)))
+    except Exception as e:
+        print(f"GDI fallback warning: {e}", file=sys.stderr)
+        img = Image.new("RGBA", (width, height), (0, 0, 0, 0))
+        draw = ImageDraw.Draw(img)
+        font = None
+        for font_candidate in ["C:/Windows/Fonts/Nirmala.ttc", "arial.ttf"]:
+            try:
+                font = ImageFont.truetype(font_candidate, font_size)
+                break
+            except Exception:
+                continue
+        if font is None:
+            font = ImageFont.load_default()
+        bbox = draw.textbbox((0, 0), text, font=font)
+        tw = bbox[2] - bbox[0]
+        th = bbox[3] - bbox[1]
+        draw.text(((width - tw) // 2, (height - th) // 2), text, font=font, fill=(*color_rgb, 255))
+        return img
 
-    im = Image.fromarray(arr.astype(np.uint8))
+TEMPLATE_SPECS = {
+    "leaf": {
+        "file": "clean_template_leaf.png",
+        "banner_box": (385, 545, 885, 615),
+        "tamil_y": 625,
+        "font_size_en": 34,
+        "font_size_ta": 34,
+    },
+    "root": {
+        "file": "clean_template_root.png",
+        "banner_box": (220, 430, 800, 530),
+        "tamil_y": 545,
+        "font_size_en": 32,
+        "font_size_ta": 32,
+    },
+    "seed_dark": {
+        "file": "clean_template_seed_dark.png",
+        "banner_box": (170, 530, 880, 645),
+        "tamil_y": 660,
+        "font_size_en": 30,
+        "font_size_ta": 32,
+    },
+    "seed_gold": {
+        "file": "clean_template_seed_gold.png",
+        "banner_box": (170, 530, 880, 645),
+        "tamil_y": 660,
+        "font_size_en": 30,
+        "font_size_ta": 32,
+    },
+    "floral": {
+        "file": "clean_template_floral.png",
+        "banner_box": (165, 360, 855, 470),
+        "tamil_y": 485,
+        "font_size_en": 30,
+        "font_size_ta": 32,
+    },
+    "powder_beige": {
+        "file": "clean_template_powder_beige.png",
+        "banner_box": (200, 375, 825, 475),
+        "tamil_y": 495,
+        "font_size_en": 28,
+        "font_size_ta": 30,
+    },
+    "powder_gold": {
+        "file": "clean_template_powder_gold.png",
+        "banner_box": (200, 375, 825, 475),
+        "tamil_y": 495,
+        "font_size_en": 28,
+        "font_size_ta": 30,
+    },
+}
+
+def resolve_template_key(bowl_type_or_key):
+    """Normalize bowl_type or template_key to one of the 7 supported templates."""
+    k = (bowl_type_or_key or "").lower().strip()
+    if k in TEMPLATE_SPECS:
+        return k
+    if k in ("brown", "root", "bark", "wood"):
+        return "root"
+    if k in ("black", "seed", "seed_dark"):
+        return "seed_dark"
+    if k in ("gold", "yellow", "amber", "resin", "gum", "seed_gold"):
+        return "seed_gold"
+    if k in ("red", "hibiscus", "rose", "floral", "flower"):
+        return "floral"
+    if k in ("powder_gold", "turmeric", "manjal"):
+        return "powder_gold"
+    if k in ("powder", "powder_beige", "beige", "mortar"):
+        return "powder_beige"
+    return "leaf"
+
+def compose_trinayaa_packaging(name_en, name_ta, bowl_type="leaf", out_path=None):
+    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    template_key = resolve_template_key(bowl_type)
+    spec = TEMPLATE_SPECS[template_key]
+    template_path = os.path.join(base_dir, "client", "public", "images", "products", "templates", spec["file"])
+
+    if not os.path.exists(template_path):
+        # Fallback to leaf template
+        template_path = os.path.join(base_dir, "client", "public", "images", "products", "templates", "clean_template_leaf.png")
+        spec = TEMPLATE_SPECS["leaf"]
+
+    # Open clean master image
+    im = Image.open(template_path).convert("RGB")
     draw = ImageDraw.Draw(im)
+    w, h = im.size
 
-    # 2. Draw crisp deep green banner (x: 385 to 885, y: 545 to 615)
-    banner_box = (385, 545, 885, 615)
-    draw.rounded_rectangle(banner_box, radius=8, fill=(30, 57, 14))
-
-    # 3. Dynamic font sizing for English product name
+    # 1. English Product Name inside banner
     clean_en = name_en.strip().upper()
-    font_size_en = 36
+    font_size_en = spec["font_size_en"]
     if len(clean_en) > 26:
-        font_size_en = 24
+        font_size_en = max(18, font_size_en - 8)
     elif len(clean_en) > 20:
-        font_size_en = 28
-    elif len(clean_en) > 15:
-        font_size_en = 32
+        font_size_en = max(22, font_size_en - 4)
 
     font_en = None
     for font_candidate in [
@@ -72,73 +162,39 @@ def compose_trinayaa_packaging(name_en, name_ta, bowl_type, out_path):
             break
         except Exception:
             continue
-
     if font_en is None:
         font_en = ImageFont.load_default()
 
-    bbox_en = draw.textbbox((0, 0), clean_en, font=font_en)
-    tw_en = bbox_en[2] - bbox_en[0]
-    th_en = bbox_en[3] - bbox_en[0]
-    tx_en = (banner_box[0] + banner_box[2] - tw_en) // 2
-    ty_en = (banner_box[1] + banner_box[3] - th_en) // 2 - 2
+    bbox_banner = spec["banner_box"]
+    bb = draw.textbbox((0, 0), clean_en, font=font_en)
+    tw_en = bb[2] - bb[0]
+    th_en = bb[3] - bb[1]
+    tx_en = (bbox_banner[0] + bbox_banner[2] - tw_en) // 2
+    ty_en = (bbox_banner[1] + bbox_banner[3] - th_en) // 2 - 2
     draw.text((tx_en, ty_en), clean_en, font=font_en, fill=(255, 255, 255))
 
-    # 4. Seamlessly wipe out the entire old Tamil text area
-    # In master image, original Tamil text was at y=660..695.
-    # We cleanly fill the full space from y=616 to y=718 between banner and seals (102px high).
-    # Using seamless gradient matching the exact natural kraft paper tones.
-    y_start = 616
-    y_end = 718
-    for y in range(y_start, y_end + 1):
-        ratio = (y - y_start) / float(y_end - y_start)
-        r = int(254 * (1.0 - ratio) + 250 * ratio)
-        g = int(250 * (1.0 - ratio) + 245 * ratio)
-        b = int(238 * (1.0 - ratio) + 232 * ratio)
-        draw.line([(370, y), (900, y)], fill=(r, g, b))
+    # 2. Tamil Product Name with native GDI+ typography
+    clean_ta = (name_ta or "").strip()
+    if clean_ta:
+        font_size_ta = spec["font_size_ta"]
+        if len(clean_ta) > 22:
+            font_size_ta = max(20, font_size_ta - 6)
+        ta_img = render_tamil_gdi(clean_ta, font_size=font_size_ta, color_rgb=(24, 45, 18), width=520, height=80)
+        im.paste(ta_img, ((w - 520) // 2, spec["tamil_y"]), ta_img)
 
-    # 5. Draw clean new Tamil name centered
-    if name_ta and name_ta.strip():
-        clean_ta = name_ta.strip()
-        font_size_ta = 34
-        if len(clean_ta) > 24:
-            font_size_ta = 24
-        elif len(clean_ta) > 18:
-            font_size_ta = 28
+    if out_path:
+        os.makedirs(os.path.dirname(os.path.abspath(out_path)), exist_ok=True)
+        im.save(out_path, quality=95)
 
-        font_ta = None
-        for font_candidate in [
-            "C:/Windows/Fonts/Nirmala.ttc",
-            "C:/Windows/Fonts/Latha.ttf",
-            "C:/Windows/Fonts/Vijaya.ttf",
-            "C:/Windows/Fonts/arial.ttf"
-        ]:
-            try:
-                font_ta = ImageFont.truetype(font_candidate, font_size_ta)
-                break
-            except Exception:
-                continue
-
-        if font_ta is None:
-            font_ta = ImageFont.load_default()
-
-        bbox_ta = draw.textbbox((0, 0), clean_ta, font=font_ta)
-        tw_ta = bbox_ta[2] - bbox_ta[0]
-        th_ta = bbox_ta[3] - bbox_ta[1]
-        tx_ta = (banner_box[0] + banner_box[2] - tw_ta) // 2
-        ty_ta = (y_start + y_end - th_ta) // 2 - 2
-        draw.text((tx_ta, ty_ta), clean_ta, font=font_ta, fill=(24, 45, 18))
-
-    # Ensure parent directory exists
-    os.makedirs(os.path.dirname(os.path.abspath(out_path)), exist_ok=True)
-    im.save(out_path, format="JPEG", quality=95, optimize=True)
-    print(f"SUCCESS:{out_path}")
+    return im
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Compose authentic TRINAYAA product packaging")
-    parser.add_argument("--name", default="ORGANIC HERBAL POWDER", help="English product name")
-    parser.add_argument("--tamil", default="", help="Tamil product name")
-    parser.add_argument("--type", default="green", help="Botanical bowl type: green, gold, brown, black, red")
-    parser.add_argument("--out", required=True, help="Output file path")
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--en", "--name", dest="en", required=True)
+    parser.add_argument("--ta", "--tamil", dest="ta", default="")
+    parser.add_argument("--bowl", "--type", dest="bowl", default="leaf")
+    parser.add_argument("--out", required=True)
     args = parser.parse_args()
 
-    compose_trinayaa_packaging(args.name, args.tamil, args.type, args.out)
+    compose_trinayaa_packaging(args.en, args.ta, args.bowl, args.out)
+    print(f"Generated packaging visual saved to {args.out}")

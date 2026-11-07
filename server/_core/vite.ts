@@ -84,6 +84,7 @@ export function serveStatic(app: Express) {
       if (req.originalUrl.startsWith("/admin") || req.originalUrl.startsWith("/cart") || req.originalUrl.startsWith("/checkout")) {
         res.setHeader("X-Robots-Tag", "noindex, nofollow");
       }
+      res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
       res.status(200).set({ "Content-Type": "text/html" }).send(html);
     } catch {
       res.sendFile(path.resolve(distPath, "index.html"));

@@ -399,13 +399,11 @@ export default function CustomerAccountPage() {
       <div className="min-h-screen bg-[#FAF7EB] flex flex-col font-sans">
         <header className="border-b border-[#E2DBCB] bg-[#FCFBF7] py-3.5 px-4 sm:px-8">
           <div className="max-w-7xl mx-auto flex items-center justify-between">
-            <Link href="/">
-              <a className="inline-block"><BrandMark /></a>
+            <Link href="/" className="inline-block">
+              <BrandMark />
             </Link>
-            <Link href="/products">
-              <a className="text-xs sm:text-sm font-semibold text-[#123D28] hover:text-[#8C6D3F]">
-                Browse Products
-              </a>
+            <Link href="/products" className="text-xs sm:text-sm font-semibold text-[#123D28] hover:text-[#8C6D3F]">
+              Browse Products
             </Link>
           </div>
         </header>
@@ -426,10 +424,8 @@ export default function CustomerAccountPage() {
               >
                 Sign In / Mobile OTP Login
               </button>
-              <Link href="/">
-                <a className="block py-2 text-xs font-semibold text-[#6C7167] hover:text-[#123D28]">
-                  Return to Storefront
-                </a>
+              <Link href="/" className="block py-2 text-xs font-semibold text-[#6C7167] hover:text-[#123D28]">
+                Return to Storefront
               </Link>
             </div>
           </div>
@@ -677,14 +673,12 @@ export default function CustomerAccountPage() {
       {/* Main Header */}
       <header className="border-b border-[#E2DBCB] bg-[#FCFBF7] sticky top-0 z-30 shadow-2xs">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3.5 flex items-center justify-between">
-          <Link href="/">
-            <a className="inline-block"><BrandMark /></a>
+          <Link href="/" className="inline-block">
+            <BrandMark />
           </Link>
           <div className="flex items-center gap-3 sm:gap-4">
-            <Link href="/products">
-              <a className="text-xs sm:text-sm font-semibold text-[#123D28] hover:text-[#8C6D3F] transition-colors">
-                Shop Catalogue
-              </a>
+            <Link href="/products" className="text-xs sm:text-sm font-semibold text-[#123D28] hover:text-[#8C6D3F] transition-colors">
+              Shop Catalogue
             </Link>
             <button
               onClick={() => logoutMutation.mutate()}
@@ -701,7 +695,7 @@ export default function CustomerAccountPage() {
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 py-8">
         {/* Breadcrumb */}
         <nav className="text-xs text-[#6C7167] mb-4 flex items-center gap-1.5" aria-label="Breadcrumb">
-          <Link href="/"><a className="hover:underline">Home</a></Link>
+          <Link href="/" className="hover:underline">Home</Link>
           <ChevronRight size={13} />
           <span className="font-bold text-[#123D28]">My Account</span>
         </nav>
@@ -729,11 +723,9 @@ export default function CustomerAccountPage() {
           </div>
 
           {currentUser.role === "ADMIN" && (
-            <Link href="/admin">
-              <a className="py-2.5 px-4 bg-[#E8BF83] hover:bg-[#D4AF37] text-[#123D28] font-bold text-xs rounded-xl transition-colors shadow-2xs self-start sm:self-auto flex items-center gap-1.5">
-                <ShieldCheck size={15} />
-                <span>Open Admin Portal &rarr;</span>
-              </a>
+            <Link href="/admin" className="py-2.5 px-4 bg-[#E8BF83] hover:bg-[#D4AF37] text-[#123D28] font-bold text-xs rounded-xl transition-colors shadow-2xs self-start sm:self-auto flex items-center gap-1.5">
+              <ShieldCheck size={15} />
+              <span>Open Admin Portal &rarr;</span>
             </Link>
           )}
         </div>
@@ -994,10 +986,8 @@ export default function CustomerAccountPage() {
                 <p className="text-xs text-[#6C7167] max-w-sm mx-auto">
                   Explore our collection of 162 pure botanical seeds, raw herbal powders, and whole herbs.
                 </p>
-                <Link href="/products">
-                  <a className="inline-block py-2.5 px-5 bg-[#123D28] hover:bg-[#1A4D33] text-white font-bold rounded-xl text-xs transition-colors shadow-xs">
-                    Explore Botanical Catalogue
-                  </a>
+                <Link href="/products" className="inline-block py-2.5 px-5 bg-[#123D28] hover:bg-[#1A4D33] text-white font-bold rounded-xl text-xs transition-colors shadow-xs">
+                  Explore Botanical Catalogue
                 </Link>
               </div>
             ) : (
@@ -1048,11 +1038,9 @@ export default function CustomerAccountPage() {
                         </div>
 
                         <div className="flex items-center gap-2">
-                          <Link href={`/track-order?orderId=${order.orderNumber}`}>
-                            <a className="py-1.5 px-3 bg-[#FAF5EB] hover:bg-[#F2E8D3] border border-[#DECFB5] text-[#8E5E28] rounded-lg text-xs font-semibold transition-colors flex items-center gap-1">
-                              <Navigation size={12} />
-                              <span>Track Delivery</span>
-                            </a>
+                          <Link href={`/track-order?orderId=${order.orderNumber}`} className="py-1.5 px-3 bg-[#FAF5EB] hover:bg-[#F2E8D3] border border-[#DECFB5] text-[#8E5E28] rounded-lg text-xs font-semibold transition-colors flex items-center gap-1">
+                            <Navigation size={12} />
+                            <span>Track Delivery</span>
                           </Link>
                           <div className="font-serif font-bold text-base text-[#123D28] pl-2">
                             ₹{order.total}
@@ -1119,10 +1107,8 @@ export default function CustomerAccountPage() {
                 <h2 className="font-serif text-xl font-bold text-[#123D28]">My Saved Botanicals</h2>
                 <p className="text-xs text-[#6C7167]">Products you saved for later or wishlist</p>
               </div>
-              <Link href="/products">
-                <a className="py-2 px-3.5 bg-[#123D28] text-white rounded-xl text-xs font-bold hover:bg-[#1A4D33] transition-colors flex items-center gap-1.5 shadow-2xs">
-                  <Plus size={13} /> Browse Catalogue
-                </a>
+              <Link href="/products" className="py-2 px-3.5 bg-[#123D28] text-white rounded-xl text-xs font-bold hover:bg-[#1A4D33] transition-colors flex items-center gap-1.5 shadow-2xs">
+                <Plus size={13} /> Browse Catalogue
               </Link>
             </div>
 
@@ -1137,10 +1123,8 @@ export default function CustomerAccountPage() {
                 <p className="text-xs text-[#6C7167] leading-relaxed">
                   Save your preferred traditional botanical herbs, powders, and seeds while browsing to easily re-order or purchase later.
                 </p>
-                <Link href="/products">
-                  <a className="inline-block py-2.5 px-5 bg-[#123D28] text-white rounded-xl text-xs font-bold hover:bg-[#1A4D33] transition-colors">
-                    Explore 162 Pure Botanicals
-                  </a>
+                <Link href="/products" className="inline-block py-2.5 px-5 bg-[#123D28] text-white rounded-xl text-xs font-bold hover:bg-[#1A4D33] transition-colors">
+                  Explore 162 Pure Botanicals
                 </Link>
               </div>
             ) : (
