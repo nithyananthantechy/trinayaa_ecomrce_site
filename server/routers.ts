@@ -159,10 +159,10 @@ export const appRouter = router({
 
         resetRateLimit(`login_${clientIp}_${input.email.toLowerCase()}`);
 
-        if (user.status === "SUSPENDED") {
+        if (user.status === "SUSPENDED" || user.status === "INACTIVE" || user.status === "DEACTIVATED") {
           throw new TRPCError({
             code: "FORBIDDEN",
-            message: "Your account is temporarily suspended. Please contact support.",
+            message: "Your account has been deactivated. Please contact support@trinayaa.in.",
           });
         }
 
@@ -335,10 +335,10 @@ export const appRouter = router({
             phone: normalized,
             name: input.name,
           });
-        } else if (user.status === "SUSPENDED") {
+        } else if (user.status === "SUSPENDED" || user.status === "INACTIVE" || user.status === "DEACTIVATED") {
           throw new TRPCError({
             code: "FORBIDDEN",
-            message: "Your account is temporarily suspended. Please contact support.",
+            message: "Your account has been deactivated. Please contact support@trinayaa.in.",
           });
         }
 
@@ -1722,17 +1722,91 @@ addresses: router({
       }),
     }),
 
-    // --- CUSTOMERS ---
+    // --- CUSTOMERS (PHASE 4: CUSTOMER 360) ---
     customers: router({
       list: adminProcedure
         .input(
           z.object({
-            limit: z.number().optional().default(100),
+            limit: z.number().optional().default(20),
             offset: z.number().optional().default(0),
+            search: z.string().optional(),
+            status: z.string().optional(),
+            purchaseActivity: z.string().optional(),
+            startDate: z.string().optional(),
+            endDate: z.string().optional(),
+            sortBy: z.string().optional(),
+            sortOrder: z.string().optional(),
           }).optional()
         )
         .query(async ({ input }) => {
-          return db.usersRepo.listCustomers(input?.limit, input?.offset);
+          return db.usersRepo.listCustomersAdvanced(input || {});
+        }),
+
+      metrics: adminProcedure.query(async () => {
+        return db.usersRepo.getCustomerMetrics();
+      }),
+
+      get360: adminProcedure
+        .input(z.object({ customerId: z.string() }))
+        .query(async ({ input }) => {
+          const profile = db.usersRepo.getCustomer360(input.customerId);
+          if (!profile) {
+            throw new TRPCError({
+              code: "NOT_FOUND",
+              message: "Customer profile not found.",
+            });
+          }
+          return profile;
+        }),
+
+      updateStatus: adminProcedure
+        .input(
+          z.object({
+            customerId: z.string(),
+            status: z.enum(["ACTIVE", "INACTIVE", "SUSPENDED", "DEACTIVATED"]),
+            reason: z.string().optional(),
+          })
+        )
+        .mutation(async ({ input, ctx }) => {
+          const performedBy = ctx.user?.name || "Administrator";
+          return db.usersRepo.updateCustomerStatus(
+            input.customerId,
+            input.status,
+            input.reason || `Status changed to ${input.status}`,
+            performedBy
+          );
+        }),
+
+      updateNotes: adminProcedure
+        .input(
+          z.object({
+            customerId: z.string(),
+            adminNotes: z.string(),
+          })
+        )
+        .mutation(async ({ input, ctx }) => {
+          const performedBy = ctx.user?.name || "Administrator";
+          return db.usersRepo.updateCustomerNotes(
+            input.customerId,
+            input.adminNotes,
+            performedBy
+          );
+        }),
+
+      exportCsv: adminProcedure
+        .input(
+          z.object({
+            search: z.string().optional(),
+            status: z.string().optional(),
+            purchaseActivity: z.string().optional(),
+            startDate: z.string().optional(),
+            endDate: z.string().optional(),
+            sortBy: z.string().optional(),
+            sortOrder: z.string().optional(),
+          }).optional()
+        )
+        .query(async ({ input }) => {
+          return db.usersRepo.exportCustomersCsv(input || {});
         }),
     }),
 

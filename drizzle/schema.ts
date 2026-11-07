@@ -12,6 +12,7 @@ export const users = mysqlTable("users", {
   role: varchar("role", { length: 32 }).default("CUSTOMER").notNull(), // 'CUSTOMER' | 'ADMIN' | 'SUPER_ADMIN'
   status: varchar("status", { length: 32 }).default("ACTIVE").notNull(),
   telegramId: varchar("telegramId", { length: 64 }),
+  adminNotes: text("adminNotes"),
   createdAt: text("createdAt").notNull(),
   updatedAt: text("updatedAt").notNull(),
 });
@@ -491,3 +492,19 @@ export const wishlistItems = mysqlTable("wishlist_items", {
 
 export type WishlistItem = typeof wishlistItems.$inferSelect;
 export type InsertWishlistItem = typeof wishlistItems.$inferInsert;
+
+// ==========================================
+// 19. CUSTOMER AUDIT LOGS (PHASE 4)
+// ==========================================
+export const customerAuditLogs = mysqlTable("customer_audit_logs", {
+  id: varchar("id", { length: 64 }).primaryKey(),
+  customerId: varchar("customer_id", { length: 64 }).notNull(),
+  action: varchar("action", { length: 64 }).notNull(),
+  performedBy: varchar("performed_by", { length: 255 }).notNull(),
+  details: text("details"),
+  createdAt: text("created_at").notNull(),
+});
+
+export type CustomerAuditLog = typeof customerAuditLogs.$inferSelect;
+export type InsertCustomerAuditLog = typeof customerAuditLogs.$inferInsert;
+

@@ -1,6 +1,7 @@
 import SupportHelpdeskTab from "./SupportHelpdeskTab";
 import CustomerFeedbackTab from "./CustomerFeedbackTab";
 import AiImageStudioTab from "./AiImageStudioTab";
+import Customer360Tab from "./Customer360Tab";
 import { useState, useMemo, useEffect } from "react";
 import { useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
@@ -155,10 +156,6 @@ export default function AdminDashboard() {
       limit: 100,
     },
     { enabled: Boolean(currentUser) }
-  );
-
-  const { data: customers = [], refetch: refetchCustomers } = trpc.admin.customers.list.useQuery(undefined, {
-    enabled: Boolean(currentUser) }
   );
 
   const { data: campaigns = [], refetch: refetchCampaigns } = trpc.admin.campaigns.list.useQuery(undefined, {
@@ -1334,41 +1331,9 @@ export default function AdminDashboard() {
           )}
 
           {/* ========================================== */}
-          {/* 6. CUSTOMERS */}
+          {/* 6. CUSTOMERS (PHASE 4: CUSTOMER 360) */}
           {/* ========================================== */}
-          {activeTab === "customers" && (
-            <div className="bg-white border border-slate-200/90 rounded-2xl shadow-xs overflow-hidden">
-              <div className="p-4 border-b border-[#DEDFD5]">
-                <h3 className="font-serif text-lg font-bold text-[#123D28]">Registered Customer Accounts</h3>
-              </div>
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs border-collapse">
-                  <thead className="bg-[#FBF8F0] border-b border-[#DEDFD5] text-[#6C7167] font-semibold">
-                    <tr>
-                      <th className="py-3 px-3">Name</th>
-                      <th className="py-3 px-3">Email</th>
-                      <th className="py-3 px-3">Phone</th>
-                      <th className="py-3 px-3">Total Orders</th>
-                      <th className="py-3 px-3">Total Spent</th>
-                      <th className="py-3 px-3">Registered</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-[#DEDFD5]">
-                    {customers.map((c: any) => (
-                      <tr key={c.id} className="hover:bg-[#FBF8F0]/40">
-                        <td className="py-2.5 px-3 font-bold text-[#123D28]">{c.name}</td>
-                        <td className="py-2.5 px-3 text-[#6C7167]">{c.email}</td>
-                        <td className="py-2.5 px-3 text-[#6C7167]">{c.phone || "—"}</td>
-                        <td className="py-2.5 px-3 font-semibold">{c.totalOrders || 0}</td>
-                        <td className="py-2.5 px-3 font-bold text-[#123D28]">₹{c.totalSpent || 0}</td>
-                        <td className="py-2.5 px-3 text-[#6C7167]">{new Date(c.createdAt).toLocaleDateString()}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
+          {activeTab === "customers" && <Customer360Tab />}
 
           {/* ========================================== */}
           {/* 7. FESTIVAL OFFERS & CAMPAIGNS */}
