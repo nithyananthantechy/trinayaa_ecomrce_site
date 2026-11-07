@@ -216,7 +216,7 @@ export default function Catalog() {
                 if (currentUser?.role === "ADMIN" || currentUser?.role === "SUPER_ADMIN") {
                   setLocation("/admin");
                 } else {
-                  setLocation("/");
+                  setLocation("/account");
                 }
               }}
             >

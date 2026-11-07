@@ -360,3 +360,20 @@ export const businessEnquiryItems = mysqlTable("business_enquiry_items", {
 export type BusinessEnquiryItem = typeof businessEnquiryItems.$inferSelect;
 export type InsertBusinessEnquiryItem = typeof businessEnquiryItems.$inferInsert;
 
+// ==========================================
+// 14. AUTH OTPS (MOBILE OTP AUTHENTICATION)
+// ==========================================
+export const authOtps = mysqlTable("auth_otps", {
+  id: varchar("id", { length: 64 }).primaryKey(),
+  phone: varchar("phone", { length: 32 }).notNull(),
+  otpHash: varchar("otp_hash", { length: 255 }).notNull(),
+  purpose: varchar("purpose", { length: 32 }).default("LOGIN").notNull(),
+  expiresAt: text("expires_at").notNull(),
+  attempts: int("attempts").default(0).notNull(),
+  verifiedAt: text("verified_at"),
+  createdAt: text("created_at").notNull(),
+});
+
+export type AuthOtp = typeof authOtps.$inferSelect;
+export type InsertAuthOtp = typeof authOtps.$inferInsert;
+

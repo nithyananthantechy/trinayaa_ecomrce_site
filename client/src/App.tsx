@@ -14,6 +14,7 @@ import Contact from "./pages/Contact";
 import AdminLogin from "./pages/admin/AdminLogin";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import BulkEnquiryPage from "./pages/BulkEnquiryPage";
+import CustomerAccountPage from "./pages/CustomerAccountPage";
 import CustomerAssistantBot from "./components/CustomerAssistantBot";
 
 function Router() {
@@ -28,6 +29,7 @@ function Router() {
       <Route path="/policies/:type" component={PolicyPage} />
       <Route path="/track-order" component={TrackOrder} />
       <Route path="/bulk-enquiry" component={BulkEnquiryPage} />
+      <Route path="/account" component={CustomerAccountPage} />
       <Route path="/admin/login" component={AdminLogin} />
       <Route path="/admin" component={AdminDashboard} />
       <Route path="/admin/:sub*" component={AdminDashboard} />

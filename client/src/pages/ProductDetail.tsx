@@ -281,7 +281,7 @@ export default function ProductDetail() {
                 if (currentUser?.role === "ADMIN" || currentUser?.role === "SUPER_ADMIN") {
                   setLocation("/admin");
                 } else {
-                  setLocation("/");
+                  setLocation("/account");
                 }
               }}
               title="Account"
