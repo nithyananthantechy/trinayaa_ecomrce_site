@@ -1,7 +1,8 @@
-import { ArrowLeft, CheckCircle2, Mail, MapPin, Phone, ShieldCheck, Truck, Leaf, Menu, UserRound, ShoppingBag, Search, Instagram, Facebook, Youtube } from "lucide-react";
+import React from "react";
+import { ArrowLeft, CheckCircle2, Mail, ShieldCheck, Truck, Leaf, Menu, ShoppingBag, AlertCircle } from "lucide-react";
 import { trpc } from "@/lib/trpc";
-
 import BrandMark from "@/components/BrandMark";
+import StoreFooter from "@/components/StoreFooter";
 import { useLocation, useRoute } from "wouter";
 
 interface PolicyContent {
@@ -15,7 +16,7 @@ interface PolicyContent {
   }>;
 }
 
-const POLICIES: Record<string, PolicyContent> = {
+const STATIC_POLICIES: Record<string, PolicyContent> = {
   shipping: {
     title: "Shipping & Delivery Policy",
     subtitle: "Pan-India tracked delivery for fresh botanical herbs, pure seeds, and raw powders.",
@@ -224,7 +225,7 @@ const POLICIES: Record<string, PolicyContent> = {
         ],
         bullets: [
           "Customer Support Email: support@trinayaa.in",
-          "Customer Helpline: +91 98765 43210",
+          "Customer Helpline: +91 94422 18990",
           "Registered Facility Address: TRINAYAA ENTERPRISES, Erode, Tamil Nadu – 638002, India",
         ],
       },
@@ -248,9 +249,20 @@ export default function PolicyPage() {
   let policyKey = "shipping";
   if (matchAbout) policyKey = "about";
   else if (matchContact) policyKey = "contact";
-  else if (params?.type && POLICIES[params.type]) policyKey = params.type;
+  else if (params?.type) policyKey = params.type;
 
-  const content = POLICIES[policyKey] || POLICIES.shipping;
+  // Query dynamic policy CMS for CMS-managed slugs
+  const isCmsManaged = ["shipping", "returns", "privacy", "terms"].includes(policyKey);
+  const { data: dynamicPolicy, isLoading } = trpc.content.getPolicy.useQuery(
+    { slug: policyKey },
+    { enabled: isCmsManaged }
+  );
+
+  const fallback = STATIC_POLICIES[policyKey] || STATIC_POLICIES.shipping;
+
+  const title = dynamicPolicy?.title || fallback.title;
+  const subtitle = (dynamicPolicy && ("subtitle" in dynamicPolicy) && dynamicPolicy.subtitle) ? dynamicPolicy.subtitle : fallback.subtitle;
+  const lastUpdated = dynamicPolicy?.lastUpdated || fallback.lastUpdated;
 
   return (
     <div className="site-shell min-h-screen bg-[#FBF8F0] text-[#123D28]">
@@ -297,50 +309,79 @@ export default function PolicyPage() {
         <nav className="text-xs text-[#6B7280] mb-6 flex items-center gap-2" aria-label="Breadcrumb">
           <button onClick={() => setLocation("/")} className="hover:underline">Home</button>
           <span>/</span>
-          <span className="text-[#123D28] font-medium">{content.title}</span>
+          <span className="text-[#123D28] font-medium">{title}</span>
         </nav>
 
-        {/* Title */}
+        {/* Title Block */}
         <div className="border-b border-[#E5DECF] pb-8 mb-10">
           <span className="inline-flex items-center gap-1.5 text-xs font-semibold tracking-wider uppercase text-[#123D28] bg-[#EAE3D2] px-3 py-1 rounded-full mb-3">
             <ShieldCheck size={14} /> Official Store Policy
           </span>
           <h1 className="text-3xl md:text-4xl font-serif font-bold text-[#123D28] mb-3">
-            {content.title}
+            {title}
           </h1>
-          <p className="text-base text-[#4A5568] max-w-2xl leading-relaxed">
-            {content.subtitle}
-          </p>
+          {subtitle && (
+            <p className="text-base text-[#4A5568] max-w-2xl leading-relaxed">
+              {subtitle}
+            </p>
+          )}
           <span className="text-xs text-[#718096] block mt-4">
-            Last Updated: {content.lastUpdated} · TRINAYAA ENTERPRISES
+            Last Updated: {lastUpdated} · TRINAYAA ENTERPRISES
           </span>
         </div>
 
-        {/* Sections */}
-        <div className="space-y-10">
-          {content.sections.map((sec, idx) => (
-            <section key={idx} className="bg-white p-6 md:p-8 rounded-xl border border-[#E5DECF] shadow-xs">
-              <h2 className="text-xl font-serif font-bold text-[#123D28] mb-4">
-                {sec.heading}
-              </h2>
-              <div className="space-y-3 text-sm text-[#374151] leading-relaxed">
-                {sec.paragraphs.map((p, pIdx) => (
-                  <p key={pIdx}>{p}</p>
-                ))}
-              </div>
-              {sec.bullets && sec.bullets.length > 0 && (
-                <ul className="mt-4 space-y-2 text-sm text-[#374151]">
-                  {sec.bullets.map((b, bIdx) => (
-                    <li key={bIdx} className="flex items-start gap-2">
-                      <CheckCircle2 size={16} className="text-[#123D28] shrink-0 mt-0.5" />
-                      <span>{b}</span>
-                    </li>
-                  ))}
-                </ul>
-              )}
+        {/* Dynamic vs Static Content Rendering */}
+        {isCmsManaged && dynamicPolicy ? (
+          dynamicPolicy.isPublished ? (
+            <section className="bg-white p-6 md:p-8 rounded-xl border border-[#E5DECF] shadow-xs">
+              <div
+                className="prose prose-emerald max-w-none text-sm text-[#374151] leading-relaxed space-y-4"
+                dangerouslySetInnerHTML={{ __html: dynamicPolicy.content }}
+              />
             </section>
-          ))}
-        </div>
+          ) : (
+            <div className="bg-[#FFFBEB] border border-[#FDE68A] p-8 rounded-xl text-center shadow-xs">
+              <div className="w-12 h-12 rounded-full bg-[#FEF3C7] text-[#D97706] flex items-center justify-center mx-auto mb-4">
+                <AlertCircle size={24} />
+              </div>
+              <h2 className="text-xl font-serif font-bold text-[#92400E] mb-2">Policy Currently Being Updated</h2>
+              <p className="text-sm text-[#78350F] max-w-xl mx-auto mb-6 leading-relaxed">
+                This policy is currently undergoing periodic administrative review and revision by TRINAYAA Enterprises. Please check back shortly or reach out to our customer care team if you have immediate questions.
+              </p>
+              <a
+                href="mailto:support@trinayaa.in"
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-[#123D28] text-white text-xs font-medium hover:bg-[#0d2a1c] transition-colors"
+              >
+                <Mail size={15} /> Contact Support Desk
+              </a>
+            </div>
+          )
+        ) : (
+          <div className="space-y-10">
+            {fallback.sections.map((sec, idx) => (
+              <section key={idx} className="bg-white p-6 md:p-8 rounded-xl border border-[#E5DECF] shadow-xs">
+                <h2 className="text-xl font-serif font-bold text-[#123D28] mb-4">
+                  {sec.heading}
+                </h2>
+                <div className="space-y-3 text-sm text-[#374151] leading-relaxed">
+                  {sec.paragraphs.map((p, pIdx) => (
+                    <p key={pIdx}>{p}</p>
+                  ))}
+                </div>
+                {sec.bullets && sec.bullets.length > 0 && (
+                  <ul className="mt-4 space-y-2 text-sm text-[#374151]">
+                    {sec.bullets.map((b, bIdx) => (
+                      <li key={bIdx} className="flex items-start gap-2">
+                        <CheckCircle2 size={16} className="text-[#123D28] shrink-0 mt-0.5" />
+                        <span>{b}</span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </section>
+            ))}
+          </div>
+        )}
 
         {/* Contact Strip */}
         <div className="mt-12 p-6 rounded-xl bg-[#EAE3D2] border border-[#D5CBB5] flex flex-col sm:flex-row items-center justify-between gap-4">
@@ -359,52 +400,8 @@ export default function PolicyPage() {
         </div>
       </main>
 
-      {/* Official Site Footer */}
-      <footer className="site-footer">
-        <div className="footer-inner container-wide">
-          <div className="footer-brand">
-            <BrandMark inverse />
-            <p>Pure seeds. Raw powders.<br />True herbs.</p>
-            <div className="socials">
-              <a href="#footer" aria-label="Instagram"><Instagram size={16} /></a>
-              <a href="#footer" aria-label="Facebook"><Facebook size={16} /></a>
-              <a href="#footer" aria-label="Youtube"><Youtube size={16} /></a>
-            </div>
-          </div>
-          <div className="footer-column">
-            <span className="footer-title">Quick links</span>
-            <button onClick={() => setLocation("/")} className="text-left text-xs text-[#DFE7D7] hover:text-white block py-1">Home</button>
-            <button onClick={() => setLocation("/products")} className="text-left text-xs text-[#DFE7D7] hover:text-white block py-1">Products</button>
-            <button onClick={() => setLocation("/about")} className="text-left text-xs text-[#DFE7D7] hover:text-white block py-1">About</button>
-            <button onClick={() => setLocation("/contact")} className="text-left text-xs text-[#DFE7D7] hover:text-white block py-1">Contact</button>
-          </div>
-          <div className="footer-column">
-            <span className="footer-title">Customer Care</span>
-            <button onClick={() => setLocation("/contact")} className="text-left text-xs text-[#DFE7D7] hover:text-white block py-1">Contact Us</button>
-            <button onClick={() => setLocation("/track-order")} className="text-left text-xs text-[#DFE7D7] hover:text-white block py-1">Track Order</button>
-            <button onClick={() => setLocation("/policies/shipping")} className="text-left text-xs text-[#DFE7D7] hover:text-white block py-1">Shipping Policy</button>
-            <button onClick={() => setLocation("/policies/returns")} className="text-left text-xs text-[#DFE7D7] hover:text-white block py-1">Returns &amp; Refunds</button>
-          </div>
-          <div className="footer-column">
-            <span className="footer-title">Headquarters</span>
-            <p className="text-xs text-[#DFE7D7]/80 leading-relaxed">
-              TRINAYAA ENTERPRISES<br />
-              42, Kongu Nagar, Erode,<br />
-              Tamil Nadu – 638002, India<br />
-              support@trinayaa.in
-            </p>
-          </div>
-        </div>
-        <div className="footer-bottom container-wide">
-          <span>&copy; 2026 TRINAYAA ENTERPRISES. All rights reserved.</span>
-          <div className="footer-policies">
-            <button onClick={() => setLocation("/policies/shipping")} className="hover:underline">Shipping</button>
-            <button onClick={() => setLocation("/policies/returns")} className="hover:underline">Returns</button>
-            <button onClick={() => setLocation("/policies/privacy")} className="hover:underline">Privacy Policy</button>
-            <button onClick={() => setLocation("/policies/terms")} className="hover:underline">Terms &amp; Conditions</button>
-          </div>
-        </div>
-      </footer>
+      {/* Official Reusable Store Footer with Dynamic Social Links */}
+      <StoreFooter />
     </div>
   );
 }

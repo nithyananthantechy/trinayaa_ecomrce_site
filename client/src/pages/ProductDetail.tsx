@@ -32,6 +32,8 @@ import {
 
 import BrandMark from "@/components/BrandMark";
 import BulkEnquiryDialog from "@/components/BulkEnquiryDialog";
+import StoreFooter from "@/components/StoreFooter";
+
 
 function TrustRow() {
   return (
@@ -747,51 +749,7 @@ export default function ProductDetail() {
       </main>
 
       {/* Official Site Footer */}
-      <footer className="site-footer">
-        <div className="footer-inner container-wide">
-          <div className="footer-brand">
-            <BrandMark inverse />
-            <p>Pure seeds. Raw powders.<br />True herbs.</p>
-            <div className="socials">
-              <a href="#footer" aria-label="Instagram"><Instagram size={16} /></a>
-              <a href="#footer" aria-label="Facebook"><Facebook size={16} /></a>
-              <a href="#footer" aria-label="Youtube"><Youtube size={16} /></a>
-            </div>
-          </div>
-          <div className="footer-column">
-            <span className="footer-title">Quick links</span>
-            <button onClick={() => setLocation("/")} className="text-left text-xs text-[#DFE7D7] hover:text-white block py-1">Home</button>
-            <button onClick={() => setLocation("/products")} className="text-left text-xs text-[#DFE7D7] hover:text-white block py-1">Products</button>
-            <button onClick={() => setLocation("/about")} className="text-left text-xs text-[#DFE7D7] hover:text-white block py-1">About</button>
-            <button onClick={() => setLocation("/contact")} className="text-left text-xs text-[#DFE7D7] hover:text-white block py-1">Contact</button>
-          </div>
-          <div className="footer-column">
-            <span className="footer-title">Customer Care</span>
-            <button onClick={() => setLocation("/contact")} className="text-left text-xs text-[#DFE7D7] hover:text-white block py-1">Contact Us</button>
-            <button onClick={() => setLocation("/track-order")} className="text-left text-xs text-[#DFE7D7] hover:text-white block py-1">Track Order</button>
-            <button onClick={() => setLocation("/policies/shipping")} className="text-left text-xs text-[#DFE7D7] hover:text-white block py-1">Shipping Policy</button>
-            <button onClick={() => setLocation("/policies/returns")} className="text-left text-xs text-[#DFE7D7] hover:text-white block py-1">Returns &amp; Refunds</button>
-          </div>
-          <div className="footer-column">
-            <span className="footer-title">Headquarters</span>
-            <p className="text-xs text-[#DFE7D7]/80 leading-relaxed">
-              TRINAYAA ENTERPRISES<br />
-              42, Kongu Nagar, Erode,<br />
-              Tamil Nadu – 638002, India<br />
-              support@trinayaa.in
-            </p>
-          </div>
-        </div>
-        <div className="footer-bottom container-wide">
-          <span>&copy; 2026 TRINAYAA ENTERPRISES. All rights reserved.</span>
-          <div className="footer-policies">
-            <button onClick={() => setLocation("/policies/shipping")} className="hover:underline">Shipping</button>
-            <button onClick={() => setLocation("/policies/returns")} className="hover:underline">Returns</button>
-            <button onClick={() => setLocation("/policies/privacy")} className="hover:underline">Privacy Policy</button>
-            <button onClick={() => setLocation("/policies/terms")} className="hover:underline">Terms &amp; Conditions</button>
-          </div>
-        </div>
-      </footer>
+      <StoreFooter />
 
       {/* B2B Wholesale Enquiry Dialog */}
       <BulkEnquiryDialog

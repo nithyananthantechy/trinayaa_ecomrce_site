@@ -166,6 +166,8 @@ function formatINR(value: number) {
 }
 
 import BrandMark from "@/components/BrandMark";
+import StoreFooter from "@/components/StoreFooter";
+
 
 function SiteHeader({
   cartCount,
@@ -1616,49 +1618,7 @@ export default function Home() {
         <TrustRow />
       </main>
 
-      <footer className="site-footer">
-        <div className="footer-inner container-wide">
-          <div className="footer-brand">
-            <BrandMark inverse />
-            <p>Pure seeds. Raw powders.<br />True herbs.</p>
-            <div className="socials">
-              <a href="#footer" aria-label="Instagram"><Instagram size={16} /></a>
-              <a href="#footer" aria-label="Facebook"><Facebook size={16} /></a>
-              <a href="#footer" aria-label="Youtube"><Youtube size={16} /></a>
-            </div>
-          </div>
-          <div className="footer-column">
-            <span className="footer-title">Quick links</span>
-            <button onClick={() => setLocation("/")} className="text-left text-xs text-[#DFE7D7] hover:text-white block py-1">Home</button>
-            <button onClick={() => setLocation("/products")} className="text-left text-xs text-[#DFE7D7] hover:text-white block py-1">Products</button>
-            <button onClick={() => setLocation("/bulk-enquiry")} className="text-left text-xs text-[#DFE7D7] hover:text-white block py-1">Bulk / Wholesale</button>
-            <button onClick={() => setLocation("/about")} className="text-left text-xs text-[#DFE7D7] hover:text-white block py-1">About</button>
-            <button onClick={() => setLocation("/contact")} className="text-left text-xs text-[#DFE7D7] hover:text-white block py-1">Contact</button>
-          </div>
-          <div className="footer-column">
-            <span className="footer-title">Customer care</span>
-            <button onClick={() => setLocation("/about")}>About Us</button>
-            <button onClick={() => setLocation("/contact")}>Contact</button>
-            <button onClick={() => setLocation("/track-order")}>Track Order</button>
-            <button onClick={() => setLocation("/admin/login")}>Admin Portal</button>
-          </div>
-          <div className="footer-column footer-contact">
-            <span className="footer-title">Contact us</span>
-            <span><MapPin size={15} /> Erode, Tamil Nadu – 638002</span>
-            <a href="mailto:support@trinayaa.in"><Mail size={15} /> support@trinayaa.in</a>
-            <a href="tel:+919876543210"><Phone size={15} /> +91 98765 43210</a>
-          </div>
-        </div>
-        <div className="footer-bottom container-wide">
-          <span>© 2026 TRINAYAA ENTERPRISES. All rights reserved.</span>
-          <div>
-            <button onClick={() => setLocation("/policies/privacy")} className="hover:underline">Privacy Policy</button>
-            <button onClick={() => setLocation("/policies/terms")} className="hover:underline">Terms & Conditions</button>
-            <button onClick={() => setLocation("/policies/shipping")} className="hover:underline">Shipping Policy</button>
-            <button onClick={() => setLocation("/policies/returns")} className="hover:underline">Return Policy</button>
-          </div>
-        </div>
-      </footer>
+      <StoreFooter />
 
       <CartDrawer
         cart={cart}

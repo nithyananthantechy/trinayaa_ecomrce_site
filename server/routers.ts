@@ -13,6 +13,7 @@ import { checkRateLimit, resetRateLimit } from "./rateLimit";
 import { generateAiProductImage, assignAiImageToProduct } from "./aiImage";
 import { processCustomerQuery } from "./customerAssistant";
 import { normalizeIndianPhone, isValidIndianPhone, generateSecureOtp, hashOtp, sendOtpSms } from "./smsService";
+import { sanitizeHtml } from "./sanitize";
 
 // In-memory duplicate submission cache for B2B enquiries (60s cooldown)
 const recentEnquiriesStore = new Map<string, number>();
@@ -1399,6 +1400,43 @@ addresses: router({
       const promo = db.siteContentRepo.get("promo_banner") || "Free delivery on orders above ₹799";
       return { topBanner: top, promoBanner: promo };
     }),
+
+    getPolicy: publicProcedure
+      .input(z.object({ slug: z.string() }))
+      .query(async ({ input }) => {
+        let slug = input.slug.toLowerCase().trim();
+        if (slug === "refund") slug = "returns";
+        const policy = db.policiesRepo.getPolicy(slug);
+        if (!policy) {
+          throw new TRPCError({ code: "NOT_FOUND", message: `Policy "${input.slug}" not found.` });
+        }
+        if (!policy.isPublished) {
+          return {
+            slug: policy.slug,
+            title: policy.title,
+            subtitle: policy.subtitle,
+            isPublished: false,
+            lastUpdated: policy.lastUpdated,
+            content: "",
+            message: "This policy is currently being updated by TRINAYAA administration.",
+          };
+        }
+        return policy;
+      }),
+
+    getSocialLinks: publicProcedure.query(async () => {
+      const cfg = db.socialLinksRepo.getConfig();
+      return {
+        instagram: cfg.instagram || null,
+        facebook: cfg.facebook || null,
+        whatsappUrl: cfg.whatsappUrl || null,
+        whatsappPhone: cfg.whatsappPhone || null,
+      };
+    }),
+
+    listPublishedPolicies: publicProcedure.query(async () => {
+      return db.policiesRepo.getAllPolicies().filter((p) => p.isPublished);
+    }),
   }),
 
     // ==========================================
@@ -2110,6 +2148,78 @@ addresses: router({
         .mutation(async ({ input }) => {
           const success = db.campaignsRepo.delete(input.id);
           return { success };
+        }),
+    }),
+
+    // --- WEBSITE POLICIES CMS (PHASE 8) ---
+    policies: router({
+      getAll: adminProcedure.query(async () => {
+        return db.policiesRepo.getAllPolicies();
+      }),
+
+      get: adminProcedure
+        .input(z.object({ slug: z.string() }))
+        .query(async ({ input }) => {
+          let slug = input.slug.toLowerCase().trim();
+          if (slug === "refund") slug = "returns";
+          const policy = db.policiesRepo.getPolicy(slug);
+          if (!policy) {
+            throw new TRPCError({ code: "NOT_FOUND", message: `Policy "${input.slug}" not found.` });
+          }
+          return policy;
+        }),
+
+      update: adminProcedure
+        .input(
+          z.object({
+            slug: z.string(),
+            title: z.string().min(1, "Policy title is required"),
+            subtitle: z.string().optional(),
+            content: z.string(),
+            isPublished: z.boolean(),
+            lastUpdated: z.string().optional(),
+          })
+        )
+        .mutation(async ({ input, ctx }) => {
+          const sanitized = sanitizeHtml(input.content);
+          const policy = db.policiesRepo.updatePolicy({
+            ...input,
+            content: sanitized,
+            actor: ctx.user?.name || "Admin",
+          });
+          return {
+            success: true,
+            ...policy,
+            policy,
+          };
+        }),
+    }),
+
+    // --- SOCIAL LINKS & WHATSAPP (PHASE 8) ---
+    social: router({
+      getConfig: adminProcedure.query(async () => {
+        return db.socialLinksRepo.getConfig();
+      }),
+
+      updateConfig: adminProcedure
+        .input(
+          z.object({
+            instagram: z.string().optional(),
+            facebook: z.string().optional(),
+            whatsappPhone: z.string().optional(),
+            whatsappMessage: z.string().optional(),
+          })
+        )
+        .mutation(async ({ input, ctx }) => {
+          const config = db.socialLinksRepo.updateConfig({
+            ...input,
+            actor: ctx.user?.name || "Admin",
+          });
+          return {
+            success: true,
+            ...config,
+            config,
+          };
         }),
     }),
 

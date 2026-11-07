@@ -48,6 +48,7 @@ import {
 } from "lucide-react";
 import EnquiriesTab from "./EnquiriesTab";
 import RewardsTab from "./RewardsTab";
+import PolicyCmsTab from "./PolicyCmsTab";
 import { Award } from "lucide-react";
 
 type AdminTab =
@@ -63,6 +64,7 @@ type AdminTab =
   | "offers"
   | "import"
   | "rewards"
+  | "policies"
   | "content"
   | "settings"
   | "telegram"
@@ -80,6 +82,7 @@ export default function AdminDashboard() {
     if (location.startsWith("/admin/enquiries")) return "enquiries";
     if (location.startsWith("/admin/helpdesk")) return "helpdesk";
     if (location.startsWith("/admin/feedback")) return "feedback";
+    if (location.startsWith("/admin/policies")) return "policies";
     if (location.startsWith("/admin/rewards")) return "rewards";
     if (location.startsWith("/admin/customers")) return "customers";
     if (location.startsWith("/admin/offers")) return "offers";
@@ -258,6 +261,34 @@ export default function AdminDashboard() {
       setRewardsEnabledInput(rewardsSettingsData.rewardsEnabled ?? true);
     }
   }, [rewardsSettingsData]);
+
+  // Phase 8: Social Links State
+  const { data: socialConfigData, refetch: refetchSocialConfig } = trpc.admin.social.getConfig.useQuery(undefined, {
+    enabled: Boolean(currentUser && activeTab === "settings"),
+  });
+  const [instagramInput, setInstagramInput] = useState("");
+  const [facebookInput, setFacebookInput] = useState("");
+  const [whatsappPhoneInput, setWhatsappPhoneInput] = useState("");
+  const [whatsappMsgInput, setWhatsappMsgInput] = useState("");
+
+  useEffect(() => {
+    if (socialConfigData) {
+      setInstagramInput(socialConfigData.instagram || "");
+      setFacebookInput(socialConfigData.facebook || "");
+      setWhatsappPhoneInput(socialConfigData.whatsappPhone || "");
+      setWhatsappMsgInput(socialConfigData.whatsappMessage || "");
+    }
+  }, [socialConfigData]);
+
+  const updateSocialMutation = trpc.admin.social.updateConfig.useMutation({
+    onSuccess: () => {
+      toast.success("Social media and WhatsApp configuration saved!");
+      refetchSocialConfig();
+    },
+    onError: (err) => {
+      toast.error(err.message || "Failed to update social links");
+    },
+  });
 
   const setRewardsSettingsMutation = trpc.admin.settings.setRewardsSettings.useMutation({
     onSuccess: () => {
@@ -590,6 +621,7 @@ export default function AdminDashboard() {
     { id: "feedback" as AdminTab, label: "Feedback & Reviews", icon: Star },
               { id: "customers" as AdminTab, label: "Customers", icon: Users },
               { id: "rewards" as AdminTab, label: "Rewards & Loyalty", icon: Award },
+              { id: "policies" as AdminTab, label: "Website Policies CMS", icon: FileText },
               { id: "offers" as AdminTab, label: "Festival Offers", icon: Tag },
               { id: "import" as AdminTab, label: "Bulk Import / Export", icon: FileSpreadsheet },
               { id: "content" as AdminTab, label: "Store Content", icon: FileText },
@@ -1977,6 +2009,96 @@ export default function AdminDashboard() {
                     {setRewardsSettingsMutation.isPending ? "Saving..." : "Save Rewards Configuration"}
                   </button>
                 </div>
+
+                {/* Phase 8: Social Links & WhatsApp Configuration */}
+                <div className="p-4 bg-[#FBF8F0] border border-[#DEDFD5] rounded space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <label className="block font-semibold text-[#123D28]">Social Media &amp; WhatsApp Links</label>
+                      <span className="text-[10px] text-[#6C7167]">
+                        Manage public storefront footer social links (Instagram, Facebook, and WhatsApp).
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="space-y-3 pt-1 text-xs">
+                    <div>
+                      <label className="block font-semibold mb-1">Instagram URL</label>
+                      <input
+                        type="url"
+                        value={instagramInput}
+                        onChange={(e) => setInstagramInput(e.target.value)}
+                        placeholder="https://www.instagram.com/trinayaa_botanicals"
+                        className="w-full px-3 py-1.5 border border-[#DEDFD5] rounded bg-white text-xs font-mono"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block font-semibold mb-1">Facebook URL</label>
+                      <input
+                        type="url"
+                        value={facebookInput}
+                        onChange={(e) => setFacebookInput(e.target.value)}
+                        placeholder="https://www.facebook.com/trinayaa.enterprises"
+                        className="w-full px-3 py-1.5 border border-[#DEDFD5] rounded bg-white text-xs font-mono"
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <label className="block font-semibold mb-1">WhatsApp Business Phone</label>
+                        <input
+                          type="text"
+                          value={whatsappPhoneInput}
+                          onChange={(e) => setWhatsappPhoneInput(e.target.value)}
+                          placeholder="+91 94422 18990"
+                          className="w-full px-3 py-1.5 border border-[#DEDFD5] rounded bg-white text-xs font-mono"
+                        />
+                      </div>
+                      <div>
+                        <label className="block font-semibold mb-1">Default Pre-filled Chat Message</label>
+                        <input
+                          type="text"
+                          value={whatsappMsgInput}
+                          onChange={(e) => setWhatsappMsgInput(e.target.value)}
+                          placeholder="Hello TRINAYAA, I would like to inquire about..."
+                          className="w-full px-3 py-1.5 border border-[#DEDFD5] rounded bg-white text-xs"
+                        />
+                      </div>
+                    </div>
+
+                    {socialConfigData?.whatsappUrl && (
+                      <div className="p-2.5 bg-white rounded border border-[#EFECE4] text-[11px] font-mono text-[#123D28] flex items-center justify-between gap-2 overflow-hidden">
+                        <span className="truncate">Live WhatsApp Link: {socialConfigData.whatsappUrl}</span>
+                        <a
+                          href={socialConfigData.whatsappUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-[#AE6A2B] hover:underline font-bold shrink-0 flex items-center gap-1"
+                        >
+                          <span>Test</span>
+                          <ExternalLink size={11} />
+                        </a>
+                      </div>
+                    )}
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        updateSocialMutation.mutate({
+                          instagram: instagramInput.trim() || undefined,
+                          facebook: facebookInput.trim() || undefined,
+                          whatsappPhone: whatsappPhoneInput.trim() || undefined,
+                          whatsappMessage: whatsappMsgInput.trim() || undefined,
+                        });
+                      }}
+                      disabled={updateSocialMutation.isPending}
+                      className="dark-button text-xs py-1.5 px-4"
+                    >
+                      {updateSocialMutation.isPending ? "Saving..." : "Save Social Links"}
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
           )}
@@ -1994,6 +2116,7 @@ export default function AdminDashboard() {
           {activeTab === "helpdesk" && <SupportHelpdeskTab />}
           {activeTab === "feedback" && <CustomerFeedbackTab />}
           {activeTab === "rewards" && <RewardsTab />}
+          {activeTab === "policies" && <PolicyCmsTab />}
 
           {/* ========================================== */}
           {activeTab === "telegram" && (
