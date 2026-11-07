@@ -217,6 +217,38 @@ export default function AdminDashboard() {
     onError: (err) => toast.error(err.message || "Failed to update product"),
   });
 
+  // Phase 5: Product COD and Store Settings Mutations
+  const { data: storeSettings, refetch: refetchSettings } = trpc.admin.settings.getMinimumCod.useQuery(undefined, {
+    enabled: Boolean(currentUser && activeTab === "settings"),
+  });
+  const [minCodValue, setMinCodValue] = useState("150");
+
+  useEffect(() => {
+    if (storeSettings?.minimumCodOrderValue !== undefined) {
+      setMinCodValue(String(storeSettings.minimumCodOrderValue));
+    }
+  }, [storeSettings]);
+
+  const setMinCodMutation = trpc.admin.settings.setMinimumCod.useMutation({
+    onSuccess: (res) => {
+      toast.success(`Minimum COD order value updated to ₹${res.minimumCodOrderValue}`);
+      refetchSettings();
+    },
+    onError: (err) => {
+      toast.error(err.message || "Failed to update minimum COD setting");
+    },
+  });
+
+  const toggleCodMutation = trpc.admin.products.toggleCod.useMutation({
+    onSuccess: (updated) => {
+      toast.success(`COD for ${updated.nameEn} ${updated.isCodAvailable ? "enabled" : "disabled"}`);
+      refetchProducts();
+    },
+    onError: (err) => {
+      toast.error(err.message || "Failed to toggle COD setting");
+    },
+  });
+
   const archiveProductMutation = trpc.admin.products.archive.useMutation({
     onSuccess: () => {
       toast.success("Product archived successfully");
@@ -865,6 +897,7 @@ export default function AdminDashboard() {
                         <th className="py-3 px-3">Selling Price</th>
                         <th className="py-3 px-3">MRP</th>
                         <th className="py-3 px-3">Stock Level</th>
+                        <th className="py-3 px-3 text-center">COD</th>
                         <th className="py-3 px-3">Status</th>
                         <th className="py-3 px-3 text-right">Actions</th>
                       </tr>
@@ -929,6 +962,27 @@ export default function AdminDashboard() {
                                   : "border-[#DEDFD5] bg-white"
                               }`}
                             />
+                          </td>
+                          <td className="py-2.5 px-3 text-center">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                toggleCodMutation.mutate({
+                                  id: p.id,
+                                  isCodAvailable: !p.isCodAvailable,
+                                });
+                              }}
+                              disabled={toggleCodMutation.isPending}
+                              title={p.isCodAvailable ? "Click to disable COD for this product" : "Click to enable COD for this product"}
+                              className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold transition-all ${
+                                p.isCodAvailable
+                                  ? "bg-emerald-100 text-emerald-800 hover:bg-emerald-200"
+                                  : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+                              }`}
+                            >
+                              {p.isCodAvailable ? <CheckCircle2 size={11} /> : <AlertTriangle size={11} />}
+                              {p.isCodAvailable ? "COD ON" : "COD OFF"}
+                            </button>
                           </td>
                           <td className="py-2.5 px-3">
                             <span
@@ -1675,6 +1729,39 @@ export default function AdminDashboard() {
                     className="w-full px-3 py-2 border border-[#DEDFD5] rounded bg-[#FBF8F0]"
                   />
                 </div>
+
+                <div className="p-3 bg-[#FBF8F0] border border-[#DEDFD5] rounded space-y-2">
+                  <label className="block font-semibold text-[#123D28]">Minimum Cash on Delivery (COD) Order Value (₹)</label>
+                  <div className="flex gap-2">
+                    <input
+                      type="number"
+                      min="0"
+                      step="1"
+                      value={minCodValue}
+                      onChange={(e) => setMinCodValue(e.target.value)}
+                      placeholder="150"
+                      className="w-full px-3 py-2 border border-[#DEDFD5] rounded bg-white font-bold text-[#123D28]"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const val = parseFloat(minCodValue);
+                        if (isNaN(val) || val < 0) {
+                          toast.error("Please enter a valid non-negative number.");
+                          return;
+                        }
+                        setMinCodMutation.mutate({ minimumCodOrderValue: val });
+                      }}
+                      disabled={setMinCodMutation.isPending}
+                      className="dark-button text-xs py-2 px-4 shrink-0"
+                    >
+                      {setMinCodMutation.isPending ? "Saving..." : "Save Setting"}
+                    </button>
+                  </div>
+                  <span className="text-[10px] text-[#6C7167] block">
+                    Orders with merchandise value below this threshold will not be eligible for Cash on Delivery. (Default: ₹150).
+                  </span>
+                </div>
                 <div>
                   <label className="block font-semibold mb-1">Low-Stock Alert Trigger Threshold</label>
                   <input
@@ -1982,6 +2069,7 @@ export default function AdminDashboard() {
                   mrp,
                   stock: parseInt(form.stock.value, 10),
                   status: form.status.value,
+                  isCodAvailable: form.isCodAvailable.checked,
                   shortDesc: form.shortDesc.value.trim(),
                   primaryImage: form.primaryImage.value.trim(),
                 };
@@ -2145,6 +2233,22 @@ export default function AdminDashboard() {
                   defaultValue={editingProduct?.description || ""}
                   className="w-full px-2.5 py-1.5 border rounded bg-[#FBF8F0]"
                 />
+              </div>
+
+              <div className="flex items-center gap-2 p-2.5 bg-[#FBF8F0] border border-[#DEDFD5] rounded">
+                <input
+                  type="checkbox"
+                  id="isCodAvailable"
+                  name="isCodAvailable"
+                  defaultChecked={editingProduct ? Boolean(editingProduct.isCodAvailable) : true}
+                  className="rounded accent-[#123D28] w-4 h-4 cursor-pointer"
+                />
+                <label htmlFor="isCodAvailable" className="font-semibold text-[#123D28] cursor-pointer">
+                  Cash on Delivery (COD) Available
+                </label>
+                <span className="text-[10px] text-[#6C7167] ml-auto">
+                  Uncheck to restrict this item to online payment only.
+                </span>
               </div>
 
               <div className="pt-2 flex justify-end gap-2">

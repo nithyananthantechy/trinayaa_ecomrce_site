@@ -472,6 +472,28 @@ function CheckoutModal({
 
   const subtotal = cart.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0);
 
+  // Phase 5: Server-side COD Eligibility Check
+  const { data: codEligibility } = trpc.orders.checkCodEligibility.useQuery(
+    {
+      items: cart.map((it) => ({
+        productId: it.id,
+        packSize: it.size,
+        quantity: it.quantity,
+      })),
+      couponCode: appliedCoupon?.code,
+    },
+    { enabled: open && cart.length > 0 }
+  );
+
+  const isCodAvailableForCart = codEligibility?.isEligible ?? true;
+  const codIneligibilityReason = codEligibility?.reason;
+
+  useEffect(() => {
+    if (!isCodAvailableForCart && payment === "cod") {
+      setPayment("upi");
+    }
+  }, [isCodAvailableForCart, payment]);
+
   // Mutations
   const validateCouponMutation = trpc.offers.validateCoupon.useMutation({
     onSuccess: (res) => {
@@ -720,17 +742,41 @@ function CheckoutModal({
                   <h3>Payment method</h3>
                   <div className="payment-options">
                     {[
-                      ["upi", "UPI / QR", "Fast and familiar"],
-                      ["card", "Card", "Visa, Mastercard & RuPay"],
-                      ["cod", "Cash on delivery", "Available across India"],
-                    ].map(([value, title, desc]) => (
-                      <label className={`payment-option ${payment === value ? "is-selected" : ""}`} key={value}>
-                        <input type="radio" name="payment" value={value} checked={payment === value} onChange={(e) => setPayment(e.target.value)} />
+                      { value: "upi", title: "UPI / QR", desc: "Fast and familiar", disabled: false },
+                      { value: "card", title: "Card", desc: "Visa, Mastercard & RuPay", disabled: false },
+                      {
+                        value: "cod",
+                        title: "Cash on delivery",
+                        desc: isCodAvailableForCart
+                          ? "Available across India"
+                          : codIneligibilityReason || "Unavailable for this order",
+                        disabled: !isCodAvailableForCart,
+                      },
+                    ].map((opt) => (
+                      <label
+                        className={`payment-option ${payment === opt.value ? "is-selected" : ""} ${
+                          opt.disabled ? "opacity-60 cursor-not-allowed bg-slate-50/80" : ""
+                        }`}
+                        key={opt.value}
+                      >
+                        <input
+                          type="radio"
+                          name="payment"
+                          value={opt.value}
+                          disabled={opt.disabled}
+                          checked={payment === opt.value}
+                          onChange={(e) => {
+                            if (!opt.disabled) setPayment(e.target.value);
+                          }}
+                        />
                         <span className="payment-icon">
-                          {value === "upi" ? <Sparkles size={18} /> : value === "card" ? <CreditCard size={18} /> : <Package size={18} />}
+                          {opt.value === "upi" ? <Sparkles size={18} /> : opt.value === "card" ? <CreditCard size={18} /> : <Package size={18} />}
                         </span>
-                        <span><strong>{title}</strong><small>{desc}</small></span>
-                        {payment === value && <CheckCircle2 size={18} className="payment-check" />}
+                        <span>
+                          <strong>{opt.title}</strong>
+                          <small className={opt.disabled ? "text-amber-800 font-semibold" : ""}>{opt.desc}</small>
+                        </span>
+                        {payment === opt.value && <CheckCircle2 size={18} className="payment-check" />}
                       </label>
                     ))}
                   </div>

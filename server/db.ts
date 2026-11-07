@@ -536,8 +536,8 @@ export const productsRepo = {
       INSERT OR REPLACE INTO products (
         id, sku, nameEn, nameTa, slug, shortDesc, fullDesc, categoryId, productType,
         primaryImage, gallery, sellingPrice, mrp, discountPrice, stock, stockAvailability,
-        status, featured, seoTitle, seoDescription, seoKeywords, createdAt, updatedAt
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        status, featured, isCodAvailable, seoTitle, seoDescription, seoKeywords, createdAt, updatedAt
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
       id,
       data.sku,
@@ -557,6 +557,7 @@ export const productsRepo = {
       data.stockAvailability || "In Stock",
       data.status || "Published",
       data.featured ? 1 : 0,
+      data.isCodAvailable !== undefined ? (data.isCodAvailable ? 1 : 0) : 1,
       data.seoTitle || "",
       data.seoDescription || "",
       data.seoKeywords || "",
@@ -597,13 +598,13 @@ export const productsRepo = {
     const allowed = [
       "sku", "nameEn", "nameTa", "slug", "shortDesc", "fullDesc", "categoryId",
       "productType", "primaryImage", "sellingPrice", "mrp", "discountPrice",
-      "stock", "stockAvailability", "status", "featured", "seoTitle", "seoDescription", "seoKeywords"
+      "stock", "stockAvailability", "status", "featured", "isCodAvailable", "seoTitle", "seoDescription", "seoKeywords"
     ];
 
     for (const key of allowed) {
       if (updates[key] !== undefined) {
         fields.push(`${key} = ?`);
-        if (key === "featured") {
+        if (key === "featured" || key === "isCodAvailable") {
           values.push(updates[key] ? 1 : 0);
         } else {
           values.push(updates[key]);
@@ -694,6 +695,21 @@ export const productsRepo = {
     const availability = stock > 0 ? "In Stock" : "Out of Stock";
     db.prepare("UPDATE products SET stock = ?, stockAvailability = ?, updatedAt = ? WHERE id = ?")
       .run(stock, availability, new Date().toISOString(), id);
+    return this.getById(id);
+  },
+
+  toggleCod(id: string, isCodAvailable?: boolean) {
+    const db = getDatabase();
+    const existing = db.prepare("SELECT * FROM products WHERE id = ?").get(id) as any;
+    if (!existing) return null;
+
+    const newVal = isCodAvailable !== undefined
+      ? (isCodAvailable ? 1 : 0)
+      : (existing.isCodAvailable === 1 ? 0 : 1);
+
+    db.prepare("UPDATE products SET isCodAvailable = ?, updatedAt = ? WHERE id = ?")
+      .run(newVal, new Date().toISOString(), id);
+
     return this.getById(id);
   },
 
@@ -811,6 +827,7 @@ function formatProduct(p: any) {
     rawPrimaryImage: p.primaryImage,
     description: p.shortDesc || p.fullDesc || "",
     featured: Boolean(p.featured),
+    isCodAvailable: p.isCodAvailable !== undefined ? (p.isCodAvailable === 1 || p.isCodAvailable === true || p.isCodAvailable === "1") : true,
     sizes,
     gallery: gallery.length > 0 ? gallery : [resolvedImg],
   };
@@ -2438,8 +2455,74 @@ export const siteContentRepo = {
     db.prepare("INSERT OR REPLACE INTO site_content (key, value, updatedAt) VALUES (?, ?, ?)")
       .run(key, value, now);
     return { key, value, updatedAt: now };
+  },
+
+  getMinimumCodOrderValue(): number {
+    const val = this.get("minimum_cod_order_value");
+    if (val === null || val === undefined || isNaN(Number(val)) || Number(val) < 0) {
+      return 150;
+    }
+    return Number(val);
+  },
+
+  setMinimumCodOrderValue(value: number): number {
+    if (typeof value !== "number" || isNaN(value) || value < 0) {
+      throw new Error("Minimum COD order value must be a non-negative number.");
+    }
+    this.set("minimum_cod_order_value", String(value));
+    return value;
   }
 };
+
+export function checkOrderCodEligibility(
+  items: Array<{ productId: string; quantity?: number; packSize?: string }>,
+  subtotal: number,
+  discountAmount = 0
+): {
+  isEligible: boolean;
+  minimumCodOrderValue: number;
+  eligibleSubtotal: number;
+  reason?: string;
+  ineligibleProducts: Array<{ id: string; nameEn: string; sku: string }>;
+} {
+  const minCod = siteContentRepo.getMinimumCodOrderValue();
+  const eligibleSubtotal = Math.max(0, subtotal - discountAmount);
+  const ineligibleProducts: Array<{ id: string; nameEn: string; sku: string }> = [];
+
+  for (const it of items) {
+    const prod = productsRepo.getById(it.productId);
+    if (prod && prod.isCodAvailable === false) {
+      ineligibleProducts.push({ id: prod.id, nameEn: prod.nameEn, sku: prod.sku });
+    }
+  }
+
+  if (ineligibleProducts.length > 0) {
+    return {
+      isEligible: false,
+      minimumCodOrderValue: minCod,
+      eligibleSubtotal,
+      reason: "Cash on Delivery is unavailable because one or more items in your cart do not support COD.",
+      ineligibleProducts,
+    };
+  }
+
+  if (eligibleSubtotal < minCod) {
+    return {
+      isEligible: false,
+      minimumCodOrderValue: minCod,
+      eligibleSubtotal,
+      reason: `Cash on Delivery is available for orders of ₹${minCod} or more.`,
+      ineligibleProducts: [],
+    };
+  }
+
+  return {
+    isEligible: true,
+    minimumCodOrderValue: minCod,
+    eligibleSubtotal,
+    ineligibleProducts: [],
+  };
+}
 
 // ==========================================
 // 8. TELEGRAM ADMIN & AUDIT REPOSITORY

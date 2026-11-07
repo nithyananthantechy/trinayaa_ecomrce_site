@@ -79,6 +79,7 @@ export const products = mysqlTable("products", {
   stockAvailability: varchar("stockAvailability", { length: 64 }).default("In Stock").notNull(),
   status: varchar("status", { length: 32 }).default("Published").notNull(), // 'Published' | 'Draft' | 'Archived'
   featured: int("featured").default(0).notNull(),
+  isCodAvailable: int("isCodAvailable").default(1).notNull(),
   seoTitle: text("seoTitle"),
   seoDescription: text("seoDescription"),
   seoKeywords: text("seoKeywords"),

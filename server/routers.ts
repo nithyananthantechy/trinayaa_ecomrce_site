@@ -34,6 +34,15 @@ export const appRouter = router({
   system: systemRouter,
 
   // ==========================================
+  // STORE SETTINGS & CONFIGURATION (PHASE 5)
+  // ==========================================
+  settings: router({
+    getMinimumCod: publicProcedure.query(async () => {
+      return { minimumCodOrderValue: db.siteContentRepo.getMinimumCodOrderValue() };
+    }),
+  }),
+
+  // ==========================================
   // AUTHENTICATION ROUTER
   // ==========================================
   auth: router({
@@ -1052,6 +1061,17 @@ addresses: router({
         const shippingFee = subtotal >= 799 ? 0 : 60;
         const total = Math.max(0, subtotal - discountAmount + shippingFee);
 
+                // Validate COD Eligibility strictly on server
+        if (input.paymentMethod === "COD") {
+          const codCheck = db.checkOrderCodEligibility(input.items, subtotal, discountAmount);
+          if (!codCheck.isEligible) {
+            throw new TRPCError({
+              code: "BAD_REQUEST",
+              message: codCheck.reason || "Cash on Delivery is not available for this order.",
+            });
+          }
+        }
+
         // 4. Create Order with snapshot data
         const order = db.ordersRepo.create(
           {
@@ -1073,6 +1093,41 @@ addresses: router({
         );
 
         return order;
+      }),
+
+    checkCodEligibility: publicProcedure
+      .input(
+        z.object({
+          items: z.array(
+            z.object({
+              productId: z.string(),
+              packSize: z.string().optional(),
+              quantity: z.number().optional().default(1),
+            })
+          ),
+          couponCode: z.string().optional(),
+        })
+      )
+      .query(async ({ input }) => {
+        let subtotal = 0;
+        for (const item of input.items) {
+          const product = db.productsRepo.getById(item.productId);
+          if (product) {
+            const matchedSize = product.sizes?.find((s: any) => s.label === item.packSize);
+            const unitPrice = matchedSize ? matchedSize.price : product.price;
+            subtotal += unitPrice * (item.quantity || 1);
+          }
+        }
+
+        let discountAmount = 0;
+        if (input.couponCode && input.couponCode.trim()) {
+          const couponResult = db.campaignsRepo.validateCoupon(input.couponCode.trim(), subtotal);
+          if (couponResult.valid) {
+            discountAmount = couponResult.discountAmount || 0;
+          }
+        }
+
+        return db.checkOrderCodEligibility(input.items, subtotal, discountAmount);
       }),
 
     track: publicProcedure
@@ -1528,6 +1583,23 @@ addresses: router({
           return res;
         }),
 
+      toggleCod: adminProcedure
+        .input(
+          z.object({
+            id: z.string(),
+            isCodAvailable: z.boolean().optional(),
+          })
+        )
+        .mutation(async ({ input, ctx }) => {
+          const res = db.productsRepo.toggleCod(input.id, input.isCodAvailable);
+          db.auditLogsRepo.log(
+            ctx.user?.name || "Admin",
+            "PRODUCT_COD_TOGGLE",
+            `Product ID: ${input.id}, isCodAvailable: ${res?.isCodAvailable}`
+          );
+          return res;
+        }),
+
       updateStock: adminProcedure
         .input(z.object({ id: z.string(), stock: z.number(), reason: z.string().optional() }))
         .mutation(async ({ input, ctx }) => {
@@ -1807,6 +1879,29 @@ addresses: router({
         )
         .query(async ({ input }) => {
           return db.usersRepo.exportCustomersCsv(input || {});
+        }),
+    }),
+
+    // --- SETTINGS (PHASE 5: COD CONTROLS) ---
+    settings: router({
+      getMinimumCod: adminProcedure.query(async () => {
+        return { minimumCodOrderValue: db.siteContentRepo.getMinimumCodOrderValue() };
+      }),
+
+      setMinimumCod: adminProcedure
+        .input(
+          z.object({
+            minimumCodOrderValue: z.number().min(0, "Minimum COD order value must be non-negative"),
+          })
+        )
+        .mutation(async ({ input, ctx }) => {
+          const val = db.siteContentRepo.setMinimumCodOrderValue(input.minimumCodOrderValue);
+          db.auditLogsRepo.log(
+            ctx.user?.name || "Admin",
+            "SETTING_MINIMUM_COD_UPDATE",
+            `Minimum COD order value set to ₹${val}`
+          );
+          return { success: true, minimumCodOrderValue: val };
         }),
     }),
 
