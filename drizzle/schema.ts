@@ -80,6 +80,7 @@ export const products = mysqlTable("products", {
   status: varchar("status", { length: 32 }).default("Published").notNull(), // 'Published' | 'Draft' | 'Archived'
   featured: int("featured").default(0).notNull(),
   isCodAvailable: int("isCodAvailable").default(1).notNull(),
+  isRewardEligible: int("isRewardEligible").default(1).notNull(),
   seoTitle: text("seoTitle"),
   seoDescription: text("seoDescription"),
   seoKeywords: text("seoKeywords"),
@@ -526,4 +527,43 @@ export const lowStockAlerts = mysqlTable("low_stock_alerts", {
 
 export type LowStockAlert = typeof lowStockAlerts.$inferSelect;
 export type InsertLowStockAlert = typeof lowStockAlerts.$inferInsert;
+
+// ==========================================
+// 21. CUSTOMER REWARD TRANSACTIONS (PHASE 7)
+// ==========================================
+export const customerRewardTransactions = mysqlTable("customer_reward_transactions", {
+  id: varchar("id", { length: 64 }).primaryKey(),
+  customerId: varchar("customerId", { length: 64 }).notNull(),
+  transactionType: varchar("transactionType", { length: 64 }).notNull(), // 'FEEDBACK_EARNED' | 'REWARD_REDEEMED' | 'ADMIN_CREDIT' | 'ADMIN_DEBIT' | 'REVERSAL'
+  points: int("points").notNull(), // Positive for credit, negative for debit
+  referenceType: varchar("referenceType", { length: 64 }), // 'FEEDBACK' | 'REVIEW' | 'REDEMPTION' | 'ADMIN'
+  referenceId: varchar("referenceId", { length: 64 }),
+  description: text("description").notNull(),
+  createdAt: text("createdAt").notNull(),
+  createdBy: varchar("createdBy", { length: 255 }),
+});
+
+export type CustomerRewardTransaction = typeof customerRewardTransactions.$inferSelect;
+export type InsertCustomerRewardTransaction = typeof customerRewardTransactions.$inferInsert;
+
+// ==========================================
+// 22. CUSTOMER REWARD REDEMPTIONS (PHASE 7)
+// ==========================================
+export const customerRewardRedemptions = mysqlTable("customer_reward_redemptions", {
+  id: varchar("id", { length: 64 }).primaryKey(),
+  customerId: varchar("customerId", { length: 64 }).notNull(),
+  rewardProductId: varchar("rewardProductId", { length: 64 }).notNull(),
+  pointsSpent: int("pointsSpent").notNull(),
+  status: varchar("status", { length: 32 }).default("REQUESTED").notNull(), // 'REQUESTED' | 'APPROVED' | 'FULFILLED' | 'REJECTED' | 'CANCELLED'
+  orderId: varchar("orderId", { length: 64 }),
+  notes: text("notes"),
+  adminNotes: text("adminNotes"),
+  createdAt: text("createdAt").notNull(),
+  updatedAt: text("updatedAt").notNull(),
+  fulfilledAt: text("fulfilledAt"),
+});
+
+export type CustomerRewardRedemption = typeof customerRewardRedemptions.$inferSelect;
+export type InsertCustomerRewardRedemption = typeof customerRewardRedemptions.$inferInsert;
+
 

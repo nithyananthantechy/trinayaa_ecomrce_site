@@ -47,6 +47,8 @@ import {
   Star
 } from "lucide-react";
 import EnquiriesTab from "./EnquiriesTab";
+import RewardsTab from "./RewardsTab";
+import { Award } from "lucide-react";
 
 type AdminTab =
   | "overview"
@@ -60,6 +62,7 @@ type AdminTab =
   | "customers"
   | "offers"
   | "import"
+  | "rewards"
   | "content"
   | "settings"
   | "telegram"
@@ -77,6 +80,7 @@ export default function AdminDashboard() {
     if (location.startsWith("/admin/enquiries")) return "enquiries";
     if (location.startsWith("/admin/helpdesk")) return "helpdesk";
     if (location.startsWith("/admin/feedback")) return "feedback";
+    if (location.startsWith("/admin/rewards")) return "rewards";
     if (location.startsWith("/admin/customers")) return "customers";
     if (location.startsWith("/admin/offers")) return "offers";
     if (location.startsWith("/admin/import")) return "import";
@@ -238,6 +242,32 @@ export default function AdminDashboard() {
       setThresholdInputVal(String(lowStockThresholdData.threshold));
     }
   }, [lowStockThresholdData]);
+
+  // Phase 7: Rewards Settings State
+  const { data: rewardsSettingsData, refetch: refetchRewardsSettings } = trpc.admin.settings.getRewardsSettings.useQuery(undefined, {
+    enabled: Boolean(currentUser && activeTab === "settings"),
+  });
+  const [feedbackPointsInput, setFeedbackPointsInput] = useState("50");
+  const [thresholdPointsInput, setThresholdPointsInput] = useState("200");
+  const [rewardsEnabledInput, setRewardsEnabledInput] = useState(true);
+
+  useEffect(() => {
+    if (rewardsSettingsData) {
+      setFeedbackPointsInput(String(rewardsSettingsData.feedbackRewardPoints ?? 50));
+      setThresholdPointsInput(String(rewardsSettingsData.freeProductRewardThreshold ?? 200));
+      setRewardsEnabledInput(rewardsSettingsData.rewardsEnabled ?? true);
+    }
+  }, [rewardsSettingsData]);
+
+  const setRewardsSettingsMutation = trpc.admin.settings.setRewardsSettings.useMutation({
+    onSuccess: () => {
+      toast.success("Rewards programme settings updated successfully");
+      refetchRewardsSettings();
+    },
+    onError: (err) => {
+      toast.error(err.message || "Failed to update rewards settings");
+    },
+  });
 
   const setLowStockThresholdMutation = trpc.admin.settings.setLowStockThreshold.useMutation({
     onSuccess: (res) => {
@@ -559,6 +589,7 @@ export default function AdminDashboard() {
     { id: "helpdesk" as AdminTab, label: "Support Helpdesk", icon: LifeBuoy },
     { id: "feedback" as AdminTab, label: "Feedback & Reviews", icon: Star },
               { id: "customers" as AdminTab, label: "Customers", icon: Users },
+              { id: "rewards" as AdminTab, label: "Rewards & Loyalty", icon: Award },
               { id: "offers" as AdminTab, label: "Festival Offers", icon: Tag },
               { id: "import" as AdminTab, label: "Bulk Import / Export", icon: FileSpreadsheet },
               { id: "content" as AdminTab, label: "Store Content", icon: FileText },
@@ -1876,6 +1907,76 @@ export default function AdminDashboard() {
                     Automated Telegram notification is sent to authorized administrators whenever a product's available stock drops to or below this count (Default: 10 units).
                   </span>
                 </div>
+
+                <div className="p-4 bg-[#FBF8F0] border border-[#DEDFD5] rounded space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <label className="block font-semibold text-[#123D28]">Customer Rewards & Loyalty Programme</label>
+                      <span className="text-[10px] text-[#6C7167]">Configure point awards for customer feedback and threshold for free product redemptions.</span>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={rewardsEnabledInput}
+                        onChange={(e) => {
+                          const val = e.target.checked;
+                          setRewardsEnabledInput(val);
+                          setRewardsSettingsMutation.mutate({ rewardsEnabled: val });
+                        }}
+                        className="sr-only peer"
+                      />
+                      <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#123D28]"></div>
+                    </label>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+                    <div>
+                      <label className="block font-semibold text-[11px] mb-1">Feedback Points per Approved Review</label>
+                      <input
+                        type="number"
+                        min="0"
+                        value={feedbackPointsInput}
+                        onChange={(e) => setFeedbackPointsInput(e.target.value)}
+                        className="w-full px-3 py-1.5 border border-[#DEDFD5] rounded bg-white text-xs font-bold text-[#123D28]"
+                      />
+                    </div>
+                    <div>
+                      <label className="block font-semibold text-[11px] mb-1">Free Product Points Threshold</label>
+                      <input
+                        type="number"
+                        min="1"
+                        value={thresholdPointsInput}
+                        onChange={(e) => setThresholdPointsInput(e.target.value)}
+                        className="w-full px-3 py-1.5 border border-[#DEDFD5] rounded bg-white text-xs font-bold text-[#123D28]"
+                      />
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const fb = parseInt(feedbackPointsInput, 10);
+                      const th = parseInt(thresholdPointsInput, 10);
+                      if (isNaN(fb) || fb < 0) {
+                        toast.error("Feedback points must be a non-negative integer.");
+                        return;
+                      }
+                      if (isNaN(th) || th <= 0) {
+                        toast.error("Free product threshold must be at least 1 point.");
+                        return;
+                      }
+                      setRewardsSettingsMutation.mutate({
+                        rewardsEnabled: rewardsEnabledInput,
+                        feedbackRewardPoints: fb,
+                        freeProductRewardThreshold: th,
+                      });
+                    }}
+                    disabled={setRewardsSettingsMutation.isPending}
+                    className="dark-button text-xs py-1.5 px-4"
+                  >
+                    {setRewardsSettingsMutation.isPending ? "Saving..." : "Save Rewards Configuration"}
+                  </button>
+                </div>
               </div>
             </div>
           )}
@@ -1892,6 +1993,7 @@ export default function AdminDashboard() {
           {activeTab === "enquiries" && <EnquiriesTab />}
           {activeTab === "helpdesk" && <SupportHelpdeskTab />}
           {activeTab === "feedback" && <CustomerFeedbackTab />}
+          {activeTab === "rewards" && <RewardsTab />}
 
           {/* ========================================== */}
           {activeTab === "telegram" && (
