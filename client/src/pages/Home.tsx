@@ -912,7 +912,15 @@ function ProductDetailModal({
                 </span>
               </>
             )}
-            <span className="ml-2 font-medium text-xs text-[#2E7D32]">
+            <span
+              className={`ml-2 font-medium text-xs ${
+                product.stockAvailability === "Out of Stock"
+                  ? "text-rose-600 font-bold"
+                  : product.stockAvailability === "Limited availability"
+                  ? "text-amber-700 font-semibold"
+                  : "text-[#2E7D32]"
+              }`}
+            >
               • {product.stockAvailability || (product.stock && product.stock > 0 ? "In Stock" : "In Stock")}
             </span>
           </div>
@@ -938,12 +946,15 @@ function ProductDetailModal({
             </div>
             <button
               className="dark-button add-detail-button"
+              disabled={product.stockAvailability === "Out of Stock"}
+              style={product.stockAvailability === "Out of Stock" ? { opacity: 0.5, cursor: "not-allowed" } : undefined}
               onClick={() => {
+                if (product.stockAvailability === "Out of Stock") return;
                 onAdd(product, currentSizeObj.label, currentSizeObj.price, quantity);
                 onClose();
               }}
             >
-              Add to cart <ShoppingBag size={17} />
+              {product.stockAvailability === "Out of Stock" ? "Out of stock" : "Add to cart"} <ShoppingBag size={17} />
             </button>
             <button
               className={`heart-detail ${isWishlisted ? "is-wishlisted" : ""}`}

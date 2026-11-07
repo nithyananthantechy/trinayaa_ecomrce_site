@@ -40,6 +40,7 @@ import {
   Sparkles,
   Info,
   Eye,
+  Printer,
   SlidersHorizontal,
   Building2,
   LifeBuoy,
@@ -222,6 +223,32 @@ export default function AdminDashboard() {
     enabled: Boolean(currentUser && activeTab === "settings"),
   });
   const [minCodValue, setMinCodValue] = useState("150");
+
+  // Phase 6: Low Stock Threshold and Shipping Slip States
+  const [shippingSlipOrderNumber, setShippingSlipOrderNumber] = useState<string | null>(null);
+  const [productStockFilter, setProductStockFilter] = useState<"all" | "low_stock" | "out_of_stock" | "in_stock">("all");
+  const { data: lowStockThresholdData, refetch: refetchLowStockThreshold } = trpc.admin.settings.getLowStockThreshold.useQuery(undefined, {
+    enabled: Boolean(currentUser),
+  });
+  const currentThreshold = lowStockThresholdData?.threshold ?? 10;
+  const [thresholdInputVal, setThresholdInputVal] = useState("10");
+
+  useEffect(() => {
+    if (lowStockThresholdData?.threshold !== undefined) {
+      setThresholdInputVal(String(lowStockThresholdData.threshold));
+    }
+  }, [lowStockThresholdData]);
+
+  const setLowStockThresholdMutation = trpc.admin.settings.setLowStockThreshold.useMutation({
+    onSuccess: (res) => {
+      toast.success(`Low-stock alert threshold updated to ${res.threshold} units`);
+      refetchLowStockThreshold();
+      refetchProducts();
+    },
+    onError: (err) => {
+      toast.error(err.message || "Failed to update low-stock threshold");
+    },
+  });
 
   useEffect(() => {
     if (storeSettings?.minimumCodOrderValue !== undefined) {
@@ -479,10 +506,25 @@ export default function AdminDashboard() {
     );
   }
 
-  // Filtered products for pagination
+  // Filtered products for pagination (Phase 6: stock level filter support)
+  const filteredProducts = useMemo(() => {
+    return products.filter((p: any) => {
+      if (productStockFilter === "low_stock") {
+        return p.stock > 0 && p.stock <= currentThreshold;
+      }
+      if (productStockFilter === "out_of_stock") {
+        return p.stock <= 0;
+      }
+      if (productStockFilter === "in_stock") {
+        return p.stock > currentThreshold;
+      }
+      return true;
+    });
+  }, [products, productStockFilter, currentThreshold]);
+
   const pageSize = 15;
-  const paginatedProducts = products.slice(productPage * pageSize, (productPage + 1) * pageSize);
-  const totalPages = Math.ceil(products.length / pageSize) || 1;
+  const paginatedProducts = filteredProducts.slice(productPage * pageSize, (productPage + 1) * pageSize);
+  const totalPages = Math.ceil(filteredProducts.length / pageSize) || 1;
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] text-[#0F172A] flex font-sans">
@@ -870,6 +912,20 @@ export default function AdminDashboard() {
                       </option>
                     ))}
                   </select>
+
+                  <select
+                    value={productStockFilter}
+                    onChange={(e) => {
+                      setProductStockFilter(e.target.value as any);
+                      setProductPage(0);
+                    }}
+                    className="text-xs py-2 px-3 bg-[#FBF8F0] border border-[#DEDFD5] rounded-md focus:outline-none focus:border-[#123D28] font-medium"
+                  >
+                    <option value="all">All Stock Levels</option>
+                    <option value="low_stock">⚠️ Low Stock (≤ {currentThreshold})</option>
+                    <option value="out_of_stock">❌ Out of Stock (0)</option>
+                    <option value="in_stock">✅ In Stock (&gt; {currentThreshold})</option>
+                  </select>
                 </div>
 
                 <div className="flex items-center gap-2">
@@ -945,23 +1001,38 @@ export default function AdminDashboard() {
                           </td>
                           <td className="py-2.5 px-3 text-[#6C7167]">₹{p.compareAt || p.mrp || p.price}</td>
                           <td className="py-2.5 px-3">
-                            <input
-                              type="number"
-                              defaultValue={p.stock}
-                              onBlur={(e) => {
-                                const val = parseInt(e.target.value, 10);
-                                if (!isNaN(val) && val !== p.stock) {
-                                  updateStockMutation.mutate({ id: p.id, stock: val });
-                                }
-                              }}
-                              className={`w-16 px-1.5 py-1 text-xs border rounded font-bold ${
-                                p.stock <= 0
-                                  ? "border-red-400 bg-red-50 text-red-800"
-                                  : p.stock < 10
-                                  ? "border-amber-400 bg-amber-50 text-amber-800"
-                                  : "border-[#DEDFD5] bg-white"
-                              }`}
-                            />
+                            <div className="flex items-center gap-1.5">
+                              <input
+                                type="number"
+                                defaultValue={p.stock}
+                                onBlur={(e) => {
+                                  const val = parseInt(e.target.value, 10);
+                                  if (!isNaN(val) && val !== p.stock) {
+                                    updateStockMutation.mutate({ id: p.id, stock: val });
+                                  }
+                                }}
+                                className={`w-14 px-1.5 py-1 text-xs border rounded font-bold ${
+                                  p.stock <= 0
+                                    ? "border-red-400 bg-red-50 text-red-800"
+                                    : p.stock <= currentThreshold
+                                    ? "border-amber-400 bg-amber-50 text-amber-800"
+                                    : "border-[#DEDFD5] bg-white"
+                                }`}
+                              />
+                              {p.stock <= 0 ? (
+                                <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-rose-100 text-rose-800 shrink-0">
+                                  Out of Stock
+                                </span>
+                              ) : p.stock <= currentThreshold ? (
+                                <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800 shrink-0">
+                                  ⚠️ Low
+                                </span>
+                              ) : (
+                                <span className="px-1 py-0.5 rounded text-[10px] font-medium text-emerald-700 shrink-0">
+                                  In Stock
+                                </span>
+                              )}
+                            </div>
                           </td>
                           <td className="py-2.5 px-3 text-center">
                             <button
@@ -1365,15 +1436,26 @@ export default function AdminDashboard() {
                             </select>
                           </td>
                           <td className="py-3 px-3 text-right">
-                            <button
-                              type="button"
-                              onClick={() => setSelectedOrder(o)}
-                              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#123D28] hover:bg-[#1F5638] text-white rounded-lg text-xs font-semibold shadow-xs transition-all duration-150 hover:shadow-sm active:scale-95 cursor-pointer border border-[#0d2a1c]"
-                              style={{ backgroundColor: "#123D28", color: "#ffffff", display: "inline-flex", alignItems: "center" }}
-                            >
-                              <Eye size={13} className="text-emerald-300" />
-                              <span>View</span>
-                            </button>
+                            <div className="inline-flex items-center gap-1.5">
+                              <button
+                                type="button"
+                                onClick={() => setShippingSlipOrderNumber(o.orderNumber)}
+                                title="Print Dispatch / Shipping Slip"
+                                className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-[#FBF8F0] hover:bg-[#E8BF83]/30 text-[#123D28] border border-[#DEDFD5] rounded-lg text-xs font-semibold shadow-xs transition-all cursor-pointer"
+                              >
+                                <Printer size={13} className="text-[#AE6A2B]" />
+                                <span>Slip</span>
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setSelectedOrder(o)}
+                                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#123D28] hover:bg-[#1F5638] text-white rounded-lg text-xs font-semibold shadow-xs transition-all duration-150 hover:shadow-sm active:scale-95 cursor-pointer border border-[#0d2a1c]"
+                                style={{ backgroundColor: "#123D28", color: "#ffffff", display: "inline-flex", alignItems: "center" }}
+                              >
+                                <Eye size={13} className="text-emerald-300" />
+                                <span>View</span>
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       ))}
@@ -1762,15 +1844,37 @@ export default function AdminDashboard() {
                     Orders with merchandise value below this threshold will not be eligible for Cash on Delivery. (Default: ₹150).
                   </span>
                 </div>
-                <div>
-                  <label className="block font-semibold mb-1">Low-Stock Alert Trigger Threshold</label>
-                  <input
-                    type="number"
-                    defaultValue={10}
-                    disabled
-                    className="w-full px-3 py-2 border border-[#DEDFD5] rounded bg-gray-100 text-[#6C7167]"
-                  />
-                  <span className="text-[10px] text-[#6C7167]">Triggered whenever stock falls to 10 or below.</span>
+                <div className="p-3 bg-[#FBF8F0] border border-[#DEDFD5] rounded space-y-2">
+                  <label className="block font-semibold text-[#123D28]">Low-Stock Telegram Alert Threshold (Units)</label>
+                  <div className="flex gap-2">
+                    <input
+                      type="number"
+                      min="0"
+                      step="1"
+                      value={thresholdInputVal}
+                      onChange={(e) => setThresholdInputVal(e.target.value)}
+                      placeholder="10"
+                      className="w-full px-3 py-2 border border-[#DEDFD5] rounded bg-white font-bold text-[#123D28]"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const val = parseInt(thresholdInputVal, 10);
+                        if (isNaN(val) || val < 0) {
+                          toast.error("Please enter a valid non-negative integer for stock threshold.");
+                          return;
+                        }
+                        setLowStockThresholdMutation.mutate({ threshold: val });
+                      }}
+                      disabled={setLowStockThresholdMutation.isPending}
+                      className="dark-button text-xs py-2 px-4 shrink-0"
+                    >
+                      {setLowStockThresholdMutation.isPending ? "Saving..." : "Save Setting"}
+                    </button>
+                  </div>
+                  <span className="text-[10px] text-[#6C7167] block">
+                    Automated Telegram notification is sent to authorized administrators whenever a product's available stock drops to or below this count (Default: 10 units).
+                  </span>
                 </div>
               </div>
             </div>
@@ -1880,9 +1984,18 @@ export default function AdminDashboard() {
                 <span className="text-[10px] uppercase font-bold tracking-wider text-[#AE6A2B]">Order Details</span>
                 <h3 className="font-serif text-xl font-bold text-[#123D28]">{selectedOrder.orderNumber}</h3>
               </div>
-              <button onClick={() => setSelectedOrder(null)} className="text-[#6C7167] hover:text-[#123D28]">
-                <X size={20} />
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShippingSlipOrderNumber(selectedOrder.orderNumber)}
+                  className="px-2.5 py-1.5 bg-[#FBF8F0] hover:bg-[#DEDFD5]/40 text-[#123D28] border border-[#DEDFD5] rounded-md text-xs font-semibold flex items-center gap-1.5"
+                >
+                  <Printer size={13} className="text-[#AE6A2B]" /> Print Shipping Slip
+                </button>
+                <button onClick={() => setSelectedOrder(null)} className="text-[#6C7167] hover:text-[#123D28]">
+                  <X size={20} />
+                </button>
+              </div>
             </div>
 
             <div className="space-y-4 text-xs">
@@ -2727,6 +2840,237 @@ export default function AdminDashboard() {
           </div>
         </div>
       )}
+
+      {/* Printable Shipping Slip Modal (Phase 6) */}
+      {shippingSlipOrderNumber && (
+        <ShippingSlipModal
+          orderNumber={shippingSlipOrderNumber}
+          onClose={() => setShippingSlipOrderNumber(null)}
+        />
+      )}
     </div>
+  );
+}
+
+
+// ==========================================
+// PRINTABLE SHIPPING SLIP MODAL (PHASE 6)
+// ==========================================
+function ShippingSlipModal({
+  orderNumber,
+  onClose,
+}: {
+  orderNumber: string;
+  onClose: () => void;
+}) {
+  const { data: slip, isLoading, error } = trpc.admin.orders.getShippingSlip.useQuery({ orderNumber });
+
+  const handlePrint = () => {
+    window.print();
+  };
+
+  return (
+    <>
+      <style>{`
+        @media print {
+          body * {
+            visibility: hidden !important;
+          }
+          #printable-shipping-slip, #printable-shipping-slip * {
+            visibility: visible !important;
+          }
+          #printable-shipping-slip {
+            position: fixed !important;
+            left: 0 !important;
+            top: 0 !important;
+            width: 100% !important;
+            margin: 0 !important;
+            padding: 28px !important;
+            background: white !important;
+            color: black !important;
+            font-size: 11px !important;
+          }
+          .no-print, .no-print * {
+            display: none !important;
+          }
+        }
+      `}</style>
+
+      <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 overflow-y-auto no-print">
+        <div className="bg-white rounded-2xl shadow-2xl max-w-3xl w-full max-h-[92vh] flex flex-col overflow-hidden border border-slate-300">
+          {/* Modal Header Actions */}
+          <div className="p-4 bg-[#FBF8F0] border-b border-[#DEDFD5] flex items-center justify-between no-print">
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-[#AE6A2B] bg-[#E8BF83]/20 px-2 py-0.5 rounded">
+                Dispatch Slip
+              </span>
+              <span className="text-sm font-serif font-bold text-[#123D28]">Order {orderNumber}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={handlePrint}
+                disabled={isLoading || !slip}
+                className="dark-button text-xs py-1.5 px-3 flex items-center gap-1.5 shadow-sm"
+              >
+                <Printer size={14} /> Print Shipping Slip
+              </button>
+              <button
+                type="button"
+                onClick={onClose}
+                className="p-1.5 text-gray-500 hover:text-gray-800 rounded-lg hover:bg-gray-200 transition-colors"
+              >
+                <X size={18} />
+              </button>
+            </div>
+          </div>
+
+          {/* Printable Body */}
+          <div className="p-6 overflow-y-auto flex-1 bg-white">
+            {isLoading ? (
+              <div className="py-16 text-center text-xs text-gray-500 font-medium">Loading shipping slip details...</div>
+            ) : error || !slip ? (
+              <div className="py-16 text-center text-xs text-rose-600 font-semibold">
+                Failed to load shipping slip: {error?.message || "Order not found"}
+              </div>
+            ) : (
+              <div id="printable-shipping-slip" className="max-w-[700px] mx-auto text-black font-sans leading-relaxed text-xs">
+                {/* Header with Brand & Logo */}
+                <div className="border-b-2 border-black pb-4 mb-4 flex items-start justify-between">
+                  <div>
+                    <div className="flex items-center gap-2.5 mb-1">
+                      <div className="w-9 h-9 rounded-lg border border-black p-1 flex items-center justify-center">
+                        <img src="/images/brand/emblem_crisp.png" alt="TRINAYAA" className="w-full h-full object-contain" />
+                      </div>
+                      <div>
+                        <h1 className="text-xl font-bold font-serif tracking-wider text-black leading-tight">
+                          TRINAYAA ENTERPRISES
+                        </h1>
+                        <p className="text-[10px] text-gray-700 uppercase tracking-wider font-semibold">
+                          100% Pure Botanical Powders, Seeds & Herbal Wellness
+                        </p>
+                      </div>
+                    </div>
+                    <p className="text-[10px] text-gray-600 mt-1">
+                      Registered Dispatch Unit: Main Road, Erode, Tamil Nadu — 638001 | trinayaa.in | +91 98432 00111
+                    </p>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <div className="inline-block border border-black px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider mb-1 bg-gray-50">
+                      SHIPPING SLIP & INVOICE
+                    </div>
+                    <div className="font-mono text-sm font-bold text-black">{slip.orderNumber}</div>
+                    <div className="text-[10px] text-gray-700">Date: {slip.orderDate}</div>
+                  </div>
+                </div>
+
+                {/* 2-Column Delivery & Order Details */}
+                <div className="grid grid-cols-2 gap-4 mb-4 border border-black p-3 bg-white">
+                  <div>
+                    <h3 className="font-bold uppercase tracking-wider text-[10px] text-gray-700 border-b border-gray-300 pb-1 mb-1.5">
+                      CONSIGNEE / DELIVERY ADDRESS
+                    </h3>
+                    <div className="text-sm font-bold text-black">{slip.customerName}</div>
+                    <div className="text-[11px] font-semibold text-gray-800">Phone: {slip.customerPhone}</div>
+                    {slip.customerEmail && <div className="text-[10px] text-gray-600">Email: {slip.customerEmail}</div>}
+                    <div className="mt-1 text-[11px] text-gray-900 whitespace-pre-line leading-snug">
+                      {slip.formattedAddress}
+                    </div>
+                  </div>
+                  <div>
+                    <h3 className="font-bold uppercase tracking-wider text-[10px] text-gray-700 border-b border-gray-300 pb-1 mb-1.5">
+                      DISPATCH & PAYMENT DETAILS
+                    </h3>
+                    <div className="grid grid-cols-2 gap-x-2 gap-y-1 text-[10px]">
+                      <span className="text-gray-600">Payment Method:</span>
+                      <strong className="text-black">{slip.paymentMethod}</strong>
+                      <span className="text-gray-600">Payment Status:</span>
+                      <strong className="text-black uppercase">{slip.paymentStatus}</strong>
+                      <span className="text-gray-600">Fulfilment Status:</span>
+                      <strong className="text-black">{slip.orderStatus}</strong>
+                      <span className="text-gray-600">Carrier Partner:</span>
+                      <strong className="text-black">{slip.carrier || "Standard Dispatch"}</strong>
+                      <span className="text-gray-600">AWB / Tracking #:</span>
+                      <strong className="text-black font-mono">{slip.trackingNumber || "Pending"}</strong>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Ordered Items Table */}
+                <table className="w-full text-left border-collapse border border-black mb-4">
+                  <thead>
+                    <tr className="bg-gray-100 border-b border-black text-[10px] font-bold uppercase">
+                      <th className="p-2 border-r border-black w-8 text-center">#</th>
+                      <th className="p-2 border-r border-black w-24">SKU</th>
+                      <th className="p-2 border-r border-black">Botanical Description</th>
+                      <th className="p-2 border-r border-black text-center w-16">Pack</th>
+                      <th className="p-2 border-r border-black text-center w-12">Qty</th>
+                      <th className="p-2 border-r border-black text-right w-16">Price</th>
+                      <th className="p-2 text-right w-20">Subtotal</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-300 text-[11px]">
+                    {slip.items.map((it: any, idx: number) => (
+                      <tr key={it.id || idx}>
+                        <td className="p-2 border-r border-black text-center text-gray-600">{idx + 1}</td>
+                        <td className="p-2 border-r border-black font-mono font-bold text-[10px]">{it.sku}</td>
+                        <td className="p-2 border-r border-black font-semibold text-black">
+                          {it.productNameEn}
+                          {it.productNameTa && (
+                            <span className="block text-[10px] font-normal text-gray-700">{it.productNameTa}</span>
+                          )}
+                        </td>
+                        <td className="p-2 border-r border-black text-center">{it.packSize}</td>
+                        <td className="p-2 border-r border-black text-center font-bold">{it.quantity}</td>
+                        <td className="p-2 border-r border-black text-right">₹{it.price}</td>
+                        <td className="p-2 text-right font-bold">₹{it.subtotal}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+
+                {/* Financial Summary */}
+                <div className="flex justify-end mb-4">
+                  <div className="w-64 border border-black p-2 bg-gray-50 space-y-1 text-[11px]">
+                    <div className="flex justify-between text-gray-700">
+                      <span>Merchandise Subtotal:</span>
+                      <span>₹{slip.subtotal}</span>
+                    </div>
+                    {slip.discountAmount > 0 && (
+                      <div className="flex justify-between text-rose-700">
+                        <span>Promotional Discount:</span>
+                        <span>-₹{slip.discountAmount}</span>
+                      </div>
+                    )}
+                    <div className="flex justify-between text-gray-700">
+                      <span>Shipping Charges:</span>
+                      <span>{slip.shippingFee === 0 ? "FREE" : `₹${slip.shippingFee}`}</span>
+                    </div>
+                    <div className="flex justify-between font-bold border-t border-black pt-1 text-xs text-black">
+                      <span>Total Payable Amount:</span>
+                      <span>₹{slip.total}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Footer and Signatory */}
+                <div className="border-t border-dashed border-gray-400 pt-3 text-[10px] text-gray-600 flex justify-between items-end">
+                  <div>
+                    <p className="font-semibold text-black">Sender & Return Address:</p>
+                    <p>TRINAYAA Botanical Enterprises, Main Road, Erode, Tamil Nadu 638001</p>
+                    <p className="italic text-[9px] text-gray-500 mt-1">Thank you for choosing pure TRINAYAA botanicals.</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="font-semibold text-black">Authorized Signatory</p>
+                    <div className="h-6"></div>
+                    <p className="font-mono text-[9px] text-gray-700">TRINAYAA DISPATCH UNIT</p>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </>
   );
 }

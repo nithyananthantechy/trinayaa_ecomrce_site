@@ -40,6 +40,9 @@ export const appRouter = router({
     getMinimumCod: publicProcedure.query(async () => {
       return { minimumCodOrderValue: db.siteContentRepo.getMinimumCodOrderValue() };
     }),
+    getLowStockThreshold: publicProcedure.query(async () => {
+      return { threshold: db.siteContentRepo.getLowStockThreshold() };
+    }),
   }),
 
   // ==========================================
@@ -492,7 +495,8 @@ export const appRouter = router({
           .optional()
       )
       .query(async ({ input }) => {
-        return db.productsRepo.getAll(input || {});
+        const raw = db.productsRepo.getAll(input || {});
+        return raw.map((p: any) => db.sanitizePublicProduct(p));
       }),
 
     getBySlug: publicProcedure
@@ -505,7 +509,7 @@ export const appRouter = router({
             message: "Product not found.",
           });
         }
-        return product;
+        return db.sanitizePublicProduct(product);
       }),
 
     getById: publicProcedure
@@ -518,7 +522,7 @@ export const appRouter = router({
             message: "Product not found.",
           });
         }
-        return product;
+        return db.sanitizePublicProduct(product);
       }),
 
     getBySku: publicProcedure
@@ -531,7 +535,7 @@ export const appRouter = router({
             message: "Product not found.",
           });
         }
-        return product;
+        return db.sanitizePublicProduct(product);
       }),
 
     getRelated: publicProcedure
@@ -543,11 +547,13 @@ export const appRouter = router({
         })
       )
       .query(async ({ input }) => {
-        return db.productsRepo.getRelated(input.categoryId, input.excludeId, input.limit);
+        const rel = db.productsRepo.getRelated(input.categoryId, input.excludeId, input.limit);
+        return rel.map((p: any) => db.sanitizePublicProduct(p));
       }),
 
     getFeatured: publicProcedure.query(async () => {
-      return db.productsRepo.getAll({ limit: 12 });
+      const feat = db.productsRepo.getAll({ limit: 12 });
+      return feat.map((p: any) => db.sanitizePublicProduct(p));
     }),
   }),
 
@@ -1792,6 +1798,21 @@ addresses: router({
       exportCsv: adminProcedure.query(async () => {
         return db.ordersRepo.exportCsv();
       }),
+
+      getShippingSlip: adminProcedure
+        .input(z.object({ orderNumber: z.string() }))
+        .query(async ({ input, ctx }) => {
+          const slip = db.ordersRepo.getShippingSlip(input.orderNumber);
+          if (!slip) {
+            throw new TRPCError({ code: "NOT_FOUND", message: `Order ${input.orderNumber} not found` });
+          }
+          db.auditLogsRepo.log(
+            ctx.user?.name || "Admin",
+            "SHIPPING_SLIP_VIEW",
+            `Viewed shipping slip for ${slip.orderNumber}`
+          );
+          return slip;
+        }),
     }),
 
     // --- CUSTOMERS (PHASE 4: CUSTOMER 360) ---
@@ -1902,6 +1923,26 @@ addresses: router({
             `Minimum COD order value set to ₹${val}`
           );
           return { success: true, minimumCodOrderValue: val };
+        }),
+
+      getLowStockThreshold: adminProcedure.query(async () => {
+        return { threshold: db.siteContentRepo.getLowStockThreshold() };
+      }),
+
+      setLowStockThreshold: adminProcedure
+        .input(
+          z.object({
+            threshold: z.number().int().min(0, "Low-stock threshold must be a non-negative integer"),
+          })
+        )
+        .mutation(async ({ input, ctx }) => {
+          const val = db.siteContentRepo.setLowStockThreshold(input.threshold);
+          db.auditLogsRepo.log(
+            ctx.user?.name || "Admin",
+            "SETTING_LOW_STOCK_THRESHOLD_UPDATE",
+            `Low-stock alert threshold set to ${val} units`
+          );
+          return { success: true, threshold: val };
         }),
     }),
 

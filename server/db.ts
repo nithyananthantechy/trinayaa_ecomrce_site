@@ -695,6 +695,7 @@ export const productsRepo = {
     const availability = stock > 0 ? "In Stock" : "Out of Stock";
     db.prepare("UPDATE products SET stock = ?, stockAvailability = ?, updatedAt = ? WHERE id = ?")
       .run(stock, availability, new Date().toISOString(), id);
+    handleStockChangeAlert(id, stock).catch(() => {});
     return this.getById(id);
   },
 
@@ -2278,6 +2279,68 @@ export const ordersRepo = {
     });
 
     return [headers.join(","), ...rows].join("\n");
+  },
+
+  getShippingSlip(orderIdentifier: string) {
+    const db = getDatabase();
+    const order = (db.prepare("SELECT * FROM orders WHERE id = ? OR orderNumber = ?").get(orderIdentifier, orderIdentifier) || null) as any;
+    if (!order) return null;
+    const enriched = this.enrichOrder(order);
+
+    let parsedAddress = enriched.shippingAddress;
+    if (typeof parsedAddress === "string") {
+      try {
+        parsedAddress = JSON.parse(parsedAddress);
+      } catch {
+        parsedAddress = { street: parsedAddress, city: "", state: "Tamil Nadu", pinCode: "" };
+      }
+    }
+
+    const addressLines = [
+      parsedAddress?.recipientName ? `Attn: ${parsedAddress.recipientName}` : null,
+      parsedAddress?.addressLine1 || parsedAddress?.street,
+      parsedAddress?.addressLine2,
+      parsedAddress?.landmark ? `Landmark: ${parsedAddress.landmark}` : null,
+      parsedAddress?.district,
+      parsedAddress?.city,
+      parsedAddress?.state ? `${parsedAddress.state} - ${parsedAddress?.pinCode || ""}` : parsedAddress?.pinCode,
+    ].filter(Boolean);
+
+    return {
+      orderId: enriched.id,
+      orderNumber: enriched.orderNumber,
+      createdAt: enriched.createdAt,
+      orderDate: new Date(enriched.createdAt).toLocaleDateString("en-IN", {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+      }),
+      customerName: enriched.customerName,
+      customerPhone: enriched.customerPhone,
+      customerEmail: enriched.customerEmail,
+      shippingAddress: parsedAddress,
+      formattedAddress: addressLines.join(", "),
+      items: (enriched.items || []).map((it: any) => ({
+        id: it.id,
+        productId: it.productId,
+        productNameEn: it.productNameEn || it.name,
+        productNameTa: it.productNameTa || "",
+        sku: it.sku || `TRN-${it.productId?.replace(/\D/g, "") || "ITEM"}`,
+        packSize: it.packSize || "100g",
+        price: it.price || it.unitPrice,
+        quantity: it.quantity,
+        subtotal: (it.price || it.unitPrice) * it.quantity,
+      })),
+      subtotal: enriched.subtotal,
+      shippingFee: enriched.shippingFee || 0,
+      discountAmount: enriched.discountAmount || 0,
+      total: enriched.total,
+      paymentMethod: enriched.paymentMethod,
+      paymentStatus: enriched.paymentStatus,
+      orderStatus: enriched.orderStatus,
+      trackingNumber: enriched.trackingNumber || null,
+      carrier: enriched.carrier || null,
+    };
   }
 };
 
@@ -2471,6 +2534,23 @@ export const siteContentRepo = {
     }
     this.set("minimum_cod_order_value", String(value));
     return value;
+  },
+
+  getLowStockThreshold(): number {
+    const val = this.get("low_stock_threshold");
+    if (val === null || val === undefined || isNaN(Number(val)) || Number(val) < 0) {
+      return 10;
+    }
+    return Math.floor(Number(val));
+  },
+
+  setLowStockThreshold(value: number): number {
+    if (typeof value !== "number" || isNaN(value) || value < 0) {
+      throw new Error("Low-stock threshold must be a non-negative integer.");
+    }
+    const intVal = Math.floor(value);
+    this.set("low_stock_threshold", String(intVal));
+    return intVal;
   }
 };
 
@@ -2703,6 +2783,7 @@ export const inventoryRepo = {
     `).run(`inv_${productId}`, productId, prod.sku, newStock, now);
 
     auditLogsRepo.log(updatedBy, "STOCK_UPDATE", `Updated ${prod.sku} stock from ${oldStock} to ${newStock}. Reason: ${reason || "Manual adjustment"}`);
+    handleStockChangeAlert(productId, newStock).catch(() => {});
     return { success: true, oldStock, newStock, availability };
   },
 
@@ -2738,7 +2819,7 @@ export const inventoryRepo = {
       `STOCK_${changeType || "ADJUST"}`,
       `Adjusted ${prod.sku} stock by ${delta} (${oldStock} -> ${newStock}). Ref: ${referenceId || "N/A"}. Reason: ${reason || "Inventory adjustment"}`
     );
-
+    handleStockChangeAlert(productId, newStock).catch(() => {});
     return { productId, oldStock, newStock, delta, availability };
   }
 };
@@ -3735,3 +3816,129 @@ export const wishlistRepo = {
     return { success: true };
   },
 };
+
+
+// ==========================================
+// 8E. LOW STOCK ALERTS REPOSITORY (PHASE 6)
+// ==========================================
+export const lowStockAlertsRepo = {
+  getAlert(productId: string) {
+    const db = getDatabase();
+    return db.prepare("SELECT * FROM low_stock_alerts WHERE productId = ?").get(productId) as any;
+  },
+
+  shouldAlert(productId: string, currentStock: number, threshold: number): boolean {
+    if (currentStock > threshold) return false;
+    const existing = this.getAlert(productId);
+    if (!existing) return true;
+    return existing.alertState !== "ALERTED";
+  },
+
+  recordAlert(productId: string, sku: string, threshold: number, stock: number) {
+    const db = getDatabase();
+    const now = new Date().toISOString();
+    const id = "lsa_" + crypto.randomUUID();
+    db.prepare(`
+      INSERT INTO low_stock_alerts (id, productId, sku, thresholdAtAlert, stockAtAlert, alertState, lastAlertSentAt, createdAt, updatedAt)
+      VALUES (?, ?, ?, ?, ?, 'ALERTED', ?, ?, ?)
+      ON CONFLICT(productId) DO UPDATE SET
+        thresholdAtAlert = excluded.thresholdAtAlert,
+        stockAtAlert = excluded.stockAtAlert,
+        alertState = 'ALERTED',
+        lastAlertSentAt = excluded.lastAlertSentAt,
+        updatedAt = excluded.updatedAt
+    `).run(id, productId, sku, threshold, stock, now, now, now);
+  },
+
+  clearAlert(productId: string) {
+    const db = getDatabase();
+    const now = new Date().toISOString();
+    db.prepare("UPDATE low_stock_alerts SET alertState = 'CLEARED', updatedAt = ? WHERE productId = ?")
+      .run(now, productId);
+  },
+
+  list(limit = 100) {
+    const db = getDatabase();
+    return db.prepare("SELECT * FROM low_stock_alerts ORDER BY updatedAt DESC LIMIT ?").all(limit) as any[];
+  }
+};
+
+/**
+ * Public storefront stock privacy sanitizer (Phase 6)
+ * When stock <= threshold: hides exact quantity, exposes 'Limited availability',
+ * and for zero stock exposes 'Out of Stock'.
+ */
+export function sanitizePublicProduct(product: any, threshold?: number) {
+  if (!product) return product;
+  const thresh = threshold !== undefined ? threshold : siteContentRepo.getLowStockThreshold();
+  const currentStock = typeof product.stock === "number" ? product.stock : 0;
+
+  if (currentStock <= 0) {
+    return {
+      ...product,
+      stock: 0,
+      stockAvailability: "Out of Stock",
+      isOutOfStock: true,
+      isLowStock: false,
+      sizes: product.sizes?.map((s: any) => ({ ...s, stock: 0 })) || product.sizes,
+    };
+  }
+
+  if (currentStock <= thresh) {
+    return {
+      ...product,
+      stock: null, // Exact quantity hidden from public users
+      stockAvailability: "Limited availability",
+      isOutOfStock: false,
+      isLowStock: true,
+      sizes: product.sizes?.map((s: any) => ({ ...s, stock: null })) || product.sizes,
+    };
+  }
+
+  return {
+    ...product,
+    stockAvailability: "In Stock",
+    isOutOfStock: false,
+    isLowStock: false,
+  };
+}
+
+
+let lowStockNotifier: ((prod: any, threshold: number) => Promise<void>) | null = null;
+
+export function registerLowStockNotifier(fn: (prod: any, threshold: number) => Promise<void>) {
+  lowStockNotifier = fn;
+}
+
+export async function handleStockChangeAlert(productId: string, newStock: number) {
+  try {
+    const threshold = siteContentRepo.getLowStockThreshold();
+    const db = getDatabase();
+    const prod = db.prepare("SELECT id, sku, nameEn, nameTa, stock FROM products WHERE id = ?").get(productId) as any;
+    if (!prod) return;
+
+    if (newStock <= threshold) {
+      if (lowStockAlertsRepo.shouldAlert(productId, newStock, threshold)) {
+        lowStockAlertsRepo.recordAlert(productId, prod.sku, threshold, newStock);
+        auditLogsRepo.log("System", "LOW_STOCK_ALERT_TRIGGERED", `${prod.sku} stock (${newStock}) is at or below threshold (${threshold})`);
+        if (lowStockNotifier) {
+          try {
+            await lowStockNotifier({ ...prod, stock: newStock }, threshold);
+          } catch (notifErr: any) {
+            console.error(`[LowStockAlert] Notification error for ${prod.sku}:`, notifErr?.message || notifErr);
+            auditLogsRepo.log("System", "TELEGRAM_ALERT_FAILED", `Failed to send low stock alert for ${prod.sku}: ${notifErr?.message || notifErr}`);
+          }
+        }
+      }
+    } else {
+      // Stock returned above threshold: reset alert state so a future drop alerts again
+      const existing = lowStockAlertsRepo.getAlert(productId);
+      if (existing && existing.alertState === "ALERTED") {
+        lowStockAlertsRepo.clearAlert(productId);
+        auditLogsRepo.log("System", "LOW_STOCK_ALERT_CLEARED", `${prod.sku} restocked to ${newStock} (above threshold ${threshold})`);
+      }
+    }
+  } catch (err) {
+    console.error("[LowStockAlert] Error in handleStockChangeAlert:", err);
+  }
+}

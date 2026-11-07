@@ -509,3 +509,21 @@ export const customerAuditLogs = mysqlTable("customer_audit_logs", {
 export type CustomerAuditLog = typeof customerAuditLogs.$inferSelect;
 export type InsertCustomerAuditLog = typeof customerAuditLogs.$inferInsert;
 
+// ==========================================
+// 20. LOW STOCK ALERTS & DEDUPLICATION (PHASE 6)
+// ==========================================
+export const lowStockAlerts = mysqlTable("low_stock_alerts", {
+  id: varchar("id", { length: 64 }).primaryKey(),
+  productId: varchar("productId", { length: 64 }).notNull().unique(),
+  sku: varchar("sku", { length: 64 }).notNull(),
+  thresholdAtAlert: int("thresholdAtAlert").notNull(),
+  stockAtAlert: int("stockAtAlert").notNull(),
+  alertState: varchar("alertState", { length: 32 }).notNull(), // 'ALERTED' | 'CLEARED'
+  lastAlertSentAt: text("lastAlertSentAt").notNull(),
+  createdAt: text("createdAt").notNull(),
+  updatedAt: text("updatedAt").notNull(),
+});
+
+export type LowStockAlert = typeof lowStockAlerts.$inferSelect;
+export type InsertLowStockAlert = typeof lowStockAlerts.$inferInsert;
+
