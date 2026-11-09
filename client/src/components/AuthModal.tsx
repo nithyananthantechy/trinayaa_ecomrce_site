@@ -217,18 +217,27 @@ export default function AuthModal({
   // ----------------------------------------------------
   const initRecaptcha = () => {
     try {
-      if (!window.recaptchaVerifier) {
-        window.recaptchaVerifier = new RecaptchaVerifier(firebaseAuth, "recaptcha-container", {
-          size: "invisible",
-          callback: () => {},
-          "expired-callback": () => {
-            window.recaptchaVerifier = undefined;
-          },
-        });
+      const container = document.getElementById("recaptcha-container");
+      if (!container) {
+        console.warn("[reCAPTCHA] #recaptcha-container element not found in DOM");
+        return undefined;
       }
+      if (window.recaptchaVerifier) {
+        try {
+          window.recaptchaVerifier.clear();
+        } catch (e) {}
+        window.recaptchaVerifier = undefined;
+      }
+      window.recaptchaVerifier = new RecaptchaVerifier(firebaseAuth, container, {
+        size: "invisible",
+        callback: () => {},
+        "expired-callback": () => {
+          window.recaptchaVerifier = undefined;
+        },
+      });
       return window.recaptchaVerifier;
-    } catch (e) {
-      console.warn("[reCAPTCHA Init]", e);
+    } catch (e: any) {
+      console.error("[reCAPTCHA Init Error]", e);
       return undefined;
     }
   };
@@ -278,7 +287,8 @@ export default function AuthModal({
         return;
       }
     } catch (err: any) {
-      console.warn("[Firebase SMS fallback to server]", err);
+      console.error("[Firebase SMS Error]", err);
+      toast.error(`Firebase: ${err?.message || err?.code || "Failed to send SMS via Firebase"}`);
     }
 
     // Fallback to server gateway
@@ -366,7 +376,8 @@ export default function AuthModal({
         return;
       }
     } catch (err: any) {
-      console.warn("[Firebase Register SMS fallback]", err);
+      console.error("[Firebase Register SMS Error]", err);
+      toast.error(`Firebase: ${err?.message || err?.code || "Failed to send SMS via Firebase"}`);
     }
 
     // Fallback dispatch to server
