@@ -19,6 +19,7 @@ import {
   ArrowUp,
   Trash2,
   LifeBuoy,
+  Bot,
 } from "lucide-react";
 
 interface ProductCard {
@@ -224,11 +225,10 @@ export default function CustomerAssistantBot() {
               <span className="relative inline-flex h-4 w-4 rounded-full border-2 border-white bg-emerald-500 shadow-sm"></span>
             </span>
 
-            {/* TRINAYAA Sacred Botanical Leaf Emblem */}
-            <img
-              src="/images/brand/emblem_crisp.png"
-              alt="TRINAYAA"
-              className="h-9 w-9 object-contain drop-shadow transition-transform duration-300 group-hover:scale-110"
+            {/* Modern High-Visibility AI Bot Icon */}
+            <Bot
+              className="h-7 w-7 text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.5)] transition-transform duration-300 group-hover:scale-110"
+              strokeWidth={2.3}
             />
           </button>
         </div>
@@ -246,12 +246,8 @@ export default function CustomerAssistantBot() {
           {/* 1. Header (Always visible, sticky at top) */}
           <div className="flex flex-shrink-0 items-center justify-between border-b border-emerald-900/20 bg-gradient-to-r from-[#143d2b] via-[#1b4332] to-[#245840] px-4 py-3 text-white shadow-md">
             <div className="flex items-center gap-2.5">
-              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-white/15 p-1 ring-1 ring-white/25">
-                <img
-                  src="/images/brand/emblem_crisp.png"
-                  alt="TRINAYAA"
-                  className="h-7 w-7 object-contain drop-shadow"
-                />
+              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-white/20 p-1 ring-1 ring-white/30 text-white shadow-inner">
+                <Bot className="h-5 w-5 text-white" strokeWidth={2.3} />
               </div>
               <div>
                 <div className="flex items-center gap-2">
