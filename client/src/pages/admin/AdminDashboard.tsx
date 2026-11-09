@@ -52,6 +52,7 @@ import {
 import EnquiriesTab from "./EnquiriesTab";
 import RewardsTab from "./RewardsTab";
 import PolicyCmsTab from "./PolicyCmsTab";
+import AdminUsersTab from "./AdminUsersTab";
 import { Award } from "lucide-react";
 
 type AdminTab =
@@ -70,6 +71,7 @@ type AdminTab =
   | "policies"
   | "content"
   | "settings"
+  | "admins"
   | "telegram"
   | "ai_image";
 
@@ -93,6 +95,7 @@ export default function AdminDashboard() {
     if (location.startsWith("/admin/import")) return "import";
     if (location.startsWith("/admin/content")) return "content";
     if (location.startsWith("/admin/settings")) return "settings";
+    if (location.startsWith("/admin/admins") || location.startsWith("/admin/users")) return "admins";
     if (location.startsWith("/admin/telegram")) return "telegram";
     if (location.startsWith("/admin/ai_image") || location.startsWith("/admin/generate-image") || location.startsWith("/admin/ai-image")) return "ai_image";
     return "overview";
@@ -637,6 +640,7 @@ export default function AdminDashboard() {
         { id: "policies" as AdminTab, label: "Website Policies CMS", icon: FileText },
         { id: "content" as AdminTab, label: "Store Content", icon: FileText },
         { id: "settings" as AdminTab, label: "Store Settings", icon: Settings },
+        { id: "admins" as AdminTab, label: "Admin Users", icon: ShieldCheck },
       ],
     },
     {
@@ -680,6 +684,8 @@ export default function AdminDashboard() {
         return { group: "Content & Settings", title: "Storefront Content" };
       case "settings":
         return { group: "Content & Settings", title: "Store Settings & Social Links" };
+      case "admins":
+        return { group: "Content & Settings", title: "Administrator Accounts & Staff Roles" };
       case "telegram":
         return { group: "Operations", title: "Telegram Administration Bot" };
       case "ai_image":
@@ -2333,6 +2339,7 @@ export default function AdminDashboard() {
           {activeTab === "feedback" && <CustomerFeedbackTab />}
           {activeTab === "rewards" && <RewardsTab />}
           {activeTab === "policies" && <PolicyCmsTab />}
+          {activeTab === "admins" && <AdminUsersTab />}
 
           {/* ========================================== */}
           {activeTab === "telegram" && (

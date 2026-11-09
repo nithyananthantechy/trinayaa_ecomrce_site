@@ -2348,6 +2348,99 @@ addresses: router({
         }),
     }),
 
+    // --- ADMIN USER & STAFF MANAGEMENT ---
+    adminUsers: router({
+      list: adminProcedure.query(async () => {
+        return db.usersRepo.listAdmins();
+      }),
+
+      create: adminProcedure
+        .input(
+          z.object({
+            name: z.string().min(2, "Name must be at least 2 characters"),
+            email: z.string().email("Please enter a valid email address"),
+            password: z.string().min(8, "Password must be at least 8 characters"),
+            role: z.enum(["ADMIN", "SUPER_ADMIN"]).default("ADMIN"),
+            phone: z.string().optional(),
+          })
+        )
+        .mutation(async ({ input, ctx }) => {
+          try {
+            const user = db.usersRepo.createAdminUser(input);
+            db.auditLogsRepo.log(
+              ctx.user.name || "Admin",
+              "CREATE_ADMIN_USER",
+              `Created administrator ${user.name} (${user.email}) with role ${user.role}`
+            );
+            return { success: true, user };
+          } catch (err: any) {
+            throw new TRPCError({
+              code: "BAD_REQUEST",
+              message: err.message || "Failed to create administrator account",
+            });
+          }
+        }),
+
+      update: adminProcedure
+        .input(
+          z.object({
+            id: z.string(),
+            name: z.string().min(2).optional(),
+            phone: z.string().optional(),
+            role: z.enum(["ADMIN", "SUPER_ADMIN"]).optional(),
+            status: z.enum(["ACTIVE", "SUSPENDED"]).optional(),
+            newPassword: z.string().min(8).optional(),
+          })
+        )
+        .mutation(async ({ input, ctx }) => {
+          if (ctx.user.id === input.id) {
+            if (input.status === "SUSPENDED") {
+              throw new TRPCError({
+                code: "BAD_REQUEST",
+                message: "You cannot suspend your own administrator account.",
+              });
+            }
+          }
+          try {
+            const user = db.usersRepo.updateAdminUser(input.id, input);
+            db.auditLogsRepo.log(
+              ctx.user.name || "Admin",
+              "UPDATE_ADMIN_USER",
+              `Updated administrator ${user.name} (${user.email}) - role: ${user.role}, status: ${user.status}`
+            );
+            return { success: true, user };
+          } catch (err: any) {
+            throw new TRPCError({
+              code: "BAD_REQUEST",
+              message: err.message || "Failed to update administrator",
+            });
+          }
+        }),
+
+      delete: adminProcedure
+        .input(z.object({ id: z.string() }))
+        .mutation(async ({ input, ctx }) => {
+          if (ctx.user.id === input.id) {
+            throw new TRPCError({
+              code: "BAD_REQUEST",
+              message: "You cannot delete your own administrator account.",
+            });
+          }
+          const target = db.usersRepo.getById(input.id);
+          if (!target) {
+            throw new TRPCError({ code: "NOT_FOUND", message: "Admin user not found" });
+          }
+
+          const success = db.usersRepo.deleteAdminUser(input.id);
+          db.auditLogsRepo.log(
+            ctx.user.name || "Admin",
+            "DELETE_ADMIN_USER",
+            `Deleted administrator ${target.name} (${target.email})`
+          );
+          return { success };
+        }),
+    }),
+
     // --- AI PRODUCT IMAGE GENERATOR (HUGGING FACE & TEMPLATE ENGINE) ---
     enquiries: router({
       list: adminProcedure

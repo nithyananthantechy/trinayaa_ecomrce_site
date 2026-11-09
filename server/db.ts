@@ -978,6 +978,67 @@ export const usersRepo = {
     return this.getById(id);
   },
 
+  listAdmins() {
+    const db = getDatabase();
+    return db.prepare(`
+      SELECT id, email, name, phone, role, status, adminNotes, telegramId, createdAt, updatedAt
+      FROM users
+      WHERE role IN ('ADMIN', 'SUPER_ADMIN')
+      ORDER BY CASE role WHEN 'SUPER_ADMIN' THEN 1 ELSE 2 END, createdAt ASC
+    `).all() as any[];
+  },
+
+  createAdminUser(data: { email: string; password: string; name: string; phone?: string; role?: string }) {
+    const db = getDatabase();
+    const existing = this.getByEmail(data.email);
+    if (existing) {
+      throw new Error(`User with email "${data.email}" already exists`);
+    }
+    const id = "usr_admin_" + Date.now() + "_" + Math.floor(Math.random() * 1000);
+    const hash = hashPassword(data.password);
+    const now = new Date().toISOString();
+    const email = data.email.toLowerCase().trim();
+    const role = (data.role || "").toUpperCase() === "SUPER_ADMIN" ? "SUPER_ADMIN" : "ADMIN";
+
+    db.prepare(`
+      INSERT INTO users (id, email, passwordHash, name, phone, role, status, createdAt, updatedAt)
+      VALUES (?, ?, ?, ?, ?, ?, 'ACTIVE', ?, ?)
+    `).run(id, email, hash, data.name.trim(), data.phone || "", role, now, now);
+
+    return this.getById(id);
+  },
+
+  updateAdminUser(id: string, data: { name?: string; phone?: string; role?: string; status?: string; newPassword?: string }) {
+    const db = getDatabase();
+    const existing = this.getById(id);
+    if (!existing) throw new Error("Administrator account not found");
+
+    const now = new Date().toISOString();
+    const name = data.name !== undefined ? data.name.trim() : existing.name;
+    const phone = data.phone !== undefined ? data.phone : existing.phone;
+    const role = data.role !== undefined ? data.role : existing.role;
+    const status = data.status !== undefined ? data.status : existing.status;
+
+    db.prepare(`
+      UPDATE users
+      SET name = ?, phone = ?, role = ?, status = ?, updatedAt = ?
+      WHERE id = ?
+    `).run(name, phone, role, status, now, id);
+
+    if (data.newPassword && data.newPassword.trim().length >= 8) {
+      const hash = hashPassword(data.newPassword.trim());
+      db.prepare("UPDATE users SET passwordHash = ?, updatedAt = ? WHERE id = ?").run(hash, now, id);
+    }
+
+    return this.getById(id);
+  },
+
+  deleteAdminUser(id: string) {
+    const db = getDatabase();
+    const res = db.prepare("DELETE FROM users WHERE id = ? AND role IN ('ADMIN', 'SUPER_ADMIN')").run(id);
+    return res.changes > 0;
+  },
+
   update(id: string, updates: { name?: string; phone?: string; telegramId?: string; status?: string; role?: string; password?: string }) {
     const db = getDatabase();
     const fields: string[] = [];
