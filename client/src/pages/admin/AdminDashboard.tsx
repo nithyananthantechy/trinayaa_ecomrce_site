@@ -688,13 +688,13 @@ export default function AdminDashboard() {
             onClick={() => setMobileMenuOpen(false)}
             aria-hidden="true"
           />
-          <div className="relative w-72 max-w-[85vw] bg-[#123D28] text-white flex flex-col justify-between shadow-2xl z-10 overflow-y-auto">
+          <div className="relative w-72 max-w-[85vw] bg-[#123D28] text-white flex flex-col justify-between shadow-2xl z-10 overflow-y-auto overflow-x-hidden">
             <div>
-              <div className="p-4 border-b border-white/10 flex items-center justify-between">
-                <BrandMark inverse={true} />
+              <div className="p-4 border-b border-white/10 flex items-center justify-between gap-2">
+                <BrandMark inverse={true} compact={true} />
                 <button
                   onClick={() => setMobileMenuOpen(false)}
-                  className="p-1.5 rounded-lg text-white/70 hover:text-white hover:bg-white/10 transition-colors"
+                  className="p-1.5 rounded-lg text-white/70 hover:text-white hover:bg-white/10 transition-colors shrink-0"
                   aria-label="Close navigation"
                 >
                   <X size={18} />
@@ -766,17 +766,17 @@ export default function AdminDashboard() {
       )}
 
       {/* Desktop Sticky Sidebar */}
-      <aside className="w-68 bg-[#123D28] text-white flex flex-col justify-between shrink-0 hidden md:flex border-r border-[#1B5237] h-screen sticky top-0 overflow-y-auto z-10">
+      <aside className="w-72 bg-[#123D28] text-white flex flex-col justify-between shrink-0 hidden md:flex border-r border-[#1B5237] h-screen sticky top-0 overflow-y-auto overflow-x-hidden z-10 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:bg-white/10 hover:[&::-webkit-scrollbar-thumb]:bg-white/20 [&::-webkit-scrollbar-track]:bg-transparent">
         <div>
           {/* Sidebar Brand Header */}
-          <div className="p-5 border-b border-white/10 flex items-center justify-between">
-            <BrandMark inverse={true} />
+          <div className="py-4 px-4 border-b border-white/10 flex items-center justify-between gap-2">
+            <BrandMark inverse={true} compact={true} />
             <a
               href="/"
               target="_blank"
               rel="noopener noreferrer"
               title="View Customer Storefront"
-              className="text-[#DFE7D7] hover:text-white p-2 rounded-lg hover:bg-white/10 transition-colors shrink-0"
+              className="text-[#DFE7D7] hover:text-white p-1.5 rounded-lg hover:bg-white/10 transition-colors shrink-0"
             >
               <ExternalLink size={16} />
             </a>

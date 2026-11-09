@@ -2,7 +2,7 @@ import { useState, FormEvent } from "react";
 import { useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
-import { Shield, ArrowRight, Lock, Mail, ArrowLeft, Leaf } from "lucide-react";
+import { Shield, ArrowRight, Lock, Mail, ArrowLeft, Leaf, AlertCircle } from "lucide-react";
 import { COOKIE_NAME } from "@shared/const";
 
 export default function AdminLogin() {
@@ -10,9 +10,11 @@ export default function AdminLogin() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [authError, setAuthError] = useState<string | null>(null);
 
   const loginMutation = trpc.auth.adminLogin.useMutation({
     onSuccess: (data) => {
+      setAuthError(null);
       toast.success("Welcome back, Administrator", {
         description: `Signed in as ${data.user.name}`,
       });
@@ -27,8 +29,10 @@ export default function AdminLogin() {
       }, 200);
     },
     onError: (err) => {
+      const msg = err.message || "Access denied. Administrator privileges required.";
+      setAuthError(msg);
       toast.error("Authentication failed", {
-        description: err.message || "Invalid administrator credentials",
+        description: msg,
       });
       setLoading(false);
     },
@@ -36,6 +40,7 @@ export default function AdminLogin() {
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
+    setAuthError(null);
     if (!email || !password) {
       toast.error("Please enter your administrator email and password");
       return;
@@ -68,6 +73,15 @@ export default function AdminLogin() {
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4 font-sans text-xs">
+            {authError && (
+              <div className="p-3.5 bg-red-50 border border-red-200 text-red-800 rounded-xl flex items-start gap-2.5 animate-in fade-in duration-200">
+                <AlertCircle size={18} className="text-red-600 shrink-0 mt-0.5" />
+                <div>
+                  <div className="font-bold text-xs text-red-900">Authentication Failed</div>
+                  <div className="text-[11px] text-red-700 mt-0.5">{authError}</div>
+                </div>
+              </div>
+            )}
             <div>
               <label className="block font-semibold mb-1 text-[#1A2C20]">Admin Email</label>
               <div className="relative">

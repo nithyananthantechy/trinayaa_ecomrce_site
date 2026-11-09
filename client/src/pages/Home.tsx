@@ -201,7 +201,18 @@ function SiteHeader({
             </button><i />
             <button onClick={() => setLocation("/contact")}>Support</button><i />
             <button onClick={() => setLocation("/track-order")}>Track Order</button>
-            {currentUser?.role === "ADMIN" && (
+            {currentUser && (
+              <>
+                <i />
+                <button
+                  onClick={() => setLocation(currentUser.role === "ADMIN" || currentUser.role === "SUPER_ADMIN" ? "/admin" : "/account")}
+                  className="font-bold text-[#123D28] hover:text-[#8C6D3F] transition-colors"
+                >
+                  My Account
+                </button>
+              </>
+            )}
+            {(currentUser?.role === "ADMIN" || currentUser?.role === "SUPER_ADMIN") && (
               <>
                 <i />
                 <button onClick={() => setLocation("/admin")} className="font-bold text-[#e8bf83]">Admin Console</button>
@@ -468,7 +479,8 @@ function CheckoutModal({
   const [saveAddressForFuture, setSaveAddressForFuture] = useState(false);
 
   const { data: savedAddresses = [], refetch: refetchAddresses } = trpc.addresses.list.useQuery(undefined, {
-    enabled: Boolean(currentUser),
+    enabled: open && Boolean(currentUser),
+    retry: false,
   });
   const saveAddressMutation = trpc.addresses.create.useMutation();
 
@@ -1059,6 +1071,22 @@ function AccountModal({
             </button>
           </div>
 
+          <div className="p-3 bg-[#EAF2ED] border border-[#C5DDCF] rounded-xl flex items-center justify-between">
+            <div>
+              <div className="font-bold text-xs text-[#123D28]">Customer Account Portal</div>
+              <div className="text-[10px] text-[#4F6858]">Access Wishlist, Rewards, Support Helpdesk &amp; Profile</div>
+            </div>
+            <button
+              onClick={() => {
+                onClose();
+                setLocation("/account");
+              }}
+              className="py-1.5 px-3 bg-[#123D28] hover:bg-[#1A4D33] text-white rounded-lg text-xs font-bold transition-colors shadow-2xs"
+            >
+              Open Portal &rarr;
+            </button>
+          </div>
+
           <div>
             <h3 className="font-serif font-bold text-base text-[#123D28] mb-2">My Orders</h3>
             {myOrders.length === 0 ? (
@@ -1139,6 +1167,7 @@ function MobileMenu({
         <nav>
           <button onClick={() => { onClose(); setLocation("/"); }}>Home <ArrowRight size={16} /></button>
           <button onClick={() => { onClose(); setLocation("/products"); }}>Products <ArrowRight size={16} /></button>
+          <button onClick={() => { onClose(); setLocation("/account"); }}>My Account (Orders & Helpdesk) <ArrowRight size={16} /></button>
           <button onClick={() => { onClose(); setLocation("/bulk-enquiry"); }}>Bulk / Wholesale <ArrowRight size={16} /></button>
           <button onClick={() => { onClose(); setLocation("/about"); }}>About <ArrowRight size={16} /></button>
           <button onClick={() => { onClose(); setLocation("/contact"); }}>Contact <ArrowRight size={16} /></button>
@@ -1185,6 +1214,7 @@ export default function Home() {
   // Phase 3: Live Wishlist Sync
   const { data: dbWishlistIds = [], refetch: refetchWishlistIds } = trpc.wishlist.getIds.useQuery(undefined, {
     enabled: Boolean(currentUser),
+    retry: false,
   });
 
   useEffect(() => {
@@ -1416,7 +1446,7 @@ export default function Home() {
             if (currentUser.role === "ADMIN" || currentUser.role === "SUPER_ADMIN") {
               setLocation("/admin");
             } else {
-              setAccountModalOpen(true);
+              setLocation("/account");
             }
           } else {
             setAuthModalOpen(true);

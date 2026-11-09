@@ -57,6 +57,7 @@ export default function Catalog() {
 
   const { data: dbWishlistIds = [], refetch: refetchWishlistIds } = trpc.wishlist.getIds.useQuery(undefined, {
     enabled: Boolean(currentUser),
+    retry: false,
   });
 
   useEffect(() => {
