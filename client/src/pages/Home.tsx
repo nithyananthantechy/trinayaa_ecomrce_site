@@ -67,7 +67,7 @@ function getGuestToken(): string {
 }
 
 const IMG = {
-  hero: "/images/hero/hero_botanical_display.png",
+  hero: "/images/hero/hero_photoshoot_right_fade.png",
   moringa: "/images/products/packaged/pouch_001.png",
   blackSeed: "/images/products/packaged/pouch_002.png",
   hibiscus: "/images/products/packaged/pouch_003.png",
@@ -1575,17 +1575,16 @@ export default function Home() {
         <section className="hero-section">
           <div className="hero-art" style={{ backgroundImage: `url(${IMG.hero})` }} />
           <div className="hero-content container-wide">
-            <span className="eyebrow hero-eyebrow">NATURAL HERBS FOR A BETTER TOMORROW</span>
-            <h1>Pure Seeds.<br /><em>Raw Powders.</em><br /><span>True Herbs.</span></h1>
-            <p className="hero-tagline">Nature's wisdom, your wellness.</p>
-            <p>Carefully sourced natural herbs, pure seeds and raw herbal powders for your everyday wellness journey.</p>
+            <span className="eyebrow hero-eyebrow">NATURAL HERBS • SEEDS • RAW POWDERS</span>
+            <h1>Rooted in Nature.<br /><em>Made for Everyday Wellness.</em></h1>
+            <p>High quality natural seeds, raw powders and herbal products for a healthier, more natural lifestyle.</p>
             <button className="dark-button hero-button" onClick={() => setLocation("/products")}>
-              Explore Products <ArrowRight size={17} />
+              Shop Now <ArrowRight size={17} />
             </button>
             <div className="hero-notes">
-              <span><Leaf size={17} /> Natural Products</span>
-              <span><Sparkles size={17} /> Carefully Sourced</span>
-              <span><Heart size={17} /> Trusted Quality</span>
+              <span><Leaf size={17} /> Carefully Sourced</span>
+              <span><Sparkles size={17} /> Naturally Processed</span>
+              <span><Heart size={17} /> For Everyday Wellness</span>
             </div>
           </div>
         </section>

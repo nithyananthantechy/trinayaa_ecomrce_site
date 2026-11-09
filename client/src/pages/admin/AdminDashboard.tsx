@@ -733,7 +733,7 @@ export default function AdminDashboard() {
                     setMobileMenuOpen(false);
                     navigateToTab("overview");
                   }}
-                  className="bg-[#FFFDF8] hover:bg-[#FBF8F0] transition-colors rounded-xl px-2.5 py-1.5 shadow-xs border border-[#E5DECF] flex items-center justify-center flex-1 overflow-hidden"
+                  className="bg-[#FFFDF8] hover:bg-[#FBF8F0] transition-colors rounded-xl px-3 py-2 shadow-xs border border-[#E5DECF] flex items-center justify-center flex-1"
                   title="TRINAYAA Admin Console"
                 >
                   <BrandMark compact={true} />
@@ -821,7 +821,7 @@ export default function AdminDashboard() {
               e.preventDefault();
               navigateToTab("overview");
             }}
-            className="bg-[#FFFDF8] hover:bg-[#FBF8F0] transition-colors rounded-xl px-2.5 py-1.5 shadow-xs border border-[#E5DECF] flex items-center justify-center flex-1 overflow-hidden"
+            className="bg-[#FFFDF8] hover:bg-[#FBF8F0] transition-colors rounded-xl px-3 py-2 shadow-xs border border-[#E5DECF] flex items-center justify-center flex-1"
             title="TRINAYAA Admin Console"
           >
             <BrandMark compact={true} />

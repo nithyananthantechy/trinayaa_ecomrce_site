@@ -20,6 +20,9 @@ import {
   Link as LinkIcon,
   AlertTriangle,
   RefreshCw,
+  Sparkles,
+  Code,
+  Type,
 } from "lucide-react";
 
 interface PolicyDoc {
@@ -58,9 +61,143 @@ const POLICY_METADATA = [
   },
 ];
 
+// =========================================================================
+// SMART POLICY FORMATTER: Eliminates HTML tags for non-technical clients
+// =========================================================================
+export function htmlToNaturalText(html: string): string {
+  if (!html) return "";
+  let text = html;
+  // Convert standard HTML tags to natural text/markdown
+  text = text.replace(/<h2[^>]*>(.*?)<\/h2>/gi, "## $1\n\n");
+  text = text.replace(/<h3[^>]*>(.*?)<\/h3>/gi, "### $1\n\n");
+  text = text.replace(/<p[^>]*>(.*?)<\/p>/gi, "$1\n\n");
+  text = text.replace(/<li[^>]*>(.*?)<\/li>/gi, "• $1\n");
+  text = text.replace(/<\/?(?:ul|ol)[^>]*>/gi, "\n");
+  text = text.replace(/<(?:strong|b)[^>]*>(.*?)<\/(?:strong|b)>/gi, "**$1**");
+  text = text.replace(/<(?:em|i)[^>]*>(.*?)<\/(?:em|i)>/gi, "*$1*");
+  text = text.replace(/<a\s+[^>]*href=["'](.*?)["'][^>]*>(.*?)<\/a>/gi, "[$2]($1)");
+  text = text.replace(/<br\s*\/?>/gi, "\n");
+  // Strip any remaining unknown HTML tags
+  text = text.replace(/<[^>]+>/g, "");
+  // Normalize triple newlines to double newlines
+  text = text.replace(/\n{3,}/g, "\n\n");
+  return text.trim();
+}
+
+export function naturalTextToHtml(rawText: string): string {
+  if (!rawText) return "";
+  const trimmed = rawText.trim();
+  
+  // If the user already wrote pure raw HTML with tags, preserve it
+  if (/<(?:h[1-6]|p|ul|ol|li|div)\b/i.test(trimmed)) {
+    return trimmed;
+  }
+
+  const lines = trimmed.split("\n");
+  const htmlBlocks: string[] = [];
+  let inList = false;
+  let listType: "ul" | "ol" = "ul";
+  let currentParagraphLines: string[] = [];
+
+  const flushParagraph = () => {
+    if (currentParagraphLines.length > 0) {
+      let content = currentParagraphLines.join(" ").trim();
+      if (content) {
+        // Inline formatting: bold, italic, links
+        content = content.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
+        content = content.replace(/\*(.+?)\*/g, "<em>$1</em>");
+        content = content.replace(/\[(.+?)\]\((https?:\/\/[^\s\)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
+        htmlBlocks.push(`<p>${content}</p>`);
+      }
+      currentParagraphLines = [];
+    }
+  };
+
+  const flushList = () => {
+    if (inList) {
+      htmlBlocks.push(`</${listType}>`);
+      inList = false;
+    }
+  };
+
+  for (const line of lines) {
+    const s = line.trim();
+    if (!s) {
+      flushParagraph();
+      flushList();
+      continue;
+    }
+
+    // 1. Check Section Heading (H2): "## Title" or numbered title like "1. Title" / "Section 1: Title"
+    const isExplicitH2 = /^##\s+(.+)$/.exec(s);
+    const isNumberedHeading = /^(?:SECTION\s+\d+:?|\d+\.)\s+([A-Z][A-Za-z0-9\s—–,-]{2,60})$/.exec(s);
+    if (isExplicitH2 || (isNumberedHeading && s.length < 65)) {
+      flushParagraph();
+      flushList();
+      const titleText = isExplicitH2 ? isExplicitH2[1].trim() : s;
+      htmlBlocks.push(`<h2>${titleText}</h2>`);
+      continue;
+    }
+
+    // 2. Check Sub-heading (H3): "### Title"
+    const isExplicitH3 = /^###\s+(.+)$/.exec(s);
+    if (isExplicitH3) {
+      flushParagraph();
+      flushList();
+      htmlBlocks.push(`<h3>${isExplicitH3[1].trim()}</h3>`);
+      continue;
+    }
+
+    // 3. Check Bullet Item: • or - or *
+    const bulletMatch = /^[•\-\*]\s+(.+)$/.exec(s);
+    if (bulletMatch) {
+      flushParagraph();
+      if (!inList || listType !== "ul") {
+        flushList();
+        htmlBlocks.push("<ul>");
+        inList = true;
+        listType = "ul";
+      }
+      let itemText = bulletMatch[1].trim();
+      itemText = itemText.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
+      itemText = itemText.replace(/\*(.+?)\*/g, "<em>$1</em>");
+      itemText = itemText.replace(/\[(.+?)\]\((https?:\/\/[^\s\)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
+      htmlBlocks.push(`  <li>${itemText}</li>`);
+      continue;
+    }
+
+    // 4. Check Numbered Item: "1. Item" inside an active numbered sequence
+    const numMatch = /^\d+[\.\)]\s+(.+)$/.exec(s);
+    if (numMatch && (inList || s.length > 55)) {
+      flushParagraph();
+      if (!inList || listType !== "ol") {
+        flushList();
+        htmlBlocks.push("<ol>");
+        inList = true;
+        listType = "ol";
+      }
+      let itemText = numMatch[1].trim();
+      itemText = itemText.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
+      itemText = itemText.replace(/\*(.+?)\*/g, "<em>$1</em>");
+      itemText = itemText.replace(/\[(.+?)\]\((https?:\/\/[^\s\)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
+      htmlBlocks.push(`  <li>${itemText}</li>`);
+      continue;
+    }
+
+    // 5. Standard paragraph text line
+    flushList();
+    currentParagraphLines.push(s);
+  }
+
+  flushParagraph();
+  flushList();
+  return htmlBlocks.join("\n");
+}
+
 export default function PolicyCmsTab() {
   const [selectedSlug, setSelectedSlug] = useState<string>("shipping");
   const [mode, setMode] = useState<"edit" | "preview">("edit");
+  const [editorSyntaxMode, setEditorSyntaxMode] = useState<"natural" | "html">("natural");
 
   // Form states
   const [title, setTitle] = useState("");
@@ -83,7 +220,9 @@ export default function PolicyCmsTab() {
     if (currentPolicy) {
       setTitle(currentPolicy.title || "");
       setSubtitle(currentPolicy.subtitle || "");
-      setContent(currentPolicy.content || "");
+      const rawContent = currentPolicy.content || "";
+      // If client editor is in natural mode, automatically convert database HTML into friendly natural text!
+      setContent(editorSyntaxMode === "natural" ? htmlToNaturalText(rawContent) : rawContent);
       setIsPublished(Boolean(currentPolicy.isPublished));
       setLastUpdated(currentPolicy.lastUpdated || "");
     }
@@ -106,35 +245,54 @@ export default function PolicyCmsTab() {
       toast.error("Policy title cannot be empty.");
       return;
     }
+
+    // Automatically convert client's natural text to structured HTML if in natural mode!
+    const finalHtml = editorSyntaxMode === "natural" ? naturalTextToHtml(content) : content;
+
     updatePolicyMutation.mutate({
       slug: selectedSlug,
       title: title.trim(),
       subtitle: subtitle.trim() || undefined,
-      content,
+      content: finalHtml,
       isPublished,
       lastUpdated: lastUpdated.trim() || undefined,
     });
   };
 
-  // Helper to insert markdown/HTML formatting at cursor
-  const insertFormatting = (tagStart: string, tagEnd: string) => {
+  // Helper to insert natural formatting at cursor without HTML tags
+  const insertNaturalFormatting = (prefix: string, suffix: string = "") => {
     const textarea = document.getElementById("policy-editor-textarea") as HTMLTextAreaElement | null;
     if (!textarea) return;
 
     const start = textarea.selectionStart;
     const end = textarea.selectionEnd;
-    const selectedText = content.substring(start, end) || "Text";
-    const replacement = `${tagStart}${selectedText}${tagEnd}`;
+    const selectedText = content.substring(start, end) || "Section Heading";
+    const replacement = `${prefix}${selectedText}${suffix}`;
 
     const newContent = content.substring(0, start) + replacement + content.substring(end);
     setContent(newContent);
 
-    // Reset selection
     setTimeout(() => {
       textarea.focus();
-      textarea.setSelectionRange(start + tagStart.length, start + tagStart.length + selectedText.length);
+      textarea.setSelectionRange(start + prefix.length, start + prefix.length + selectedText.length);
     }, 10);
   };
+
+  // Switch between Natural Text mode and Raw HTML mode
+  const toggleSyntaxMode = (newMode: "natural" | "html") => {
+    if (newMode === editorSyntaxMode) return;
+    if (newMode === "html") {
+      // Convert current text to HTML
+      setContent(naturalTextToHtml(content));
+    } else {
+      // Convert HTML back to friendly natural text
+      setContent(htmlToNaturalText(content));
+    }
+    setEditorSyntaxMode(newMode);
+  };
+
+  // Live preview HTML content
+  const previewHtml = editorSyntaxMode === "natural" ? naturalTextToHtml(content) : content;
 
   return (
     <div className="space-y-6">
@@ -143,42 +301,39 @@ export default function PolicyCmsTab() {
         <div>
           <div className="flex items-center gap-2">
             <span className="text-xs font-bold text-[#AE6A2B] uppercase tracking-wider">Store Governance</span>
-            <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-full">
-              Phase 8 Policy CMS
+            <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
+              <Sparkles size={11} /> Auto-Tagging Enabled
             </span>
           </div>
-          <h2 className="font-serif text-2xl font-bold text-[#123D28] mt-1">Website Policies & Legal CMS</h2>
+          <h2 className="font-serif text-2xl font-bold text-[#123D28] mt-1">Website Policies &amp; Legal CMS</h2>
           <p className="text-xs text-[#6C7167] mt-1">
-            Manage your store's customer-facing policies dynamically without modifying source code. All published policies render directly to storefront visitors.
+            Manage your store's customer-facing policies easily in plain text. Headings, paragraphs, and lists are automatically formatted into proper HTML tags.
           </p>
         </div>
 
         <div className="flex items-center gap-2 self-start md:self-auto">
-          <button
-            type="button"
-            onClick={() => {
-              refetch();
-              toast.info("Refreshed policy data");
-            }}
-            className="text-xs text-[#6C7167] hover:text-[#123D28] flex items-center gap-1.5 py-2 px-3 border border-[#DEDFD5] rounded-lg bg-white"
-          >
-            <RefreshCw size={14} />
-            <span>Refresh</span>
-          </button>
           <a
             href={`/policies/${selectedSlug}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-xs text-[#123D28] font-bold flex items-center gap-1.5 py-2 px-3.5 bg-[#FAF8F2] hover:bg-[#EFECE4] border border-[#DEDFD5] rounded-lg transition-colors"
+            className="px-3.5 py-2 text-xs font-semibold text-[#123D28] bg-[#F6F5EE] hover:bg-[#EAE8DE] border border-[#DEDFD5] rounded-lg flex items-center gap-1.5 transition-colors"
           >
+            <ExternalLink size={14} />
             <span>View Live Page</span>
-            <ExternalLink size={13} />
           </a>
+          <button
+            onClick={() => refetch()}
+            disabled={isLoading}
+            className="p-2 text-[#123D28] hover:bg-[#F6F5EE] border border-[#DEDFD5] rounded-lg transition-colors"
+            title="Refresh policies"
+          >
+            <RefreshCw size={15} className={isLoading ? "animate-spin" : ""} />
+          </button>
         </div>
       </div>
 
       {/* Policy Selector Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
         {POLICY_METADATA.map((meta) => {
           const doc = policies.find((p) => p.slug === meta.slug);
           const isSelected = selectedSlug === meta.slug;
@@ -188,23 +343,20 @@ export default function PolicyCmsTab() {
             <button
               key={meta.slug}
               type="button"
-              onClick={() => {
-                setSelectedSlug(meta.slug);
-                setMode("edit");
-              }}
-              className={`p-4 rounded-xl border text-left transition-all relative ${
+              onClick={() => setSelectedSlug(meta.slug)}
+              className={`p-4 rounded-xl text-left transition-all border ${
                 isSelected
-                  ? "bg-[#123D28] text-white border-[#123D28] shadow-md"
-                  : "bg-white text-[#123D28] border-[#DEDFD5] hover:border-[#123D28]/40 shadow-2xs"
+                  ? "bg-[#123D28] text-white border-[#123D28] shadow-md ring-2 ring-[#123D28]/20"
+                  : "bg-white hover:bg-[#FAF8F2] text-[#123D28] border-[#DEDFD5] shadow-xs"
               }`}
             >
               <div className="flex items-center justify-between mb-2">
                 <div
-                  className={`w-9 h-9 rounded-lg flex items-center justify-center ${
-                    isSelected ? "bg-white/10 text-white" : "bg-[#FBF8F0] text-[#123D28]"
+                  className={`w-8 h-8 rounded-lg flex items-center justify-center ${
+                    isSelected ? "bg-white/15 text-white" : "bg-[#F6F5EE] text-[#123D28]"
                   }`}
                 >
-                  <Icon size={18} />
+                  <Icon size={16} />
                 </div>
                 <span
                   className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
@@ -217,56 +369,52 @@ export default function PolicyCmsTab() {
                       : "bg-amber-100 text-amber-800"
                   }`}
                 >
-                  {doc?.isPublished ? "Published" : "Draft / Hidden"}
+                  {doc?.isPublished ? "Published" : "Draft"}
                 </span>
               </div>
-
-              <div className={`font-serif text-sm font-bold ${isSelected ? "text-white" : "text-[#123D28]"}`}>
-                {meta.label}
-              </div>
+              <h3 className="font-serif font-bold text-sm tracking-tight">{meta.label}</h3>
               <p
                 className={`text-[11px] mt-1 line-clamp-2 leading-relaxed ${
-                  isSelected ? "text-white/80" : "text-[#6C7167]"
+                  isSelected ? "text-white/75" : "text-[#6C7167]"
                 }`}
               >
                 {meta.description}
               </p>
               <div
-                className={`text-[10px] font-mono mt-2 pt-2 border-t ${
-                  isSelected ? "border-white/15 text-white/60" : "border-[#EFECE4] text-[#8C9286]"
+                className={`mt-3 pt-2 border-t flex items-center justify-between text-[10px] ${
+                  isSelected ? "border-white/10 text-white/60" : "border-[#EFECE4] text-[#8E8B82]"
                 }`}
               >
-                Last Updated: {doc?.lastUpdated || "Draft"}
+                <span>Last Updated: {doc?.lastUpdated || "Nov 2026"}</span>
               </div>
             </button>
           );
         })}
       </div>
 
-      {/* Policy Editor Container */}
+      {/* Editor & Preview Workspace */}
       <div className="bg-white border border-[#DEDFD5] rounded-xl shadow-xs overflow-hidden">
-        {/* Editor Sub-Header */}
-        <div className="p-4 sm:p-5 border-b border-[#DEDFD5] flex items-center justify-between flex-wrap gap-4 bg-[#FAF8F2]">
+        {/* Workspace Sub-Header */}
+        <div className="px-6 py-3.5 border-b border-[#EFECE4] bg-[#FAF8F2] flex items-center justify-between flex-wrap gap-3">
           <div className="flex items-center gap-3">
-            <div className="flex border border-[#DEDFD5] rounded-lg overflow-hidden bg-white">
+            <div className="flex items-center bg-[#EAE8DE] p-1 rounded-lg">
               <button
                 type="button"
                 onClick={() => setMode("edit")}
-                className={`px-3 py-1.5 text-xs font-bold transition-colors ${
-                  mode === "edit" ? "bg-[#123D28] text-white" : "text-[#6C7167] hover:text-[#123D28]"
+                className={`px-3 py-1 rounded-md text-xs font-bold flex items-center gap-1.5 transition-colors ${
+                  mode === "edit" ? "bg-white text-[#123D28] shadow-xs" : "text-[#6C7167] hover:text-[#123D28]"
                 }`}
               >
-                Edit Policy
+                <FileText size={13} /> Edit Policy
               </button>
               <button
                 type="button"
                 onClick={() => setMode("preview")}
-                className={`px-3 py-1.5 text-xs font-bold flex items-center gap-1.5 transition-colors ${
-                  mode === "preview" ? "bg-[#123D28] text-white" : "text-[#6C7167] hover:text-[#123D28]"
+                className={`px-3 py-1 rounded-md text-xs font-bold flex items-center gap-1.5 transition-colors ${
+                  mode === "preview" ? "bg-white text-[#123D28] shadow-xs" : "text-[#6C7167] hover:text-[#123D28]"
                 }`}
               >
-                <Eye size={13} />
-                <span>Live Preview</span>
+                <Eye size={13} /> Live Preview
               </button>
             </div>
             <div className="text-xs text-[#6C7167] hidden sm:block">
@@ -336,79 +484,107 @@ export default function PolicyCmsTab() {
               />
             </div>
 
+            {/* Smart Auto-Tagging Notice Banner */}
+            <div className="p-3 bg-emerald-50/70 border border-emerald-200/80 rounded-lg flex items-center justify-between text-xs text-emerald-900">
+              <div className="flex items-center gap-2">
+                <Sparkles size={16} className="text-emerald-700 shrink-0" />
+                <span>
+                  <strong>Client-Friendly Editor:</strong> Write naturally in plain text with line breaks. Proper HTML tags (headings, paragraphs, lists) are automatically generated upon saving!
+                </span>
+              </div>
+              <div className="flex items-center gap-1 shrink-0 ml-3">
+                <button
+                  type="button"
+                  onClick={() => toggleSyntaxMode("natural")}
+                  className={`px-2 py-0.5 rounded text-[11px] font-bold transition-colors ${
+                    editorSyntaxMode === "natural"
+                      ? "bg-emerald-700 text-white shadow-xs"
+                      : "text-emerald-800 hover:bg-emerald-100"
+                  }`}
+                >
+                  <Type size={11} className="inline mr-1" /> Plain Text
+                </button>
+                <button
+                  type="button"
+                  onClick={() => toggleSyntaxMode("html")}
+                  className={`px-2 py-0.5 rounded text-[11px] font-bold transition-colors ${
+                    editorSyntaxMode === "html"
+                      ? "bg-emerald-700 text-white shadow-xs"
+                      : "text-emerald-800 hover:bg-emerald-100"
+                  }`}
+                >
+                  <Code size={11} className="inline mr-1" /> Raw HTML
+                </button>
+              </div>
+            </div>
+
             {/* Quick Format Toolbar */}
             <div className="space-y-1">
               <div className="flex items-center justify-between">
                 <label className="block text-xs font-bold text-[#123D28]">Policy Document Content</label>
-                <span className="text-[10px] text-[#6C7167]">Safe HTML &amp; Markdown tags supported</span>
+                <span className="text-[10px] text-[#6C7167]">
+                  {editorSyntaxMode === "natural" ? "Natural text · Auto-tagged on save" : "Direct HTML Mode"}
+                </span>
               </div>
 
               <div className="flex items-center gap-1 p-2 bg-[#F6F5EE] border border-[#DEDFD5] rounded-t-lg flex-wrap text-xs">
                 <button
                   type="button"
-                  title="Section Heading (H2)"
-                  onClick={() => insertFormatting("<h2>", "</h2>\n")}
-                  className="p-1.5 rounded hover:bg-white text-[#123D28] font-bold border border-transparent hover:border-[#DEDFD5]"
+                  title="Main Section (## Heading)"
+                  onClick={() => insertNaturalFormatting("\n\n## ", "\n")}
+                  className="px-2 py-1 rounded hover:bg-white text-[#123D28] font-bold border border-transparent hover:border-[#DEDFD5] flex items-center gap-1 text-[11px]"
                 >
-                  <Heading2 size={15} />
+                  <Heading2 size={14} /> Section Title
                 </button>
                 <button
                   type="button"
-                  title="Sub-Section (H3)"
-                  onClick={() => insertFormatting("<h3>", "</h3>\n")}
-                  className="p-1.5 rounded hover:bg-white text-[#123D28] font-bold border border-transparent hover:border-[#DEDFD5]"
+                  title="Sub-Section (### Subheading)"
+                  onClick={() => insertNaturalFormatting("\n\n### ", "\n")}
+                  className="px-2 py-1 rounded hover:bg-white text-[#123D28] font-bold border border-transparent hover:border-[#DEDFD5] flex items-center gap-1 text-[11px]"
                 >
-                  <Heading3 size={15} />
-                </button>
-                <div className="h-4 w-px bg-[#DEDFD5] mx-1"></div>
-                <button
-                  type="button"
-                  title="Paragraph"
-                  onClick={() => insertFormatting("<p>", "</p>\n")}
-                  className="p-1.5 rounded hover:bg-white text-[#123D28] border border-transparent hover:border-[#DEDFD5] text-[11px] font-mono px-2"
-                >
-                  &lt;p&gt;
-                </button>
-                <button
-                  type="button"
-                  title="Bold"
-                  onClick={() => insertFormatting("<strong>", "</strong>")}
-                  className="p-1.5 rounded hover:bg-white text-[#123D28] border border-transparent hover:border-[#DEDFD5]"
-                >
-                  <Bold size={15} />
-                </button>
-                <button
-                  type="button"
-                  title="Italic"
-                  onClick={() => insertFormatting("<em>", "</em>")}
-                  className="p-1.5 rounded hover:bg-white text-[#123D28] border border-transparent hover:border-[#DEDFD5]"
-                >
-                  <Italic size={15} />
+                  <Heading3 size={14} /> Sub-Section
                 </button>
                 <div className="h-4 w-px bg-[#DEDFD5] mx-1"></div>
                 <button
                   type="button"
-                  title="Bullet List"
-                  onClick={() => insertFormatting("<ul>\n  <li>", "</li>\n</ul>\n")}
-                  className="p-1.5 rounded hover:bg-white text-[#123D28] border border-transparent hover:border-[#DEDFD5]"
+                  title="Bold (**text**)"
+                  onClick={() => insertNaturalFormatting("**", "**")}
+                  className="p-1.5 rounded hover:bg-white text-[#123D28] font-bold border border-transparent hover:border-[#DEDFD5]"
                 >
-                  <List size={15} />
+                  <Bold size={14} />
                 </button>
                 <button
                   type="button"
-                  title="Numbered List"
-                  onClick={() => insertFormatting("<ol>\n  <li>", "</li>\n</ol>\n")}
+                  title="Italic (*text*)"
+                  onClick={() => insertNaturalFormatting("*", "*")}
                   className="p-1.5 rounded hover:bg-white text-[#123D28] border border-transparent hover:border-[#DEDFD5]"
                 >
-                  <ListOrdered size={15} />
+                  <Italic size={14} />
+                </button>
+                <div className="h-4 w-px bg-[#DEDFD5] mx-1"></div>
+                <button
+                  type="button"
+                  title="Bullet List (• Item)"
+                  onClick={() => insertNaturalFormatting("\n• ", "\n")}
+                  className="p-1.5 rounded hover:bg-white text-[#123D28] border border-transparent hover:border-[#DEDFD5]"
+                >
+                  <List size={14} />
                 </button>
                 <button
                   type="button"
-                  title="Insert Link"
-                  onClick={() => insertFormatting('<a href="https://trinayaa.in">', "</a>")}
+                  title="Numbered List (1. Item)"
+                  onClick={() => insertNaturalFormatting("\n1. ", "\n")}
                   className="p-1.5 rounded hover:bg-white text-[#123D28] border border-transparent hover:border-[#DEDFD5]"
                 >
-                  <LinkIcon size={15} />
+                  <ListOrdered size={14} />
+                </button>
+                <button
+                  type="button"
+                  title="Insert Link ([Text](URL))"
+                  onClick={() => insertNaturalFormatting("[TRINAYAA Helpdesk](https://trinayaa.in)")}
+                  className="p-1.5 rounded hover:bg-white text-[#123D28] border border-transparent hover:border-[#DEDFD5]"
+                >
+                  <LinkIcon size={14} />
                 </button>
               </div>
 
@@ -417,15 +593,30 @@ export default function PolicyCmsTab() {
                 rows={16}
                 value={content}
                 onChange={(e) => setContent(e.target.value)}
-                placeholder="Write policy content using standard headings, paragraphs, and list items..."
-                className="w-full p-4 border border-[#DEDFD5] rounded-b-lg text-xs font-mono bg-white focus:outline-none focus:border-[#123D28] leading-relaxed"
+                placeholder="Write policy content naturally here...
+
+Example:
+## 1. Fast Dispatch
+All items dispatched within 24-48 hours. Express delivery across Tamil Nadu in 2-3 business days and Pan-India in 4-6 business days.
+
+## 2. Courier Partners
+We partner with India's most trusted logistics networks:
+• Blue Dart Express
+• Delhivery
+• India Post Speed Post
+
+## 3. Damaged Deliveries
+If you receive a package with outer tamper or transit damage, simply inform us within 48 hours for immediate replacement."
+                className={`w-full p-4 border border-[#DEDFD5] rounded-b-lg text-xs leading-relaxed bg-white focus:outline-none focus:border-[#123D28] ${
+                  editorSyntaxMode === "natural" ? "font-sans text-gray-800" : "font-mono text-gray-900"
+                }`}
                 required
               />
             </div>
 
             <div className="flex items-center justify-between pt-3 border-t border-[#EFECE4]">
               <span className="text-xs text-[#6C7167]">
-                Changes are automatically sanitized on save to prevent malicious script injection.
+                Changes are automatically formatted with proper HTML tags and sanitized on save.
               </span>
               <button
                 type="submit"
@@ -462,7 +653,7 @@ export default function PolicyCmsTab() {
 
             <div
               className="bg-white p-6 sm:p-8 rounded-xl border border-[#E5DECF] shadow-xs space-y-4 text-xs text-[#374151] leading-relaxed [&>h2]:font-serif [&>h2]:text-base [&>h2]:font-bold [&>h2]:text-[#123D28] [&>h2]:mt-6 [&>h2]:mb-2 [&>h3]:font-serif [&>h3]:font-bold [&>h3]:text-[#123D28] [&>h3]:mt-4 [&>p]:mb-3 [&>ul]:list-disc [&>ul]:pl-5 [&>ul]:space-y-1.5 [&>ol]:list-decimal [&>ol]:pl-5 [&>ol]:space-y-1.5 [&>a]:text-[#AE6A2B] [&>a]:underline"
-              dangerouslySetInnerHTML={{ __html: content || "<p>No content entered yet.</p>" }}
+              dangerouslySetInnerHTML={{ __html: previewHtml || "<p>No content entered yet.</p>" }}
             />
           </div>
         )}
