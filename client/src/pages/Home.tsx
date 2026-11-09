@@ -67,7 +67,7 @@ function getGuestToken(): string {
 }
 
 const IMG = {
-  hero: "/images/hero/hero_photoshoot_right_fade.png",
+  hero: "/images/hero/hero_photoshoot_crisp_hd.png",
   moringa: "/images/products/packaged/pouch_001.png",
   blackSeed: "/images/products/packaged/pouch_002.png",
   hibiscus: "/images/products/packaged/pouch_003.png",
