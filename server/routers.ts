@@ -2331,8 +2331,8 @@ addresses: router({
               `Admin:${ctx.user.name}`
             );
           }
-          const updated = db.telegramRepo.approveStockRequest(input.requestId, ctx.user.name || "Admin");
-          return { success: true, request: updated };
+          const result = db.telegramRepo.approveStockRequest(input.requestId, ctx.user.name || "Admin");
+          return result;
         }),
 
       rejectStockRequest: adminProcedure
@@ -2343,8 +2343,8 @@ addresses: router({
           })
         )
         .mutation(async ({ input, ctx }) => {
-          const updated = db.telegramRepo.rejectStockRequest(input.requestId, ctx.user.name || "Admin", input.reason);
-          return { success: true, request: updated };
+          const result = db.telegramRepo.rejectStockRequest(input.requestId, ctx.user.name || "Admin", input.reason);
+          return result;
         }),
     }),
 

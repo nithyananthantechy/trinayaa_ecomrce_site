@@ -2878,22 +2878,31 @@ export const telegramRepo = {
   approveStockRequest(idOrNumber: string, reviewedBy: string) {
     const db = getDatabase();
     const req = db.prepare("SELECT * FROM telegram_stock_requests WHERE id = ? OR requestNumber = ?").get(idOrNumber, idOrNumber) as any;
-    if (!req) return null;
+    if (!req) return { success: false, error: "Request not found" };
     const now = new Date().toISOString();
     db.prepare("UPDATE telegram_stock_requests SET status = 'APPROVED', reviewedBy = ?, reviewedAt = ? WHERE id = ?")
       .run(reviewedBy, now, req.id);
-    return db.prepare("SELECT * FROM telegram_stock_requests WHERE id = ?").get(req.id) as any;
+    if (req.productSku && req.quantityChange) {
+      const prod = db.prepare("SELECT id, stock FROM products WHERE sku = ?").get(req.productSku) as any;
+      if (prod) {
+        const newStock = Math.max(0, (prod.stock || 0) + req.quantityChange);
+        inventoryRepo.updateStock(prod.id, newStock, `Telegram approval: ${req.requestNumber || req.id} by ${reviewedBy}`, `Admin:${reviewedBy}`);
+      }
+    }
+    const updated = db.prepare("SELECT * FROM telegram_stock_requests WHERE id = ?").get(req.id) as any;
+    return { success: true, request: updated };
   },
 
   rejectStockRequest(idOrNumber: string, reviewedBy: string, reason?: string) {
     const db = getDatabase();
     const req = db.prepare("SELECT * FROM telegram_stock_requests WHERE id = ? OR requestNumber = ?").get(idOrNumber, idOrNumber) as any;
-    if (!req) return null;
+    if (!req) return { success: false, error: "Request not found" };
     const now = new Date().toISOString();
     const updatedNotes = reason ? (req.notes ? `${req.notes} [Rejected: ${reason}]` : `Rejected: ${reason}`) : req.notes;
     db.prepare("UPDATE telegram_stock_requests SET status = 'REJECTED', reviewedBy = ?, reviewedAt = ?, notes = ? WHERE id = ?")
       .run(reviewedBy, now, updatedNotes, req.id);
-    return db.prepare("SELECT * FROM telegram_stock_requests WHERE id = ?").get(req.id) as any;
+    const updated = db.prepare("SELECT * FROM telegram_stock_requests WHERE id = ?").get(req.id) as any;
+    return { success: true, request: updated };
   },
 
   updateAdminRole(telegramId: string, role: string) {

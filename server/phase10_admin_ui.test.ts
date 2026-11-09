@@ -75,8 +75,8 @@ describe("TRINAYAA Phase 10 — Admin Dashboard Visual Refinement", () => {
       expect(adminDashboardSource).toContain("bg-[#123D28]");
     });
 
-    it("1.2: Renders original TRINAYAA logo with white/light treatment (BrandMark inverse)", () => {
-      expect(adminDashboardSource).toContain("<BrandMark inverse={true} />");
+    it("1.2: Renders original TRINAYAA logo aligned with storefront branding", () => {
+      expect(adminDashboardSource).toContain("<BrandMark");
       expect(adminDashboardSource).toContain('import BrandMark from "@/components/BrandMark";');
     });
 

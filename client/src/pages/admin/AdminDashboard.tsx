@@ -725,8 +725,19 @@ export default function AdminDashboard() {
           />
           <div className="relative w-72 max-w-[85vw] bg-[#123D28] text-white flex flex-col justify-between shadow-2xl z-10 overflow-y-auto overflow-x-hidden">
             <div>
-              <div className="p-4 border-b border-white/10 flex items-center justify-between gap-2">
-                <BrandMark inverse={true} compact={true} />
+              <div className="p-3 border-b border-white/10 flex items-center justify-between gap-2 shrink-0">
+                <a
+                  href="/admin/dashboard"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    setMobileMenuOpen(false);
+                    navigateToTab("overview");
+                  }}
+                  className="bg-[#FFFDF8] hover:bg-[#FBF8F0] transition-colors rounded-xl px-2.5 py-1.5 shadow-xs border border-[#E5DECF] flex items-center justify-center flex-1 overflow-hidden"
+                  title="TRINAYAA Admin Console"
+                >
+                  <BrandMark compact={true} />
+                </a>
                 <button
                   onClick={() => setMobileMenuOpen(false)}
                   className="p-1.5 rounded-lg text-white/70 hover:text-white hover:bg-white/10 transition-colors shrink-0"
@@ -803,8 +814,18 @@ export default function AdminDashboard() {
       {/* Desktop Sticky Sidebar */}
       <aside className="w-72 bg-[#123D28] text-white flex flex-col justify-between shrink-0 hidden md:flex border-r border-[#1B5237] h-screen sticky top-0 z-10 overflow-hidden select-none">
         {/* Sidebar Brand Header */}
-        <div className="py-4 px-4 border-b border-white/10 flex items-center justify-between gap-2 shrink-0">
-          <BrandMark inverse={true} compact={true} />
+        <div className="py-3 px-3.5 border-b border-white/10 flex items-center justify-between gap-2 shrink-0">
+          <a
+            href="/admin/dashboard"
+            onClick={(e) => {
+              e.preventDefault();
+              navigateToTab("overview");
+            }}
+            className="bg-[#FFFDF8] hover:bg-[#FBF8F0] transition-colors rounded-xl px-2.5 py-1.5 shadow-xs border border-[#E5DECF] flex items-center justify-center flex-1 overflow-hidden"
+            title="TRINAYAA Admin Console"
+          >
+            <BrandMark compact={true} />
+          </a>
           <a
             href="/"
             target="_blank"
