@@ -215,21 +215,34 @@ export default function CustomerAssistantBot() {
           {/* Luxury Circular E-Commerce FAB */}
           <button
             onClick={() => setIsOpen(true)}
-            className="group relative flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-[#0e3820] via-[#1b4332] to-[#2d6a4f] p-2 text-white shadow-[0_10px_35px_rgba(27,67,50,0.5)] ring-2 ring-[#d4a373] transition-all duration-300 hover:scale-110 hover:shadow-[0_15px_45px_rgba(27,67,50,0.7)] hover:ring-[#e5b98b] active:scale-95 cursor-pointer"
+            className="group relative flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-[#0e3820] via-[#1b4332] to-[#2d6a4f] text-white shadow-[0_10px_35px_rgba(27,67,50,0.5)] ring-2 ring-[#d4a373] transition-all duration-300 hover:scale-110 hover:shadow-[0_15px_45px_rgba(27,67,50,0.7)] hover:ring-[#e5b98b] active:scale-95 cursor-pointer select-none"
             aria-label="Open TRINAYAA Botanical & Order Assistant"
             title="Chat with TRINAYAA Botanical & Order Assistant"
           >
             {/* Live pulsing green dot */}
-            <span className="absolute -top-1 -right-1 flex h-4 w-4">
+            <span className="absolute -top-1 -right-1 flex h-4 w-4 pointer-events-none">
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-80"></span>
               <span className="relative inline-flex h-4 w-4 rounded-full border-2 border-white bg-emerald-500 shadow-sm"></span>
             </span>
 
-            {/* Modern High-Visibility AI Bot Icon */}
-            <Bot
-              className="h-7 w-7 text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.5)] transition-transform duration-300 group-hover:scale-110"
-              strokeWidth={2.3}
-            />
+            {/* Symmetrically Centralized High-Visibility AI Support Bot Icon */}
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="h-7 w-7 text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.4)] transition-transform duration-300 group-hover:scale-110"
+            >
+              <rect x="2" y="11" width="2" height="5.5" rx="1" fill="currentColor" />
+              <rect x="20" y="11" width="2" height="5.5" rx="1" fill="currentColor" />
+              <path d="M4 12v-2a8 8 0 0 1 16 0v2" strokeWidth="2" />
+              <rect x="5" y="9.5" width="14" height="11" rx="4" fill="currentColor" fillOpacity="0.18" strokeWidth="1.8" />
+              <circle cx="9" cy="14" r="1.4" fill="currentColor" />
+              <circle cx="15" cy="14" r="1.4" fill="currentColor" />
+              <path d="M10.2 17c.9.6 1.8.8 2.7.8s1.8-.2 2.7-.8" strokeWidth="1.6" />
+            </svg>
           </button>
         </div>
       )}
@@ -246,8 +259,24 @@ export default function CustomerAssistantBot() {
           {/* 1. Header (Always visible, sticky at top) */}
           <div className="flex flex-shrink-0 items-center justify-between border-b border-emerald-900/20 bg-gradient-to-r from-[#143d2b] via-[#1b4332] to-[#245840] px-4 py-3 text-white shadow-md">
             <div className="flex items-center gap-2.5">
-              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-white/20 p-1 ring-1 ring-white/30 text-white shadow-inner">
-                <Bot className="h-5 w-5 text-white" strokeWidth={2.3} />
+              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-white/20 p-1 ring-1 ring-white/30 text-white shadow-inner shrink-0">
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="h-5 w-5 text-white"
+                >
+                  <rect x="2" y="11" width="2" height="5.5" rx="1" fill="currentColor" />
+                  <rect x="20" y="11" width="2" height="5.5" rx="1" fill="currentColor" />
+                  <path d="M4 12v-2a8 8 0 0 1 16 0v2" strokeWidth="2" />
+                  <rect x="5" y="9.5" width="14" height="11" rx="4" fill="currentColor" fillOpacity="0.18" strokeWidth="1.8" />
+                  <circle cx="9" cy="14" r="1.4" fill="currentColor" />
+                  <circle cx="15" cy="14" r="1.4" fill="currentColor" />
+                  <path d="M10.2 17c.9.6 1.8.8 2.7.8s1.8-.2 2.7-.8" strokeWidth="1.6" />
+                </svg>
               </div>
               <div>
                 <div className="flex items-center gap-2">
