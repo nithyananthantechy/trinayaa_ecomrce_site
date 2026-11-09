@@ -109,24 +109,7 @@
 .mobile-menu-button { display: none; }
 
 /* hero */
-.hero-section { min-height: 420px; position: relative; overflow: hidden; background: #f6ecdc; }
-.hero-art { position: absolute; inset: 0; background-position: right bottom; background-size: contain; background-repeat: no-repeat; }
-@media (max-width: 768px) {
-  .hero-art { background-position: right bottom; background-size: cover; opacity: 0.85; }
-}
-.hero-section::after { content: ""; position: absolute; inset: 0; background: linear-gradient(90deg, rgba(246,236,220,0.98) 0%, rgba(246,236,220,0.90) 36%, rgba(246,236,220,0.15) 58%, rgba(246,236,220,0) 100%); pointer-events: none; }
-@media (max-width: 768px) {
-  .hero-section::after { background: linear-gradient(180deg, rgba(246,236,220,0.96) 0%, rgba(246,236,220,0.85) 45%, rgba(246,236,220,0.3) 100%); }
-}
-.hero-content { position: relative; z-index: 1; min-height: 420px; padding-top: 50px; padding-bottom: 40px; display: flex; flex-direction: column; justify-content: center; }
-.hero-eyebrow { color: #8e734b; font-size: 11px; letter-spacing: .15em; font-weight: 700; }
-.hero-content h1 { max-width: 580px; margin: 8px 0 9px; color: var(--forest); font-family: Georgia, "Times New Roman", serif; font-size: clamp(36px, 4.2vw, 54px); font-weight: 700; letter-spacing: -.03em; line-height: 1.08; }
-.hero-content h1 em, .hero-content h1 span { color: #722d2e; font-style: normal; }
-.hero-tagline { margin: 6px 0 0 !important; color: #722d2e !important; font-family: Georgia, "Times New Roman", serif; font-size: 18px !important; font-style: italic; font-weight: 500; }
-.hero-content p { max-width: 440px; margin: 12px 0 18px; color: #4b5046; font-family: Georgia, "Times New Roman", serif; font-size: 15px; line-height: 1.35; }
-.hero-button { min-height: 40px; padding: 0 20px; font-weight: 600; width: fit-content; }
-.hero-notes { display: flex; align-items: center; gap: 24px; margin-top: 24px; color: #20392a; }
-.hero-notes span { display: inline-flex; align-items: center; gap: 7px; font-family: Georgia, "Times New Roman", serif; font-size: 12px; font-weight: 600; }
+.hero-section { position: relative; width: 100%; }
 
 /* category */
 .category-strip { display: grid; grid-template-columns: repeat(3, 1fr); gap: 13px; padding-top: 14px; }
@@ -434,14 +417,6 @@
   .brand-tagline { font-size: 5px; }
   .header-actions { gap: 9px; }
   .icon-action span { display: none; }
-  .hero-section, .hero-content { min-height: 550px; }
-  .hero-section::after { background: linear-gradient(180deg, rgba(247,238,221,.94) 0%, rgba(247,238,221,.78) 45%, rgba(247,238,221,.13) 100%); }
-  .hero-art { background-position: 63% center; }
-  .hero-content { padding-top: 47px; }
-  .hero-content h1 { max-width: 360px; font-size: 51px; }
-  .hero-content p { max-width: 315px; font-size: 15px; }
-  .hero-notes { flex-wrap: wrap; gap: 12px 17px; margin-top: 25px; }
-  .hero-notes span { font-size: 11px; }
   .category-strip { grid-template-columns: 1fr; gap: 9px; padding-top: 11px; }
   .category-card { min-height: 107px; }
   .category-card img { width: 37%; }

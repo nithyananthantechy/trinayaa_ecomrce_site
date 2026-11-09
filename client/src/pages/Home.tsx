@@ -67,7 +67,7 @@ function getGuestToken(): string {
 }
 
 const IMG = {
-  hero: "/images/hero/hero_photoshoot_crisp_hd.png",
+  hero: "/images/hero/trinayaa_home_hero_banner_2x.jpg",
   moringa: "/images/products/packaged/pouch_001.png",
   blackSeed: "/images/products/packaged/pouch_002.png",
   hibiscus: "/images/products/packaged/pouch_003.png",
@@ -1572,20 +1572,27 @@ export default function Home() {
         onLogout={() => logoutMutation.mutate()}
       />
       <main>
-        <section className="hero-section">
-          <div className="hero-art" style={{ backgroundImage: `url(${IMG.hero})` }} />
-          <div className="hero-content container-wide">
-            <span className="eyebrow hero-eyebrow">NATURAL HERBS • SEEDS • RAW POWDERS</span>
-            <h1>Rooted in Nature.<br /><em>Made for Everyday Wellness.</em></h1>
-            <p>High quality natural seeds, raw powders and herbal products for a healthier, more natural lifestyle.</p>
-            <button className="dark-button hero-button" onClick={() => setLocation("/products")}>
-              Shop Now <ArrowRight size={17} />
-            </button>
-            <div className="hero-notes">
-              <span><Leaf size={17} /> Carefully Sourced</span>
-              <span><Sparkles size={17} /> Naturally Processed</span>
-              <span><Heart size={17} /> For Everyday Wellness</span>
-            </div>
+        {/* Top Hero Brand Banner */}
+        <section className="hero-section container-wide pt-2 sm:pt-4" aria-label="TRINAYAA Hero Banner">
+          <div
+            onClick={() => setLocation("/products")}
+            className="group relative cursor-pointer overflow-hidden rounded-xl sm:rounded-2xl shadow-sm border border-[#E5DECF] transition-all hover:shadow-md bg-[#FAF6F0]"
+            role="banner"
+          >
+            <img
+              src={IMG.hero}
+              alt="TRINAYAA — Rooted in Nature. Made for Everyday Wellness. Natural Herbs, Seeds, Raw Powders."
+              className="w-full h-auto object-cover block transition-transform duration-700 group-hover:scale-[1.008]"
+              loading="eager"
+              decoding="async"
+            />
+            {/* SEO and Screen Reader Headings */}
+            <h1 className="sr-only">
+              TRINAYAA — Rooted in Nature. Made for Everyday Wellness. Natural Herbs, Seeds, Raw Powders.
+            </h1>
+            <p className="sr-only">
+              High quality natural seeds, raw powders and herbal products for a healthier, more natural lifestyle.
+            </p>
           </div>
         </section>
 
