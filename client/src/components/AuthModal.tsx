@@ -1,4 +1,4 @@
-import React, { useState, useEffect, FormEvent } from "react";
+import React, { useState, useEffect, FormEvent, useRef } from "react";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 import { COOKIE_NAME } from "@shared/const";
@@ -7,16 +7,23 @@ import {
   ArrowRight,
   ShieldCheck,
   Phone,
-  Mail,
   Lock,
   User,
   KeyRound,
   Sparkles,
-  RefreshCw,
   CheckCircle2,
   ArrowLeft,
   Smartphone,
 } from "lucide-react";
+import { RecaptchaVerifier, signInWithPhoneNumber, ConfirmationResult } from "firebase/auth";
+import { firebaseAuth } from "@/lib/firebase";
+
+declare global {
+  interface Window {
+    recaptchaVerifier?: RecaptchaVerifier;
+    confirmationResult?: ConfirmationResult;
+  }
+}
 
 interface AuthModalProps {
   open: boolean;
@@ -107,7 +114,7 @@ export default function AuthModal({
     },
   });
 
-  // 2. Registration mutation
+  // 2. Standard registration mutation
   const registerMutation = trpc.auth.register.useMutation({
     onSuccess: (data) => {
       toast.success(`Account verified & created! Welcome, ${data.user.name}`);
@@ -125,7 +132,46 @@ export default function AuthModal({
     },
   });
 
-  // 3. Request OTP mutation
+  // 3. Firebase Verified Login Mutation
+  const firebaseAuthMutation = trpc.auth.firebaseAuth.useMutation({
+    onSuccess: (data) => {
+      toast.success(`Welcome, ${data.user.name}!`);
+      try {
+        sessionStorage.setItem("manus-cookie", `${COOKIE_NAME}=${data.token}`);
+        localStorage.setItem("trinayaa_session_token", data.token);
+      } catch (e) {}
+      setLoading(false);
+      onSuccess();
+      onClose();
+      if (data.user.role === "ADMIN" || data.user.role === "SUPER_ADMIN") {
+        window.location.href = "/admin";
+      }
+    },
+    onError: (err) => {
+      toast.error(err.message || "Sign in failed");
+      setLoading(false);
+    },
+  });
+
+  // 4. Firebase Verified Registration Mutation
+  const firebaseRegisterMutation = trpc.auth.firebaseRegister.useMutation({
+    onSuccess: (data) => {
+      toast.success(`Account verified & created! Welcome, ${data.user.name}`);
+      try {
+        sessionStorage.setItem("manus-cookie", `${COOKIE_NAME}=${data.token}`);
+        localStorage.setItem("trinayaa_session_token", data.token);
+      } catch (e) {}
+      setLoading(false);
+      onSuccess();
+      onClose();
+    },
+    onError: (err) => {
+      toast.error(err.message || "Registration failed");
+      setLoading(false);
+    },
+  });
+
+  // 5. Backend Fallback Request OTP mutation
   const requestOtpMutation = trpc.auth.requestOtp.useMutation({
     onSuccess: (data) => {
       setCountdown(data.resendCooldownSeconds || 60);
@@ -143,7 +189,7 @@ export default function AuthModal({
     },
   });
 
-  // 4. Verify OTP mutation (for Sign In with OTP)
+  // 6. Backend Fallback Verify OTP mutation
   const verifyOtpMutation = trpc.auth.verifyOtp.useMutation({
     onSuccess: (data) => {
       toast.success(`Welcome, ${data.user.name}!`);
@@ -151,6 +197,7 @@ export default function AuthModal({
         sessionStorage.setItem("manus-cookie", `${COOKIE_NAME}=${data.token}`);
         localStorage.setItem("trinayaa_session_token", data.token);
       } catch (e) {}
+      setLoading(false);
       onSuccess();
       onClose();
       if (data.user.role === "ADMIN" || data.user.role === "SUPER_ADMIN") {
@@ -159,10 +206,32 @@ export default function AuthModal({
     },
     onError: (err) => {
       toast.error(err.message || "Verification failed");
+      setLoading(false);
     },
   });
 
   if (!open) return null;
+
+  // ----------------------------------------------------
+  // FIREBASE PHONE AUTH HELPERS
+  // ----------------------------------------------------
+  const initRecaptcha = () => {
+    try {
+      if (!window.recaptchaVerifier) {
+        window.recaptchaVerifier = new RecaptchaVerifier(firebaseAuth, "recaptcha-container", {
+          size: "invisible",
+          callback: () => {},
+          "expired-callback": () => {
+            window.recaptchaVerifier = undefined;
+          },
+        });
+      }
+      return window.recaptchaVerifier;
+    } catch (e) {
+      console.warn("[reCAPTCHA Init]", e);
+      return undefined;
+    }
+  };
 
   // ----------------------------------------------------
   // HANDLERS
@@ -188,31 +257,69 @@ export default function AuthModal({
   };
 
   // Sign In with OTP: Request code
-  const handleSendLoginOtp = (e?: FormEvent) => {
+  const handleSendLoginOtp = async (e?: FormEvent) => {
     if (e) e.preventDefault();
     const clean = loginPhone.replace(/[\s\-\(\)\+]/g, "").slice(-10);
     if (!/^[6-9]\d{9}$/.test(clean)) {
       toast.error("Please enter a valid 10-digit Indian mobile number (e.g. 9876543210)");
       return;
     }
+
+    setLoading(true);
+    try {
+      const verifier = initRecaptcha();
+      if (verifier) {
+        const confirmation = await signInWithPhoneNumber(firebaseAuth, "+91" + clean, verifier);
+        window.confirmationResult = confirmation;
+        setLoginOtpSent(true);
+        setCountdown(60);
+        setLoading(false);
+        toast.success(`Verification SMS sent to +91 ${clean} via Google Firebase!`);
+        return;
+      }
+    } catch (err: any) {
+      console.warn("[Firebase SMS fallback to server]", err);
+    }
+
+    // Fallback to server gateway
     requestOtpMutation.mutate(
       { phone: clean, purpose: "LOGIN" },
       {
         onSuccess: () => {
           setLoginOtpSent(true);
+          setLoading(false);
+        },
+        onError: () => {
+          setLoading(false);
         },
       }
     );
   };
 
   // Sign In with OTP: Verify code & login
-  const handleVerifyLoginOtp = (e: FormEvent) => {
+  const handleVerifyLoginOtp = async (e: FormEvent) => {
     e.preventDefault();
     const clean = loginPhone.replace(/[\s\-\(\)\+]/g, "").slice(-10);
     if (!loginOtpCode.trim()) {
       toast.error("Please enter the 6-digit verification code");
       return;
     }
+
+    setLoading(true);
+    if (window.confirmationResult) {
+      try {
+        await window.confirmationResult.confirm(loginOtpCode.trim());
+        firebaseAuthMutation.mutate({
+          phone: clean,
+          guestToken,
+        });
+        return;
+      } catch (err: any) {
+        console.warn("[Firebase verify failed, trying fallback]", err);
+      }
+    }
+
+    // Fallback to server verification
     verifyOtpMutation.mutate({
       phone: clean,
       otp: loginOtpCode.trim(),
@@ -222,7 +329,7 @@ export default function AuthModal({
   };
 
   // Register: Step 1 -> Validate & dispatch phone OTP
-  const handleStartRegister = (e: FormEvent) => {
+  const handleStartRegister = async (e: FormEvent) => {
     e.preventDefault();
     if (name.trim().length < 2) {
       toast.error("Please enter your full name (at least 2 characters)");
@@ -246,26 +353,64 @@ export default function AuthModal({
       return;
     }
 
-    // Dispatch verification code to phone
+    setLoading(true);
+    try {
+      const verifier = initRecaptcha();
+      if (verifier) {
+        const confirmation = await signInWithPhoneNumber(firebaseAuth, "+91" + cleanPhone, verifier);
+        window.confirmationResult = confirmation;
+        setRegisterStep("verify_otp");
+        setCountdown(60);
+        setLoading(false);
+        toast.success(`Verification SMS sent to +91 ${cleanPhone} via Google Firebase!`);
+        return;
+      }
+    } catch (err: any) {
+      console.warn("[Firebase Register SMS fallback]", err);
+    }
+
+    // Fallback dispatch to server
     requestOtpMutation.mutate(
       { phone: cleanPhone, purpose: "REGISTER" },
       {
         onSuccess: () => {
           setRegisterStep("verify_otp");
+          setLoading(false);
+        },
+        onError: () => {
+          setLoading(false);
         },
       }
     );
   };
 
   // Register: Step 2 -> Verify OTP and complete registration
-  const handleCompleteRegister = (e: FormEvent) => {
+  const handleCompleteRegister = async (e: FormEvent) => {
     e.preventDefault();
     const cleanPhone = registerPhone.replace(/[\s\-\(\)\+]/g, "").slice(-10);
     if (!registerOtp.trim()) {
       toast.error("Please enter the 6-digit verification code");
       return;
     }
+
     setLoading(true);
+    if (window.confirmationResult) {
+      try {
+        await window.confirmationResult.confirm(registerOtp.trim());
+        firebaseRegisterMutation.mutate({
+          name: name.trim(),
+          email: registerEmail.trim(),
+          phone: cleanPhone,
+          password,
+          confirmPassword,
+          guestToken,
+        });
+        return;
+      } catch (err: any) {
+        console.warn("[Firebase Register Confirm failed, trying server fallback]", err);
+      }
+    }
+
     registerMutation.mutate({
       name: name.trim(),
       email: registerEmail.trim(),
@@ -285,6 +430,9 @@ export default function AuthModal({
         role="dialog"
         aria-modal="true"
       >
+        {/* Invisible reCAPTCHA container for Google Firebase */}
+        <div id="recaptcha-container"></div>
+
         {/* Header */}
         <div className="modal-head pb-3 border-b border-[#DEDFD5] flex items-center justify-between">
           <div>
@@ -416,7 +564,7 @@ export default function AuthModal({
                     className="w-full py-2 px-3 border border-[#DEDFD5] bg-[#F7F4EC] hover:bg-[#EFEAE0] text-[#123D28] font-bold rounded-xl transition-all flex items-center justify-center gap-2 text-xs"
                   >
                     <Sparkles size={14} className="text-[#AE6A2B]" />
-                    <span>Quick Login with Mobile OTP (No Password Needed)</span>
+                    <span>Quick Login with Mobile OTP (SMS Direct)</span>
                   </button>
                 </div>
               </form>
@@ -426,7 +574,7 @@ export default function AuthModal({
                 {!loginOtpSent ? (
                   <form onSubmit={handleSendLoginOtp} className="space-y-3.5">
                     <p className="text-xs text-[#525B4E] leading-relaxed">
-                      Enter your registered 10-digit mobile number. We will send a secure 6-digit one-time code to sign in instantly.
+                      Enter your 10-digit mobile number. Google Firebase will deliver an official SMS verification code directly to your phone.
                     </p>
 
                     <div>
@@ -449,13 +597,11 @@ export default function AuthModal({
 
                     <button
                       type="submit"
-                      disabled={requestOtpMutation.isPending || loginPhone.length !== 10}
+                      disabled={loading || requestOtpMutation.isPending || loginPhone.length !== 10}
                       className="w-full py-2.5 px-4 bg-[#123D28] hover:bg-[#1A4D33] disabled:opacity-50 text-white font-bold rounded-xl transition-all flex items-center justify-center gap-2 shadow-xs"
                     >
                       <Phone size={14} />
-                      <span>
-                        {requestOtpMutation.isPending ? "Sending Code..." : "Send Verification Code"}
-                      </span>
+                      <span>{loading ? "Sending SMS..." : "Send Verification SMS"}</span>
                     </button>
 
                     <div className="pt-2 text-center">
@@ -473,7 +619,7 @@ export default function AuthModal({
                   <form onSubmit={handleVerifyLoginOtp} className="space-y-3.5">
                     <div className="p-3 bg-[#EAF2ED] border border-[#C5DCCB] rounded-xl flex items-center justify-between text-xs">
                       <div>
-                        <span className="text-[#6C7167] block text-[11px]">Code sent to</span>
+                        <span className="text-[#6C7167] block text-[11px]">SMS sent to</span>
                         <strong className="text-[#123D28]">+91 {loginPhone}</strong>
                       </div>
                       <button
@@ -506,7 +652,7 @@ export default function AuthModal({
 
                     <div>
                       <label className="block font-semibold mb-1 text-[#2B3527]">
-                        6-Digit Verification Code *
+                        6-Digit SMS Verification Code *
                       </label>
                       <input
                         type="text"
@@ -521,24 +667,24 @@ export default function AuthModal({
 
                     <button
                       type="submit"
-                      disabled={verifyOtpMutation.isPending || loginOtpCode.length < 4}
+                      disabled={loading || loginOtpCode.length < 4}
                       className="w-full py-2.5 px-4 bg-[#123D28] hover:bg-[#1A4D33] disabled:opacity-50 text-white font-bold rounded-xl transition-all flex items-center justify-center gap-2 shadow-xs"
                     >
                       <KeyRound size={15} />
-                      <span>{verifyOtpMutation.isPending ? "Verifying..." : "Verify & Sign In"}</span>
+                      <span>{loading ? "Verifying..." : "Verify & Sign In"}</span>
                     </button>
 
                     <div className="flex items-center justify-between pt-1 text-[11px] text-[#6C7167]">
                       {countdown > 0 ? (
-                        <span>Resend code in {countdown}s</span>
+                        <span>Resend SMS in {countdown}s</span>
                       ) : (
                         <button
                           type="button"
                           onClick={() => handleSendLoginOtp()}
-                          disabled={requestOtpMutation.isPending}
+                          disabled={loading}
                           className="text-[#123D28] font-bold hover:underline"
                         >
-                          Resend Verification Code
+                          Resend SMS Code
                         </button>
                       )}
                       <button
@@ -557,7 +703,7 @@ export default function AuthModal({
         )}
 
         {/* ======================================================== */}
-        {/* TAB 2: REGISTER (WITH PHONE VERIFICATION)               */}
+        {/* TAB 2: REGISTER (WITH PHONE SMS VERIFICATION)            */}
         {/* ======================================================== */}
         {tab === "register" && (
           <div>
@@ -589,7 +735,7 @@ export default function AuthModal({
 
                 <div>
                   <label className="block font-semibold mb-1 text-[#2B3527]">
-                    Mobile Number (for One-Time Verification) *
+                    Mobile Number (for SMS Verification) *
                   </label>
                   <div className="flex items-center">
                     <span className="px-3 py-2 bg-[#ECE5D4] border border-r-0 border-[#DEDFD5] rounded-l-lg font-bold text-[#123D28]">
@@ -606,7 +752,7 @@ export default function AuthModal({
                     />
                   </div>
                   <span className="text-[11px] text-[#6C7167] mt-1 block">
-                    We'll send a 6-digit OTP code to verify this phone number.
+                    We'll send a 6-digit SMS text code directly to your phone.
                   </span>
                 </div>
 
@@ -636,14 +782,12 @@ export default function AuthModal({
 
                 <button
                   type="submit"
-                  disabled={requestOtpMutation.isPending}
+                  disabled={loading}
                   className="w-full py-2.5 px-4 bg-[#123D28] hover:bg-[#1A4D33] disabled:opacity-50 text-white font-bold rounded-xl transition-all flex items-center justify-center gap-2 shadow-xs mt-4"
                 >
                   <ShieldCheck size={16} />
                   <span>
-                    {requestOtpMutation.isPending
-                      ? "Sending Verification Code..."
-                      : "Verify Mobile & Create Account"}
+                    {loading ? "Sending SMS Code..." : "Verify Mobile & Create Account"}
                   </span>
                   <ArrowRight size={15} />
                 </button>
@@ -653,7 +797,7 @@ export default function AuthModal({
               <form onSubmit={handleCompleteRegister} className="space-y-4 text-xs">
                 <div className="p-3 bg-[#EAF2ED] border border-[#C5DCCB] rounded-xl flex items-center justify-between text-xs">
                   <div>
-                    <span className="text-[#6C7167] block text-[11px]">One-Time Code sent to</span>
+                    <span className="text-[#6C7167] block text-[11px]">SMS Code sent to</span>
                     <strong className="text-[#123D28]">+91 {registerPhone}</strong>
                   </div>
                   <button
@@ -687,7 +831,7 @@ export default function AuthModal({
 
                 <div>
                   <label className="block font-semibold mb-1 text-[#2B3527]">
-                    Enter 6-Digit Phone Verification Code *
+                    Enter 6-Digit SMS Verification Code *
                   </label>
                   <input
                     type="text"
@@ -705,31 +849,29 @@ export default function AuthModal({
 
                 <button
                   type="submit"
-                  disabled={loading || registerMutation.isPending || registerOtp.length < 4}
+                  disabled={loading || registerOtp.length < 4}
                   className="w-full py-2.5 px-4 bg-[#123D28] hover:bg-[#1A4D33] disabled:opacity-50 text-white font-bold rounded-xl transition-all flex items-center justify-center gap-2 shadow-xs"
                 >
                   <CheckCircle2 size={16} />
                   <span>
-                    {loading || registerMutation.isPending
-                      ? "Verifying & Creating..."
-                      : "Verify & Complete Registration"}
+                    {loading ? "Verifying & Creating..." : "Verify & Complete Registration"}
                   </span>
                 </button>
 
                 <div className="flex items-center justify-between pt-1 text-[11px] text-[#6C7167]">
                   {countdown > 0 ? (
-                    <span>Resend code in {countdown}s</span>
+                    <span>Resend SMS in {countdown}s</span>
                   ) : (
                     <button
                       type="button"
                       onClick={() => {
                         const clean = registerPhone.replace(/[\s\-\(\)\+]/g, "").slice(-10);
-                        requestOtpMutation.mutate({ phone: clean, purpose: "REGISTER" });
+                        handleStartRegister({ preventDefault: () => {} } as FormEvent);
                       }}
-                      disabled={requestOtpMutation.isPending}
+                      disabled={loading}
                       className="text-[#123D28] font-bold hover:underline"
                     >
-                      Resend Verification Code
+                      Resend SMS Code
                     </button>
                   )}
                   <button

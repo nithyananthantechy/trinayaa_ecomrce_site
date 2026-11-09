@@ -268,6 +268,137 @@ export const appRouter = router({
         };
       }),
 
+    firebaseAuth: publicProcedure
+      .input(
+        z.object({
+          phone: z.string(),
+          name: z.string().optional(),
+          guestToken: z.string().optional(),
+        })
+      )
+      .mutation(async ({ input, ctx }) => {
+        const normalized = normalizeIndianPhone(input.phone);
+        if (!isValidIndianPhone(normalized)) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "Invalid phone number",
+          });
+        }
+
+        let user = db.usersRepo.getByPhone(normalized);
+        if (!user) {
+          user = db.usersRepo.createFromOtp({
+            phone: normalized,
+            name: input.name,
+          });
+        } else if (
+          user.status === "SUSPENDED" ||
+          user.status === "INACTIVE" ||
+          user.status === "DEACTIVATED"
+        ) {
+          throw new TRPCError({
+            code: "FORBIDDEN",
+            message: "Your account has been deactivated. Please contact support@trinayaa.in.",
+          });
+        }
+
+        if (input.guestToken) {
+          db.cartRepo.mergeGuestCart(input.guestToken, user.id);
+        }
+
+        const token = await sdk.signSession({
+          openId: user.id,
+          appId: ENV.appId,
+          name: user.name,
+        });
+
+        const cookieOptions = getSessionCookieOptions(ctx.req);
+        ctx.res.cookie(COOKIE_NAME, token, {
+          ...cookieOptions,
+          maxAge: 30 * 24 * 60 * 60 * 1000,
+        });
+
+        return {
+          user: {
+            id: user.id,
+            email: user.email,
+            name: user.name,
+            phone: user.phone,
+            role: user.role,
+          },
+          token,
+        };
+      }),
+
+    firebaseRegister: publicProcedure
+      .input(
+        z
+          .object({
+            name: z.string().min(2, "Name must be at least 2 characters"),
+            email: z.string().email("Please enter a valid email address"),
+            phone: z.string(),
+            password: z.string().min(6, "Password must be at least 6 characters"),
+            confirmPassword: z.string().optional(),
+            guestToken: z.string().optional(),
+          })
+          .refine((data) => !data.confirmPassword || data.password === data.confirmPassword, {
+            message: "Passwords do not match",
+            path: ["confirmPassword"],
+          })
+      )
+      .mutation(async ({ input, ctx }) => {
+        const normPhone = normalizeIndianPhone(input.phone);
+        const existingEmail = db.usersRepo.getByEmail(input.email);
+        if (existingEmail) {
+          throw new TRPCError({
+            code: "CONFLICT",
+            message: "An account with this email already exists. Please sign in.",
+          });
+        }
+        const existingPhone = db.usersRepo.getByPhone(normPhone);
+        if (existingPhone) {
+          throw new TRPCError({
+            code: "CONFLICT",
+            message: "An account with this mobile number already exists. Please sign in.",
+          });
+        }
+
+        const user = db.usersRepo.create({
+          email: input.email,
+          password: input.password,
+          name: input.name,
+          phone: normPhone,
+          role: "CUSTOMER",
+        });
+
+        if (input.guestToken) {
+          db.cartRepo.mergeGuestCart(input.guestToken, user.id);
+        }
+
+        const token = await sdk.signSession({
+          openId: user.id,
+          appId: ENV.appId,
+          name: user.name,
+        });
+
+        const cookieOptions = getSessionCookieOptions(ctx.req);
+        ctx.res.cookie(COOKIE_NAME, token, {
+          ...cookieOptions,
+          maxAge: 30 * 24 * 60 * 60 * 1000,
+        });
+
+        return {
+          user: {
+            id: user.id,
+            email: user.email,
+            name: user.name,
+            phone: user.phone,
+            role: user.role,
+          },
+          token,
+        };
+      }),
+
         requestOtp: publicProcedure
       .input(
         z.object({
