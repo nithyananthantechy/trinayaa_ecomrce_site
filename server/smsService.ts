@@ -124,20 +124,17 @@ export async function sendOtpSms(phone: string, otp: string, purpose = "LOGIN"):
 
   // 3. Safe Development / Testing Simulation Mode
   // Used when no external SMS gateway credentials are provided in environment
-  const isDevOrTest = process.env.NODE_ENV !== "production" || process.env.VITEST === "true";
+  const hasExternalCredentials = Boolean(msg91Key || twoFactorKey);
+  const isDevOrTest = process.env.NODE_ENV !== "production" || process.env.VITEST === "true" || !hasExternalCredentials;
 
-  // Only expose OTP in dev/test logs or simulation response for test runners
-  if (isDevOrTest) {
-    console.log(`[SMS Gateway Simulator] OTP generated for +91 ${normalized}: ${otp} (valid for 5 mins)`);
-  } else {
-    console.warn(`[SMS Gateway] No external SMS provider credentials configured. Running in safe mode for +91 ${normalized}.`);
-  }
+  // Always log the generated OTP to console when running in simulation mode
+  console.log(`[SMS Gateway Simulation] 🔑 Verification OTP for +91 ${normalized}: ${otp} (valid for 5 mins)`);
 
   return {
     success: true,
     provider: "DEVELOPMENT_SIMULATION",
     message: isDevOrTest
-      ? `Verification code dispatched (Test mode active). Code: ${otp}`
+      ? `Verification code dispatched (Test mode active: ${otp})`
       : "Verification code dispatched to your registered mobile number.",
     isTestMode: isDevOrTest,
     resendCooldownSeconds: 60,

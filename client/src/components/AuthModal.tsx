@@ -14,6 +14,8 @@ import {
   Sparkles,
   RefreshCw,
   CheckCircle2,
+  ArrowLeft,
+  Smartphone,
 } from "lucide-react";
 
 interface AuthModalProps {
@@ -31,26 +33,35 @@ export default function AuthModal({
   guestToken,
   initialTab = "signin",
 }: AuthModalProps) {
-  const [authMode, setAuthMode] = useState<"password" | "otp">(
-    initialTab === "otp" ? "otp" : "password"
-  );
+  // Main Tab: "signin" or "register"
   const [tab, setTab] = useState<"signin" | "register">(
     initialTab === "register" ? "register" : "signin"
   );
 
-  // Email/password form state
-  const [email, setEmail] = useState("");
+  // In Sign-in tab: "password" or "otp"
+  const [signinMethod, setSigninMethod] = useState<"password" | "otp">(
+    initialTab === "otp" ? "otp" : "password"
+  );
+
+  // Registration step: "form" or "verify_otp"
+  const [registerStep, setRegisterStep] = useState<"form" | "verify_otp">("form");
+
+  // Form fields
+  const [identifier, setIdentifier] = useState(""); // Email or Phone for password login
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [name, setName] = useState("");
-  const [phone, setPhone] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [registerEmail, setRegisterEmail] = useState("");
+  const [registerPhone, setRegisterPhone] = useState("");
+  const [registerOtp, setRegisterOtp] = useState("");
 
-  // Mobile OTP state
-  const [otpPhone, setOtpPhone] = useState("");
-  const [otpCode, setOtpCode] = useState("");
-  const [otpName, setOtpName] = useState("");
-  const [otpSent, setOtpSent] = useState(false);
+  // OTP Login fields
+  const [loginPhone, setLoginPhone] = useState("");
+  const [loginOtpCode, setLoginOtpCode] = useState("");
+  const [loginOtpSent, setLoginOtpSent] = useState(false);
+
+  // Helpers
+  const [loading, setLoading] = useState(false);
   const [countdown, setCountdown] = useState(0);
   const [devOtpHint, setDevOtpHint] = useState<string | null>(null);
 
@@ -65,10 +76,12 @@ export default function AuthModal({
   // Reset modal state on open
   useEffect(() => {
     if (open) {
-      setAuthMode(initialTab === "otp" ? "otp" : "password");
       setTab(initialTab === "register" ? "register" : "signin");
-      setOtpSent(false);
-      setOtpCode("");
+      setSigninMethod(initialTab === "otp" ? "otp" : "password");
+      setRegisterStep("form");
+      setLoginOtpSent(false);
+      setLoginOtpCode("");
+      setRegisterOtp("");
       setDevOtpHint(null);
     }
   }, [open, initialTab]);
@@ -94,10 +107,10 @@ export default function AuthModal({
     },
   });
 
-  // 2. Password registration mutation
+  // 2. Registration mutation
   const registerMutation = trpc.auth.register.useMutation({
     onSuccess: (data) => {
-      toast.success(`Account created! Welcome, ${data.user.name}`);
+      toast.success(`Account verified & created! Welcome, ${data.user.name}`);
       try {
         sessionStorage.setItem("manus-cookie", `${COOKIE_NAME}=${data.token}`);
         localStorage.setItem("trinayaa_session_token", data.token);
@@ -115,15 +128,14 @@ export default function AuthModal({
   // 3. Request OTP mutation
   const requestOtpMutation = trpc.auth.requestOtp.useMutation({
     onSuccess: (data) => {
-      setOtpSent(true);
       setCountdown(data.resendCooldownSeconds || 60);
       if (data.devOtp) {
         setDevOtpHint(data.devOtp);
         toast.info(`Verification code: ${data.devOtp}`, {
-          description: "Use this code for authentication.",
+          description: "Use this code for instant verification.",
         });
       } else {
-        toast.success(data.message || "Verification code dispatched.");
+        toast.success(data.message || "Verification code dispatched via SMS.");
       }
     },
     onError: (err) => {
@@ -131,7 +143,7 @@ export default function AuthModal({
     },
   });
 
-  // 4. Verify OTP mutation
+  // 4. Verify OTP mutation (for Sign In with OTP)
   const verifyOtpMutation = trpc.auth.verifyOtp.useMutation({
     onSuccess: (data) => {
       toast.success(`Welcome, ${data.user.name}!`);
@@ -141,6 +153,9 @@ export default function AuthModal({
       } catch (e) {}
       onSuccess();
       onClose();
+      if (data.user.role === "ADMIN" || data.user.role === "SUPER_ADMIN") {
+        window.location.href = "/admin";
+      }
     },
     onError: (err) => {
       toast.error(err.message || "Verification failed");
@@ -149,52 +164,116 @@ export default function AuthModal({
 
   if (!open) return null;
 
-  // Handle password submit
-  const handlePasswordSubmit = (e: FormEvent) => {
+  // ----------------------------------------------------
+  // HANDLERS
+  // ----------------------------------------------------
+
+  // Sign In with Password submit
+  const handlePasswordLogin = (e: FormEvent) => {
     e.preventDefault();
-    if (tab === "register") {
-      if (password.length < 6) {
-        toast.error("Password must be at least 6 characters.");
-        return;
-      }
-      if (password !== confirmPassword) {
-        toast.error("Passwords do not match.");
-        return;
-      }
+    if (!identifier.trim()) {
+      toast.error("Please enter your email address or mobile number");
+      return;
+    }
+    if (!password) {
+      toast.error("Please enter your password");
+      return;
     }
     setLoading(true);
-    if (tab === "signin") {
-      loginMutation.mutate({ email, password, guestToken });
-    } else {
-      registerMutation.mutate({ email, password, confirmPassword, name, phone, guestToken });
-    }
+    loginMutation.mutate({
+      email: identifier.trim(),
+      password,
+      guestToken,
+    });
   };
 
-  // Handle request OTP
-  const handleRequestOtp = (e?: FormEvent) => {
+  // Sign In with OTP: Request code
+  const handleSendLoginOtp = (e?: FormEvent) => {
     if (e) e.preventDefault();
-    const clean = otpPhone.replace(/[\s\-\(\)\+]/g, "").slice(-10);
+    const clean = loginPhone.replace(/[\s\-\(\)\+]/g, "").slice(-10);
     if (!/^[6-9]\d{9}$/.test(clean)) {
       toast.error("Please enter a valid 10-digit Indian mobile number (e.g. 9876543210)");
       return;
     }
-    requestOtpMutation.mutate({ phone: clean, purpose: "LOGIN" });
+    requestOtpMutation.mutate(
+      { phone: clean, purpose: "LOGIN" },
+      {
+        onSuccess: () => {
+          setLoginOtpSent(true);
+        },
+      }
+    );
   };
 
-  // Handle verify OTP
-  const handleVerifyOtp = (e: FormEvent) => {
+  // Sign In with OTP: Verify code & login
+  const handleVerifyLoginOtp = (e: FormEvent) => {
     e.preventDefault();
-    const clean = otpPhone.replace(/[\s\-\(\)\+]/g, "").slice(-10);
-    if (!otpCode.trim()) {
+    const clean = loginPhone.replace(/[\s\-\(\)\+]/g, "").slice(-10);
+    if (!loginOtpCode.trim()) {
       toast.error("Please enter the 6-digit verification code");
       return;
     }
     verifyOtpMutation.mutate({
       phone: clean,
-      otp: otpCode.trim(),
-      name: otpName.trim() || undefined,
+      otp: loginOtpCode.trim(),
       guestToken,
       purpose: "LOGIN",
+    });
+  };
+
+  // Register: Step 1 -> Validate & dispatch phone OTP
+  const handleStartRegister = (e: FormEvent) => {
+    e.preventDefault();
+    if (name.trim().length < 2) {
+      toast.error("Please enter your full name (at least 2 characters)");
+      return;
+    }
+    if (!registerEmail.trim() || !registerEmail.includes("@")) {
+      toast.error("Please enter a valid email address");
+      return;
+    }
+    const cleanPhone = registerPhone.replace(/[\s\-\(\)\+]/g, "").slice(-10);
+    if (!/^[6-9]\d{9}$/.test(cleanPhone)) {
+      toast.error("Please enter a valid 10-digit Indian mobile number");
+      return;
+    }
+    if (password.length < 6) {
+      toast.error("Password must be at least 6 characters");
+      return;
+    }
+    if (password !== confirmPassword) {
+      toast.error("Passwords do not match");
+      return;
+    }
+
+    // Dispatch verification code to phone
+    requestOtpMutation.mutate(
+      { phone: cleanPhone, purpose: "REGISTER" },
+      {
+        onSuccess: () => {
+          setRegisterStep("verify_otp");
+        },
+      }
+    );
+  };
+
+  // Register: Step 2 -> Verify OTP and complete registration
+  const handleCompleteRegister = (e: FormEvent) => {
+    e.preventDefault();
+    const cleanPhone = registerPhone.replace(/[\s\-\(\)\+]/g, "").slice(-10);
+    if (!registerOtp.trim()) {
+      toast.error("Please enter the 6-digit verification code");
+      return;
+    }
+    setLoading(true);
+    registerMutation.mutate({
+      name: name.trim(),
+      email: registerEmail.trim(),
+      phone: cleanPhone,
+      password,
+      confirmPassword,
+      otp: registerOtp.trim(),
+      guestToken,
     });
   };
 
@@ -213,11 +292,13 @@ export default function AuthModal({
               TRINAYAA Account
             </span>
             <h2 className="font-serif text-2xl font-bold text-[#123D28]">
-              {authMode === "otp"
-                ? "Mobile OTP Login"
-                : tab === "signin"
-                ? "Customer Sign In"
-                : "Create Customer Account"}
+              {tab === "signin"
+                ? signinMethod === "password"
+                  ? "Customer Sign In"
+                  : "Sign In with Mobile OTP"
+                : registerStep === "form"
+                ? "Create Customer Account"
+                : "Verify Mobile Number"}
             </h2>
           </div>
           <button
@@ -229,156 +310,287 @@ export default function AuthModal({
           </button>
         </div>
 
-        {/* Primary Auth Method Switcher: Password vs Mobile OTP */}
-        <div className="flex p-1 bg-[#F4EFE6] rounded-xl my-4 text-xs font-semibold">
+        {/* Primary Tab Switcher: Sign In vs Register */}
+        <div className="flex border-b border-[#DEDFD5] my-4 text-xs font-bold">
           <button
             type="button"
-            onClick={() => setAuthMode("password")}
-            className={`flex-1 py-1.5 rounded-lg transition-all flex items-center justify-center gap-1.5 ${
-              authMode === "password"
-                ? "bg-[#123D28] text-white shadow-xs font-bold"
-                : "text-[#4A5546] hover:text-[#123D28]"
+            onClick={() => {
+              setTab("signin");
+              setDevOtpHint(null);
+            }}
+            className={`pb-2.5 px-4 transition-all flex items-center gap-1.5 ${
+              tab === "signin"
+                ? "border-b-2 border-[#123D28] text-[#123D28]"
+                : "text-[#6C7167] hover:text-[#123D28]"
             }`}
           >
             <Lock size={13} />
-            <span>Email &amp; Password</span>
+            <span>Sign In</span>
           </button>
           <button
             type="button"
-            onClick={() => setAuthMode("otp")}
-            className={`flex-1 py-1.5 rounded-lg transition-all flex items-center justify-center gap-1.5 ${
-              authMode === "otp"
-                ? "bg-[#123D28] text-white shadow-xs font-bold"
-                : "text-[#4A5546] hover:text-[#123D28]"
+            onClick={() => {
+              setTab("register");
+              setRegisterStep("form");
+              setDevOtpHint(null);
+            }}
+            className={`pb-2.5 px-4 transition-all flex items-center gap-1.5 ${
+              tab === "register"
+                ? "border-b-2 border-[#123D28] text-[#123D28]"
+                : "text-[#6C7167] hover:text-[#123D28]"
             }`}
           >
-            <Phone size={13} />
-            <span>Mobile OTP</span>
+            <User size={13} />
+            <span>Register</span>
           </button>
         </div>
 
         {/* ======================================================== */}
-        {/* 1. PASSWORD MODE (SIGN IN / REGISTER TABS) */}
+        {/* TAB 1: SIGN IN (PASSWORD OR OTP)                        */}
         {/* ======================================================== */}
-        {authMode === "password" ? (
+        {tab === "signin" && (
           <div>
-            <div className="flex border-b border-[#DEDFD5] mb-4 text-xs font-bold">
-              <button
-                type="button"
-                onClick={() => setTab("signin")}
-                className={`pb-2 px-4 transition-colors ${
-                  tab === "signin"
-                    ? "border-b-2 border-[#123D28] text-[#123D28]"
-                    : "text-[#6C7167] hover:text-[#123D28]"
-                }`}
-              >
-                Sign In
-              </button>
-              <button
-                type="button"
-                onClick={() => setTab("register")}
-                className={`pb-2 px-4 transition-colors ${
-                  tab === "register"
-                    ? "border-b-2 border-[#123D28] text-[#123D28]"
-                    : "text-[#6C7167] hover:text-[#123D28]"
-                }`}
-              >
-                Register
-              </button>
-            </div>
-
-            <form onSubmit={handlePasswordSubmit} className="space-y-3 text-xs">
-              {tab === "register" && (
-                <>
-                  <div>
-                    <label className="block font-semibold mb-1 text-[#2B3527]">Full Name *</label>
-                    <input
-                      required
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      placeholder="e.g. Anand Kumar"
-                      className="w-full px-3 py-2 border border-[#DEDFD5] rounded-lg bg-[#FAF8F2] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#123D28]"
-                    />
-                  </div>
-                  <div>
-                    <label className="block font-semibold mb-1 text-[#2B3527]">Mobile Number</label>
-                    <input
-                      value={phone}
-                      onChange={(e) => setPhone(e.target.value)}
-                      placeholder="e.g. 9876543210"
-                      className="w-full px-3 py-2 border border-[#DEDFD5] rounded-lg bg-[#FAF8F2] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#123D28]"
-                    />
-                  </div>
-                </>
-              )}
-
-              <div>
-                <label className="block font-semibold mb-1 text-[#2B3527]">Email Address *</label>
-                <input
-                  type="email"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="you@example.com"
-                  className="w-full px-3 py-2 border border-[#DEDFD5] rounded-lg bg-[#FAF8F2] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#123D28]"
-                />
-              </div>
-
-              <div>
-                <label className="block font-semibold mb-1 text-[#2B3527]">Password *</label>
-                <input
-                  type="password"
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  className="w-full px-3 py-2 border border-[#DEDFD5] rounded-lg bg-[#FAF8F2] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#123D28]"
-                />
-              </div>
-
-              {tab === "register" && (
+            {signinMethod === "password" ? (
+              /* PASSWORD SIGN IN FORM */
+              <form onSubmit={handlePasswordLogin} className="space-y-3.5 text-xs">
                 <div>
-                  <label className="block font-semibold mb-1 text-[#2B3527]">Confirm Password *</label>
+                  <label className="block font-semibold mb-1 text-[#2B3527]">
+                    Email Address or Mobile Number *
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      required
+                      value={identifier}
+                      onChange={(e) => setIdentifier(e.target.value)}
+                      placeholder="you@example.com or 9876543210"
+                      className="w-full px-3 py-2 border border-[#DEDFD5] rounded-lg bg-[#FAF8F2] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#123D28] text-xs font-medium"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block font-semibold text-[#2B3527]">Password *</label>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSigninMethod("otp");
+                        setLoginOtpSent(false);
+                        setDevOtpHint(null);
+                      }}
+                      className="text-[#AE6A2B] hover:text-[#8E531D] font-bold text-[11px] flex items-center gap-1 hover:underline"
+                    >
+                      <Smartphone size={12} />
+                      <span>Sign in with OTP instead</span>
+                    </button>
+                  </div>
                   <input
                     type="password"
                     required
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
                     placeholder="••••••••"
+                    className="w-full px-3 py-2 border border-[#DEDFD5] rounded-lg bg-[#FAF8F2] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#123D28] text-xs"
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={loading || loginMutation.isPending}
+                  className="w-full py-2.5 px-4 bg-[#123D28] hover:bg-[#1A4D33] text-white font-bold rounded-xl transition-all flex items-center justify-center gap-2 shadow-xs mt-3 disabled:opacity-50"
+                >
+                  <span>{loading || loginMutation.isPending ? "Signing in..." : "Sign In"}</span>
+                  <ArrowRight size={15} />
+                </button>
+
+                {/* Sub-toggle near password/bottom */}
+                <div className="pt-2 text-center border-t border-[#EFECE6] mt-4">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSigninMethod("otp");
+                      setLoginOtpSent(false);
+                      setDevOtpHint(null);
+                    }}
+                    className="w-full py-2 px-3 border border-[#DEDFD5] bg-[#F7F4EC] hover:bg-[#EFEAE0] text-[#123D28] font-bold rounded-xl transition-all flex items-center justify-center gap-2 text-xs"
+                  >
+                    <Sparkles size={14} className="text-[#AE6A2B]" />
+                    <span>Quick Login with Mobile OTP (No Password Needed)</span>
+                  </button>
+                </div>
+              </form>
+            ) : (
+              /* OTP SIGN IN FORM */
+              <div className="space-y-4 text-xs">
+                {!loginOtpSent ? (
+                  <form onSubmit={handleSendLoginOtp} className="space-y-3.5">
+                    <p className="text-xs text-[#525B4E] leading-relaxed">
+                      Enter your registered 10-digit mobile number. We will send a secure 6-digit one-time code to sign in instantly.
+                    </p>
+
+                    <div>
+                      <label className="block font-semibold mb-1 text-[#2B3527]">Mobile Number *</label>
+                      <div className="flex items-center">
+                        <span className="px-3 py-2 bg-[#ECE5D4] border border-r-0 border-[#DEDFD5] rounded-l-lg font-bold text-[#123D28]">
+                          +91
+                        </span>
+                        <input
+                          type="tel"
+                          required
+                          maxLength={10}
+                          value={loginPhone}
+                          onChange={(e) => setLoginPhone(e.target.value.replace(/\D/g, ""))}
+                          placeholder="9876543210"
+                          className="w-full px-3 py-2 border border-[#DEDFD5] rounded-r-lg bg-[#FAF8F2] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#123D28] text-sm font-medium tracking-wider"
+                        />
+                      </div>
+                    </div>
+
+                    <button
+                      type="submit"
+                      disabled={requestOtpMutation.isPending || loginPhone.length !== 10}
+                      className="w-full py-2.5 px-4 bg-[#123D28] hover:bg-[#1A4D33] disabled:opacity-50 text-white font-bold rounded-xl transition-all flex items-center justify-center gap-2 shadow-xs"
+                    >
+                      <Phone size={14} />
+                      <span>
+                        {requestOtpMutation.isPending ? "Sending Code..." : "Send Verification Code"}
+                      </span>
+                    </button>
+
+                    <div className="pt-2 text-center">
+                      <button
+                        type="button"
+                        onClick={() => setSigninMethod("password")}
+                        className="text-[#123D28] hover:underline font-bold text-xs inline-flex items-center gap-1"
+                      >
+                        <Lock size={12} />
+                        <span>Sign in with Password instead</span>
+                      </button>
+                    </div>
+                  </form>
+                ) : (
+                  <form onSubmit={handleVerifyLoginOtp} className="space-y-3.5">
+                    <div className="p-3 bg-[#EAF2ED] border border-[#C5DCCB] rounded-xl flex items-center justify-between text-xs">
+                      <div>
+                        <span className="text-[#6C7167] block text-[11px]">Code sent to</span>
+                        <strong className="text-[#123D28]">+91 {loginPhone}</strong>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setLoginOtpSent(false);
+                          setLoginOtpCode("");
+                          setDevOtpHint(null);
+                        }}
+                        className="text-[#AE6A2B] font-bold text-xs hover:underline"
+                      >
+                        Change Number
+                      </button>
+                    </div>
+
+                    {devOtpHint && (
+                      <div className="p-2.5 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-900 flex items-center justify-between">
+                        <span>
+                          🧪 Test Code: <strong>{devOtpHint}</strong>
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => setLoginOtpCode(devOtpHint)}
+                          className="px-2.5 py-1 bg-amber-200 hover:bg-amber-300 text-amber-950 font-bold rounded-lg text-[11px] transition-colors"
+                        >
+                          Auto-fill
+                        </button>
+                      </div>
+                    )}
+
+                    <div>
+                      <label className="block font-semibold mb-1 text-[#2B3527]">
+                        6-Digit Verification Code *
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        maxLength={6}
+                        value={loginOtpCode}
+                        onChange={(e) => setLoginOtpCode(e.target.value.replace(/\D/g, ""))}
+                        placeholder="123456"
+                        className="w-full text-center tracking-widest text-lg font-bold py-2 px-3 border border-[#DEDFD5] rounded-lg bg-[#FAF8F2] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#123D28]"
+                      />
+                    </div>
+
+                    <button
+                      type="submit"
+                      disabled={verifyOtpMutation.isPending || loginOtpCode.length < 4}
+                      className="w-full py-2.5 px-4 bg-[#123D28] hover:bg-[#1A4D33] disabled:opacity-50 text-white font-bold rounded-xl transition-all flex items-center justify-center gap-2 shadow-xs"
+                    >
+                      <KeyRound size={15} />
+                      <span>{verifyOtpMutation.isPending ? "Verifying..." : "Verify & Sign In"}</span>
+                    </button>
+
+                    <div className="flex items-center justify-between pt-1 text-[11px] text-[#6C7167]">
+                      {countdown > 0 ? (
+                        <span>Resend code in {countdown}s</span>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => handleSendLoginOtp()}
+                          disabled={requestOtpMutation.isPending}
+                          className="text-[#123D28] font-bold hover:underline"
+                        >
+                          Resend Verification Code
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => setSigninMethod("password")}
+                        className="text-[#AE6A2B] font-bold hover:underline"
+                      >
+                        Use Password
+                      </button>
+                    </div>
+                  </form>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ======================================================== */}
+        {/* TAB 2: REGISTER (WITH PHONE VERIFICATION)               */}
+        {/* ======================================================== */}
+        {tab === "register" && (
+          <div>
+            {registerStep === "form" ? (
+              /* REGISTRATION FORM (STEP 1) */
+              <form onSubmit={handleStartRegister} className="space-y-3 text-xs">
+                <div>
+                  <label className="block font-semibold mb-1 text-[#2B3527]">Full Name *</label>
+                  <input
+                    required
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder="e.g. Anand Kumar"
                     className="w-full px-3 py-2 border border-[#DEDFD5] rounded-lg bg-[#FAF8F2] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#123D28]"
                   />
                 </div>
-              )}
-
-              <button
-                type="submit"
-                disabled={loading || loginMutation.isPending || registerMutation.isPending}
-                className="w-full py-2.5 px-4 bg-[#123D28] hover:bg-[#1A4D33] text-white font-bold rounded-xl transition-all flex items-center justify-center gap-2 shadow-xs mt-4"
-              >
-                <span>
-                  {loading || loginMutation.isPending || registerMutation.isPending
-                    ? "Processing..."
-                    : tab === "signin"
-                    ? "Sign In"
-                    : "Create Account"}
-                </span>
-                <ArrowRight size={15} />
-              </button>
-            </form>
-          </div>
-        ) : (
-          /* ======================================================== */
-          /* 2. MOBILE OTP MODE */
-          /* ======================================================== */
-          <div className="space-y-4 text-xs">
-            {!otpSent ? (
-              <form onSubmit={handleRequestOtp} className="space-y-4">
-                <p className="text-xs text-[#525B4E] leading-relaxed">
-                  Enter your 10-digit Indian mobile number. We will send a secure 6-digit one-time password (OTP) via SMS to sign in instantly.
-                </p>
 
                 <div>
-                  <label className="block font-semibold mb-1 text-[#2B3527]">Mobile Number</label>
+                  <label className="block font-semibold mb-1 text-[#2B3527]">Email Address *</label>
+                  <input
+                    type="email"
+                    required
+                    value={registerEmail}
+                    onChange={(e) => setRegisterEmail(e.target.value)}
+                    placeholder="you@example.com"
+                    className="w-full px-3 py-2 border border-[#DEDFD5] rounded-lg bg-[#FAF8F2] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#123D28]"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-semibold mb-1 text-[#2B3527]">
+                    Mobile Number (for One-Time Verification) *
+                  </label>
                   <div className="flex items-center">
                     <span className="px-3 py-2 bg-[#ECE5D4] border border-r-0 border-[#DEDFD5] rounded-l-lg font-bold text-[#123D28]">
                       +91
@@ -387,95 +599,121 @@ export default function AuthModal({
                       type="tel"
                       required
                       maxLength={10}
-                      value={otpPhone}
-                      onChange={(e) => setOtpPhone(e.target.value.replace(/\D/g, ""))}
+                      value={registerPhone}
+                      onChange={(e) => setRegisterPhone(e.target.value.replace(/\D/g, ""))}
                       placeholder="9876543210"
                       className="w-full px-3 py-2 border border-[#DEDFD5] rounded-r-lg bg-[#FAF8F2] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#123D28] text-sm font-medium tracking-wider"
                     />
                   </div>
-                </div>
-
-                <button
-                  type="submit"
-                  disabled={requestOtpMutation.isPending || otpPhone.length !== 10}
-                  className="w-full py-2.5 px-4 bg-[#123D28] hover:bg-[#1A4D33] disabled:opacity-50 text-white font-bold rounded-xl transition-all flex items-center justify-center gap-2 shadow-xs"
-                >
-                  <Phone size={15} />
-                  <span>
-                    {requestOtpMutation.isPending ? "Sending Verification Code..." : "Send Verification Code"}
+                  <span className="text-[11px] text-[#6C7167] mt-1 block">
+                    We'll send a 6-digit OTP code to verify this phone number.
                   </span>
-                </button>
-              </form>
-            ) : (
-              <form onSubmit={handleVerifyOtp} className="space-y-4">
-                <div className="p-3 bg-[#EAF2ED] border border-[#C5DCCB] rounded-xl flex items-center justify-between text-xs">
-                  <div>
-                    <span className="text-[#6C7167] block text-[11px]">Code sent to</span>
-                    <strong className="text-[#123D28]">+91 {otpPhone}</strong>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setOtpSent(false);
-                      setOtpCode("");
-                      setDevOtpHint(null);
-                    }}
-                    className="text-[#AE6A2B] font-bold text-xs hover:underline"
-                  >
-                    Change Number
-                  </button>
                 </div>
-
-                {devOtpHint && (
-                  <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-900 flex items-center justify-between">
-                    <span>
-                      Demo Mode Code: <strong>{devOtpHint}</strong>
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => setOtpCode(devOtpHint)}
-                      className="px-2 py-0.5 bg-amber-200 text-amber-950 font-bold rounded text-[11px]"
-                    >
-                      Fill
-                    </button>
-                  </div>
-                )}
 
                 <div>
-                  <label className="block font-semibold mb-1 text-[#2B3527]">
-                    6-Digit Verification Code
-                  </label>
+                  <label className="block font-semibold mb-1 text-[#2B3527]">Password *</label>
                   <input
-                    type="text"
+                    type="password"
                     required
-                    maxLength={6}
-                    value={otpCode}
-                    onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ""))}
-                    placeholder="123456"
-                    className="w-full text-center tracking-widest text-lg font-bold py-2.5 px-3 border border-[#DEDFD5] rounded-lg bg-[#FAF8F2] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#123D28]"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="At least 6 characters"
+                    className="w-full px-3 py-2 border border-[#DEDFD5] rounded-lg bg-[#FAF8F2] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#123D28]"
                   />
                 </div>
 
                 <div>
-                  <label className="block font-semibold mb-1 text-[#2B3527]">
-                    Your Name <span className="text-[#6C7167] font-normal">(if registering new account)</span>
-                  </label>
+                  <label className="block font-semibold mb-1 text-[#2B3527]">Confirm Password *</label>
                   <input
-                    type="text"
-                    value={otpName}
-                    onChange={(e) => setOtpName(e.target.value)}
-                    placeholder="Your name"
+                    type="password"
+                    required
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    placeholder="Re-enter password"
                     className="w-full px-3 py-2 border border-[#DEDFD5] rounded-lg bg-[#FAF8F2] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#123D28]"
                   />
                 </div>
 
                 <button
                   type="submit"
-                  disabled={verifyOtpMutation.isPending || otpCode.length < 4}
+                  disabled={requestOtpMutation.isPending}
+                  className="w-full py-2.5 px-4 bg-[#123D28] hover:bg-[#1A4D33] disabled:opacity-50 text-white font-bold rounded-xl transition-all flex items-center justify-center gap-2 shadow-xs mt-4"
+                >
+                  <ShieldCheck size={16} />
+                  <span>
+                    {requestOtpMutation.isPending
+                      ? "Sending Verification Code..."
+                      : "Verify Mobile & Create Account"}
+                  </span>
+                  <ArrowRight size={15} />
+                </button>
+              </form>
+            ) : (
+              /* REGISTRATION OTP VERIFICATION (STEP 2) */
+              <form onSubmit={handleCompleteRegister} className="space-y-4 text-xs">
+                <div className="p-3 bg-[#EAF2ED] border border-[#C5DCCB] rounded-xl flex items-center justify-between text-xs">
+                  <div>
+                    <span className="text-[#6C7167] block text-[11px]">One-Time Code sent to</span>
+                    <strong className="text-[#123D28]">+91 {registerPhone}</strong>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setRegisterStep("form");
+                      setRegisterOtp("");
+                      setDevOtpHint(null);
+                    }}
+                    className="text-[#AE6A2B] font-bold text-xs hover:underline flex items-center gap-1"
+                  >
+                    <ArrowLeft size={12} />
+                    <span>Edit details</span>
+                  </button>
+                </div>
+
+                {devOtpHint && (
+                  <div className="p-2.5 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-900 flex items-center justify-between">
+                    <span>
+                      🧪 Test Code: <strong>{devOtpHint}</strong>
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setRegisterOtp(devOtpHint)}
+                      className="px-2.5 py-1 bg-amber-200 hover:bg-amber-300 text-amber-950 font-bold rounded-lg text-[11px] transition-colors"
+                    >
+                      Auto-fill
+                    </button>
+                  </div>
+                )}
+
+                <div>
+                  <label className="block font-semibold mb-1 text-[#2B3527]">
+                    Enter 6-Digit Phone Verification Code *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    maxLength={6}
+                    value={registerOtp}
+                    onChange={(e) => setRegisterOtp(e.target.value.replace(/\D/g, ""))}
+                    placeholder="123456"
+                    className="w-full text-center tracking-widest text-lg font-bold py-2.5 px-3 border border-[#DEDFD5] rounded-lg bg-[#FAF8F2] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#123D28]"
+                  />
+                  <span className="text-[11px] text-[#6C7167] mt-1 block text-center">
+                    Valid for 5 minutes. Protects your account from unauthorized registration.
+                  </span>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={loading || registerMutation.isPending || registerOtp.length < 4}
                   className="w-full py-2.5 px-4 bg-[#123D28] hover:bg-[#1A4D33] disabled:opacity-50 text-white font-bold rounded-xl transition-all flex items-center justify-center gap-2 shadow-xs"
                 >
-                  <KeyRound size={15} />
-                  <span>{verifyOtpMutation.isPending ? "Verifying..." : "Verify & Sign In"}</span>
+                  <CheckCircle2 size={16} />
+                  <span>
+                    {loading || registerMutation.isPending
+                      ? "Verifying & Creating..."
+                      : "Verify & Complete Registration"}
+                  </span>
                 </button>
 
                 <div className="flex items-center justify-between pt-1 text-[11px] text-[#6C7167]">
@@ -484,14 +722,23 @@ export default function AuthModal({
                   ) : (
                     <button
                       type="button"
-                      onClick={() => handleRequestOtp()}
+                      onClick={() => {
+                        const clean = registerPhone.replace(/[\s\-\(\)\+]/g, "").slice(-10);
+                        requestOtpMutation.mutate({ phone: clean, purpose: "REGISTER" });
+                      }}
                       disabled={requestOtpMutation.isPending}
                       className="text-[#123D28] font-bold hover:underline"
                     >
                       Resend Verification Code
                     </button>
                   )}
-                  <span className="text-[#8E734B]">Code valid for 5 mins</span>
+                  <button
+                    type="button"
+                    onClick={() => setRegisterStep("form")}
+                    className="text-[#6C7167] hover:text-[#123D28] hover:underline"
+                  >
+                    ← Back to Details
+                  </button>
                 </div>
               </form>
             )}

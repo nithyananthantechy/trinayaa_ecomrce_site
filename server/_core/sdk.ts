@@ -201,7 +201,6 @@ class SDKServer {
     cookieValue: string | undefined | null
   ): Promise<{ openId: string; appId: string; name: string } | null> {
     if (!cookieValue) {
-      console.warn("[Auth] Missing session cookie");
       return null;
     }
 
@@ -227,7 +226,7 @@ class SDKServer {
 
       return {
         openId,
-        appId,
+        appId: String(appId),
         name,
       };
     } catch (error) {

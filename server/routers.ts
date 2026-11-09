@@ -73,6 +73,7 @@ export const appRouter = router({
             confirmPassword: z.string().optional(),
             name: z.string().min(2, "Name must be at least 2 characters"),
             phone: z.string().optional(),
+            otp: z.string().optional(),
             guestToken: z.string().optional(),
           })
           .refine((data) => !data.confirmPassword || data.password === data.confirmPassword, {
@@ -98,11 +99,62 @@ export const appRouter = router({
           });
         }
 
+        if (input.phone) {
+          const normPhone = normalizeIndianPhone(input.phone);
+          const existingPhone = db.usersRepo.getByPhone(normPhone);
+          if (existingPhone) {
+            throw new TRPCError({
+              code: "CONFLICT",
+              message: "An account with this mobile number already exists. Please sign in.",
+            });
+          }
+
+          // If OTP was provided for phone verification, verify it
+          if (input.otp) {
+            const activeOtp =
+              db.authOtpsRepo.getLatestActive(normPhone, "REGISTER") ||
+              db.authOtpsRepo.getLatestActive(normPhone, "LOGIN");
+            if (!activeOtp) {
+              throw new TRPCError({
+                code: "BAD_REQUEST",
+                message: "Mobile verification code is invalid or has expired. Please request a new code.",
+              });
+            }
+            if (activeOtp.attempts >= 5) {
+              throw new TRPCError({
+                code: "TOO_MANY_REQUESTS",
+                message: "Maximum verification attempts exceeded. Please request a new code.",
+              });
+            }
+
+            const suppliedHash = hashOtp(input.otp);
+            const storedHashBuf = Buffer.from(activeOtp.otp_hash, "hex");
+            const suppliedHashBuf = Buffer.from(suppliedHash, "hex");
+            let isValid = false;
+            try {
+              isValid =
+                storedHashBuf.length === suppliedHashBuf.length &&
+                crypto.timingSafeEqual(storedHashBuf, suppliedHashBuf);
+            } catch {
+              isValid = false;
+            }
+            if (!isValid) {
+              const updated = db.authOtpsRepo.incrementAttempts(activeOtp.id);
+              const remaining = Math.max(0, 5 - updated.attempts);
+              throw new TRPCError({
+                code: "BAD_REQUEST",
+                message: `Incorrect verification code. ${remaining} attempt${remaining === 1 ? "" : "s"} remaining.`,
+              });
+            }
+            db.authOtpsRepo.markVerified(activeOtp.id);
+          }
+        }
+
         const user = db.usersRepo.create({
           email: input.email,
           password: input.password,
           name: input.name,
-          phone: input.phone || "",
+          phone: input.phone ? normalizeIndianPhone(input.phone) : "",
           role: "CUSTOMER",
         });
 
@@ -139,7 +191,7 @@ export const appRouter = router({
     login: publicProcedure
       .input(
         z.object({
-          email: z.string().email("Please enter a valid email address"),
+          email: z.string().min(3, "Please enter your email or mobile number"),
           password: z.string(),
           guestToken: z.string().optional(),
         })
@@ -154,11 +206,18 @@ export const appRouter = router({
           });
         }
 
-        const user = db.usersRepo.getByEmail(input.email);
+        const isPhone = isValidIndianPhone(input.email);
+        let user;
+        if (isPhone) {
+          user = db.usersRepo.getByPhone(normalizeIndianPhone(input.email));
+        } else {
+          user = db.usersRepo.getByEmail(input.email.trim());
+        }
+
         if (!user) {
           throw new TRPCError({
             code: "UNAUTHORIZED",
-            message: "Invalid email or password.",
+            message: "Invalid email, mobile number or password.",
           });
         }
 
@@ -166,7 +225,7 @@ export const appRouter = router({
         if (!valid) {
           throw new TRPCError({
             code: "UNAUTHORIZED",
-            message: "Invalid email or password.",
+            message: "Invalid email, mobile number or password.",
           });
         }
 
