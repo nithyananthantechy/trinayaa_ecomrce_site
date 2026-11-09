@@ -104,15 +104,14 @@ export async function sendOtpSms(phone: string, otp: string, purpose = "LOGIN"):
   // 2. Check 2Factor Integration
   if (twoFactorKey) {
     try {
-      const template = process.env.TWOFACTOR_TEMPLATE_NAME;
-      const url = template
-        ? `https://2factor.in/API/V1/${twoFactorKey}/SMS/91${normalized}/${otp}/${encodeURIComponent(template)}`
-        : `https://2factor.in/API/V1/${twoFactorKey}/SMS/91${normalized}/${otp}`;
+      // Use configured template or 2Factor's universal pre-approved DLT template "OTP1"
+      const template = process.env.TWOFACTOR_TEMPLATE_NAME || "OTP1";
+      const url = `https://2factor.in/API/V1/${twoFactorKey}/SMS/91${normalized}/${otp}/${encodeURIComponent(template)}`;
 
       const response = await fetch(url, { method: "GET" });
       const data = (await response.json()) as any;
       if (response.ok && data?.Status === "Success") {
-        console.log(`[2Factor SMS] ✅ OTP sent to +91 ${normalized}. Gateway ID: ${data?.Details}`);
+        console.log(`[2Factor SMS] ✅ OTP sent to +91 ${normalized} using template "${template}". Gateway ID: ${data?.Details}`);
         return {
           success: true,
           provider: "2FACTOR",
