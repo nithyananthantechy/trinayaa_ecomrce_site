@@ -10,7 +10,7 @@ import crypto from "crypto";
 
 export interface SmsSendResult {
   success: boolean;
-  provider: "MSG91" | "2FACTOR" | "DEVELOPMENT_SIMULATION";
+  provider: "MSG91" | "2FACTOR" | "FAST2SMS" | "DEVELOPMENT_SIMULATION";
   message: string;
   isTestMode: boolean;
   resendCooldownSeconds: number;
@@ -66,9 +66,52 @@ export async function sendOtpSms(phone: string, otp: string, purpose = "LOGIN"):
 
   const msg91Key = process.env.MSG91_AUTH_KEY;
   const msg91TemplateId = process.env.MSG91_TEMPLATE_ID;
+  const fast2SmsKey = process.env.FAST2SMS_API_KEY;
   const twoFactorKey = process.env.TWOFACTOR_API_KEY;
 
-  // 1. Check MSG91 Integration
+  // 1. Check Fast2SMS Integration (Priority for Indian SMS)
+  if (fast2SmsKey) {
+    try {
+      const route = process.env.FAST2SMS_ROUTE || "q";
+      const payload: Record<string, any> = {
+        route,
+        numbers: normalized,
+      };
+
+      if (route === "otp") {
+        payload.variables_values = otp;
+      } else {
+        // Quick SMS route (route: 'q')
+        payload.message = `Your TRINAYAA verification code is ${otp}. Valid for 5 minutes.`;
+      }
+
+      const response = await fetch("https://www.fast2sms.com/dev/bulkV2", {
+        method: "POST",
+        headers: {
+          authorization: fast2SmsKey,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
+
+      const data = (await response.json()) as any;
+      if (response.ok && (data?.return === true || data?.status_code === 200)) {
+        console.log(`[Fast2SMS] ✅ OTP sent to +91 ${normalized} via route "${route}". Request ID: ${data?.request_id || JSON.stringify(data?.message)}`);
+        return {
+          success: true,
+          provider: "FAST2SMS",
+          message: "OTP sent successfully to your mobile number via SMS.",
+          isTestMode: false,
+          resendCooldownSeconds: 60,
+        };
+      }
+      console.warn(`[Fast2SMS Gateway Notice] Code: ${data?.status_code || "N/A"}, Message: ${data?.message || JSON.stringify(data)}`);
+    } catch (err) {
+      console.error("[Fast2SMS Exception]", err);
+    }
+  }
+
+  // 2. Check MSG91 Integration
   if (msg91Key && msg91TemplateId) {
     try {
       const response = await fetch("https://control.msg91.com/api/v5/otp", {
@@ -126,9 +169,9 @@ export async function sendOtpSms(phone: string, otp: string, purpose = "LOGIN"):
     }
   }
 
-  // 3. Safe Development / Testing Simulation Mode
+  // 4. Safe Development / Testing Simulation Mode
   // Used when no external SMS gateway credentials are provided in environment
-  const hasExternalCredentials = Boolean(msg91Key || twoFactorKey);
+  const hasExternalCredentials = Boolean(fast2SmsKey || msg91Key || twoFactorKey);
   const isDevOrTest = process.env.NODE_ENV !== "production" || process.env.VITEST === "true" || !hasExternalCredentials;
 
   // Always log the generated OTP to console when running in simulation mode
