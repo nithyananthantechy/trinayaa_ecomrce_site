@@ -314,6 +314,33 @@ export async function sendTelegramMessage(chatId: string | number, text: string,
   }
 }
 
+export async function sendTelegramPhoto(chatId: string | number, photo: string, caption?: string, replyMarkup?: any) {
+  const token = process.env.TELEGRAM_BOT_TOKEN;
+  if (!token || token.includes("PLACEHOLDER") || token.includes("placeholder")) {
+    console.log(`[Telegram Photo Simulation -> Chat ${chatId}]: photo=${photo} caption=${caption}`);
+    return { ok: true, result: { message_id: Math.floor(Math.random() * 10000) } };
+  }
+
+  try {
+    const payload: any = {
+      chat_id: chatId,
+      photo,
+      parse_mode: "Markdown",
+    };
+    if (caption) payload.caption = caption;
+    if (replyMarkup) payload.reply_markup = replyMarkup;
+    const response = await fetch(`https://api.telegram.org/bot${token}/sendPhoto`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    return await response.json();
+  } catch (error) {
+    console.error("[Telegram SendPhoto Error]:", error);
+    return { ok: false, error };
+  }
+}
+
 export async function answerCallbackQuery(callbackQueryId: string, text?: string) {
   const token = process.env.TELEGRAM_BOT_TOKEN;
   if (!token || token.includes("PLACEHOLDER") || token.includes("placeholder")) {
@@ -745,6 +772,58 @@ async function handleCallbackQuery(cb: any) {
         await sendTelegramMessage(chatId, `❌ Product \`${sku}\` not found.`);
         return { ok: true };
       }
+      const role = db.telegramRepo.getAdminRole(userId);
+      if (role === "STOCK_MANAGER") {
+        const currentStock = prod.stock || 0;
+        const newStockTarget = Math.max(0, currentStock + delta);
+        const req = db.telegramRepo.createStockRequest({
+          managerTelegramId: userId,
+          managerName: `@${userName}`,
+          productSku: sku,
+          productName: prod.nameEn,
+          currentStock,
+          quantityChange: delta,
+          newStockTarget,
+          requestType: delta > 0 ? "RESTOCK" : "DAMAGE",
+          notes: `Quick button adjustment (${delta > 0 ? `+${delta}` : delta} units) via Telegram`,
+        });
+
+        await sendTelegramMessage(
+          chatId,
+          `📦 *Stock Request Submitted for Founder Approval*\n\n` +
+          `• Request ID: \`${req.requestNumber}\`\n` +
+          `• Product: *${prod.nameEn}* (\`${sku}\`)\n` +
+          `• Current Stock: ${currentStock} units\n` +
+          `• Requested Change: *${delta > 0 ? `+${delta}` : delta} units* ➜ *${newStockTarget} units*\n` +
+          `• Status: ⏳ *Pending Founder Approval*\n\n` +
+          `_TRINAYAA Founder has been notified to review and approve this stock update._`
+        );
+
+        const founders = db.telegramRepo.getFounderAdminIds();
+        for (const fId of founders) {
+          await sendTelegramMessage(
+            fId,
+            `🔔 *FOUNDER APPROVAL: Stock Maintenance Request*\n\n` +
+            `• Request ID: \`${req.requestNumber}\`\n` +
+            `• Stock Manager: @${userName}\n` +
+            `• Product: *${prod.nameEn}* (\`${sku}\`)\n` +
+            `• Current Stock: *${currentStock} units*\n` +
+            `• Proposed Change: *${delta > 0 ? `+${delta}` : delta} units* ➜ *${newStockTarget} units*\n\n` +
+            `_Review and approve or reject this inventory change:_`,
+            {
+              inline_keyboard: [
+                [
+                  { text: `✅ Approve (${delta > 0 ? `+${delta}` : delta})`, callback_data: `stock_req_approve:${req.requestNumber}` },
+                  { text: `❌ Reject`, callback_data: `stock_req_reject:${req.requestNumber}` }
+                ]
+              ]
+            }
+          );
+        }
+        db.telegramRepo.logAudit(userId, "STOCK_REQUEST_BUTTON", `Requested ${delta} for ${sku}`);
+        break;
+      }
+
       const changeType = delta > 0 ? "RESTOCK" : "ADJUSTMENT";
       const result = db.inventoryRepo.adjustStock(
         prod.id,
@@ -764,6 +843,102 @@ async function handleCallbackQuery(cb: any) {
       );
       db.telegramRepo.logAudit(userId, "STOCK_ADJUST", `Adjusted ${sku} by ${delta}`);
       break;
+    }
+
+    case "stock_req_approve": {
+      const reqNumber = params[0];
+      const clickerRole = db.telegramRepo.getAdminRole(userId);
+      if (clickerRole !== "SUPER_ADMIN") {
+        await answerCallbackQuery(cb.id, "Only Founder/Super Admin can approve stock changes.");
+        return { ok: true };
+      }
+      const req = db.telegramRepo.getStockRequest(reqNumber);
+      if (!req) {
+        await sendTelegramMessage(chatId, `❌ Stock request \`${reqNumber}\` not found.`);
+        return { ok: true };
+      }
+      if (req.status !== "PENDING") {
+        await sendTelegramMessage(chatId, `ℹ️ Stock request \`${reqNumber}\` has already been ${req.status.toLowerCase()}.`);
+        return { ok: true };
+      }
+      const product = db.productsRepo.getBySku(req.productSku);
+      if (!product) {
+        await sendTelegramMessage(chatId, `❌ Product with SKU \`${req.productSku}\` no longer exists.`);
+        return { ok: true };
+      }
+      db.inventoryRepo.updateStock(
+        product.id,
+        req.newStockTarget,
+        `Approved Request ${req.requestNumber} by @${userName}: ${req.notes || ""}`,
+        `TelegramFounder:@${userName}`
+      );
+      db.telegramRepo.approveStockRequest(req.id, `@${userName}`);
+
+      await sendTelegramMessage(
+        chatId,
+        `✅ *STOCK REQUEST APPROVED*\n\n` +
+        `• Request: \`${req.requestNumber}\`\n` +
+        `• Product: *${req.productName}* (\`${req.productSku}\`)\n` +
+        `• Approved By: @${userName} (Founder)\n` +
+        `• Previous Stock: ${req.currentStock} units\n` +
+        `• New Live Stock: *${req.newStockTarget} units*\n` +
+        `• Status: *Live & Available on TRINAYAA* 🌿`
+      );
+
+      if (req.managerTelegramId && req.managerTelegramId !== userId) {
+        await sendTelegramMessage(
+          req.managerTelegramId,
+          `🎉 *Stock Request Approved by Founder!*\n\n` +
+          `• Request: \`${req.requestNumber}\`\n` +
+          `• Product: *${req.productName}* (\`${req.productSku}\`)\n` +
+          `• Live Stock: *${req.newStockTarget} units*\n` +
+          `• Reviewer: @${userName}\n\n` +
+          `_Your warehouse inventory update is now active across the platform._`
+        );
+      }
+      db.telegramRepo.logAudit(userId, "APPROVE_STOCK_REQUEST", `Approved ${req.requestNumber} for ${req.productSku}`);
+      return { ok: true };
+    }
+
+    case "stock_req_reject": {
+      const reqNumber = params[0];
+      const clickerRole = db.telegramRepo.getAdminRole(userId);
+      if (clickerRole !== "SUPER_ADMIN") {
+        await answerCallbackQuery(cb.id, "Only Founder/Super Admin can review stock requests.");
+        return { ok: true };
+      }
+      const req = db.telegramRepo.getStockRequest(reqNumber);
+      if (!req) {
+        await sendTelegramMessage(chatId, `❌ Stock request \`${reqNumber}\` not found.`);
+        return { ok: true };
+      }
+      if (req.status !== "PENDING") {
+        await sendTelegramMessage(chatId, `ℹ️ Stock request \`${reqNumber}\` was already ${req.status.toLowerCase()}.`);
+        return { ok: true };
+      }
+      db.telegramRepo.rejectStockRequest(req.id, `@${userName}`);
+
+      await sendTelegramMessage(
+        chatId,
+        `❌ *STOCK REQUEST REJECTED*\n\n` +
+        `• Request: \`${req.requestNumber}\`\n` +
+        `• Product: *${req.productName}* (\`${req.productSku}\`)\n` +
+        `• Rejected By: @${userName}\n` +
+        `• Current Stock Unchanged: *${req.currentStock} units*`
+      );
+
+      if (req.managerTelegramId && req.managerTelegramId !== userId) {
+        await sendTelegramMessage(
+          req.managerTelegramId,
+          `⚠️ *Stock Request Rejected*\n\n` +
+          `• Request: \`${req.requestNumber}\`\n` +
+          `• Product: *${req.productName}* (\`${req.productSku}\`)\n` +
+          `• Reviewer: @${userName}\n\n` +
+          `_Please recheck warehouse count or verify packaging quality._`
+        );
+      }
+      db.telegramRepo.logAudit(userId, "REJECT_STOCK_REQUEST", `Rejected ${req.requestNumber} for ${req.productSku}`);
+      return { ok: true };
     }
 
     case "cmd_stats":
@@ -833,12 +1008,13 @@ export async function handleTelegramUpdate(update: any) {
   }
 
   const message = update.message || update.edited_message;
-  if (!message || !message.text) return { ok: true };
+  if (!message || (!message.text && !message.photo)) return { ok: true };
 
   const chatId = message.chat.id;
   const userId = String(message.from.id);
   const userName = message.from.username || message.from.first_name || "Admin";
-  const text = message.text.trim();
+  const text = (message.text || message.caption || "").trim();
+  const userRole = db.telegramRepo.getAdminRole(userId) || "SUPER_ADMIN";
 
   // 1. Authorization check
   const isAllowed = db.telegramRepo.isAllowed(userId);
@@ -854,6 +1030,96 @@ export async function handleTelegramUpdate(update: any) {
       `3. Enter ID: \`${userId}\` and click **Authorize Admin**\n\n` +
       `_Once authorized, send /start or /help!_`
     );
+    return { ok: true };
+  }
+
+  // 1B. Warehouse Photo Processing for Stock Maintenance
+  if (message.photo && Array.isArray(message.photo) && message.photo.length > 0) {
+    const highestPhoto = message.photo[message.photo.length - 1];
+    const caption = (message.caption || "").trim();
+    const skuMatch = caption.match(/TRN-\d{4}/i);
+
+    if (!skuMatch) {
+      await sendTelegramMessage(
+        chatId,
+        `📸 *Warehouse Stock Photo Received*\n\n` +
+        `To create an inventory maintenance request from this photo, include the product SKU and quantity in your caption:\n\n` +
+        `• Example 1: \`TRN-1001 +50 Received fresh shipment from Erode farm\`\n` +
+        `• Example 2: \`TRN-1002 -5 Damaged in transit\`\n` +
+        `• Example 3: \`TRN-1003 120 Physical stock count\`\n\n` +
+        `_Or use command: \`/requeststock <SKU> <Quantity> [Notes]\`_`
+      );
+      return { ok: true };
+    }
+
+    const sku = skuMatch[0].toUpperCase();
+    const product = db.productsRepo.getBySku(sku);
+    if (!product) {
+      await sendTelegramMessage(chatId, `❌ Product with SKU \`${sku}\` not found in catalogue.`);
+      return { ok: true };
+    }
+
+    const qtyMatch = caption.replace(sku, "").match(/([+-]?\d+)/);
+    const qtyChange = qtyMatch ? parseInt(qtyMatch[1], 10) : 50;
+    const currentStock = product.stock || 0;
+    const newStockTarget = Math.max(0, currentStock + qtyChange);
+    const notes = caption.replace(sku, "").replace(/^[+-]?\d+/, "").trim() || "Warehouse stock photo verification";
+
+    const req = db.telegramRepo.createStockRequest({
+      managerTelegramId: userId,
+      managerName: `@${userName}`,
+      productSku: sku,
+      productName: product.nameEn,
+      currentStock,
+      quantityChange: qtyChange,
+      newStockTarget,
+      requestType: qtyChange > 0 ? "RESTOCK" : "DAMAGE",
+      photoFileId: highestPhoto.file_id,
+      notes,
+    });
+
+    await sendTelegramMessage(
+      chatId,
+      `📦 *Stock Maintenance Request Submitted*\n\n` +
+      `• Request ID: \`${req.requestNumber}\`\n` +
+      `• Product: *${product.nameEn}* (\`${sku}\`)\n` +
+      `• Current Stock: ${currentStock} units\n` +
+      `• Requested Change: *${qtyChange > 0 ? `+${qtyChange}` : qtyChange} units* ➜ *${newStockTarget} units*\n` +
+      `• Photo: Attached 📸\n` +
+      `• Status: ⏳ *Waiting for Founder Approval*\n\n` +
+      `_The TRINAYAA Founder has been notified and will review your update._`
+    );
+
+    // Forward approval card with photo to all Founders
+    const founders = db.telegramRepo.getFounderAdminIds();
+    for (const fId of founders) {
+      const approvalCard =
+        `🔔 *FOUNDER APPROVAL NEEDED: Stock Maintenance*\n\n` +
+        `• Request ID: \`${req.requestNumber}\`\n` +
+        `• Submitted By: @${userName} (Stock Manager)\n` +
+        `• Product: *${product.nameEn}* (\`${sku}\`)\n` +
+        `• Current Stock: *${currentStock} units*\n` +
+        `• Proposed Change: *${qtyChange > 0 ? `+${qtyChange}` : qtyChange} units* ➜ *${newStockTarget} units*\n` +
+        `• Notes: _${notes}_\n\n` +
+        `_Tap below to approve and instantly update the store catalogue:_`;
+
+      const approvalKeyboard = {
+        inline_keyboard: [
+          [
+            { text: `✅ Approve (+${qtyChange})`, callback_data: `stock_req_approve:${req.requestNumber}` },
+            { text: `❌ Reject`, callback_data: `stock_req_reject:${req.requestNumber}` }
+          ]
+        ]
+      };
+
+      if (highestPhoto.file_id) {
+        await sendTelegramPhoto(fId, highestPhoto.file_id, approvalCard, approvalKeyboard);
+      } else {
+        await sendTelegramMessage(fId, approvalCard, approvalKeyboard);
+      }
+    }
+
+    db.telegramRepo.logAudit(userId, "PHOTO_STOCK_REQUEST", `Created request ${req.requestNumber} for ${sku} (${qtyChange})`);
     return { ok: true };
   }
 
@@ -1230,6 +1496,103 @@ export async function handleTelegramUpdate(update: any) {
         db.imagesRepo.add(product.id, imageUrl, product.nameEn, true);
         await sendTelegramMessage(chatId, `✅ Primary image updated for *${product.nameEn}* (\`${sku}\`).`);
         db.telegramRepo.logAudit(userId, "/uploadimage", `Updated image for ${sku}`);
+        break;
+      }
+
+      case "/requeststock": {
+        if (args.length < 2) {
+          await sendTelegramMessage(
+            chatId,
+            `⚠️ Usage: \`/requeststock <SKU> <+/-Quantity> [Reason/Notes]\`\n\n` +
+            `• Example 1: \`/requeststock TRN-1001 +50 New batch received from grower\`\n` +
+            `• Example 2: \`/requeststock TRN-1002 -5 Packaging damaged during audit\``
+          );
+          break;
+        }
+        const [skuInput, qtyStr, ...reasonParts] = args;
+        const sku = skuInput.toUpperCase();
+        const product = db.productsRepo.getBySku(sku);
+        if (!product) {
+          await sendTelegramMessage(chatId, `❌ Product with SKU \`${sku}\` not found in catalogue.`);
+          break;
+        }
+        const delta = parseInt(qtyStr, 10);
+        if (isNaN(delta) || delta === 0) {
+          await sendTelegramMessage(chatId, "❌ Quantity change must be a non-zero integer (e.g. +50 or -10).");
+          break;
+        }
+        const currentStock = product.stock || 0;
+        const newStockTarget = Math.max(0, currentStock + delta);
+        const notes = reasonParts.join(" ") || "Warehouse inventory reconciliation";
+
+        const req = db.telegramRepo.createStockRequest({
+          managerTelegramId: userId,
+          managerName: `@${userName}`,
+          productSku: sku,
+          productName: product.nameEn,
+          currentStock,
+          quantityChange: delta,
+          newStockTarget,
+          requestType: delta > 0 ? "RESTOCK" : "DAMAGE",
+          notes,
+        });
+
+        await sendTelegramMessage(
+          chatId,
+          `📦 *Stock Maintenance Request Submitted*\n\n` +
+          `• Request ID: \`${req.requestNumber}\`\n` +
+          `• Product: *${product.nameEn}* (\`${sku}\`)\n` +
+          `• Current Stock: ${currentStock} units\n` +
+          `• Proposed Change: *${delta > 0 ? `+${delta}` : delta} units* ➜ *${newStockTarget} units*\n` +
+          `• Status: ⏳ *Pending Founder Approval*\n\n` +
+          `_Notification dispatched to TRINAYAA Founder for confirmation._`
+        );
+
+        const founders = db.telegramRepo.getFounderAdminIds();
+        for (const fId of founders) {
+          await sendTelegramMessage(
+            fId,
+            `🔔 *FOUNDER APPROVAL: Stock Maintenance*\n\n` +
+            `• Request ID: \`${req.requestNumber}\`\n` +
+            `• Stock Manager: @${userName}\n` +
+            `• Product: *${product.nameEn}* (\`${sku}\`)\n` +
+            `• Current Stock: *${currentStock} units*\n` +
+            `• Proposed Change: *${delta > 0 ? `+${delta}` : delta} units* ➜ *${newStockTarget} units*\n` +
+            `• Notes: _${notes}_\n\n` +
+            `_Approve to apply changes immediately to storefront inventory:_`,
+            {
+              inline_keyboard: [
+                [
+                  { text: `✅ Approve (${delta > 0 ? `+${delta}` : delta})`, callback_data: `stock_req_approve:${req.requestNumber}` },
+                  { text: `❌ Reject`, callback_data: `stock_req_reject:${req.requestNumber}` }
+                ]
+              ]
+            }
+          );
+        }
+
+        db.telegramRepo.logAudit(userId, "/requeststock", `Created request ${req.requestNumber} for ${sku} (${delta})`);
+        break;
+      }
+
+      case "/stockrequests": {
+        const requests = db.telegramRepo.listStockRequests(10);
+        if (requests.length === 0) {
+          await sendTelegramMessage(chatId, "📋 *No stock maintenance requests recorded yet.*");
+          break;
+        }
+        let reply = `📋 *Recent Stock Maintenance Requests (${requests.length}):*\n\n`;
+        for (const r of requests) {
+          const statusIcon = r.status === "APPROVED" ? "✅" : r.status === "REJECTED" ? "❌" : "⏳";
+          reply += `${statusIcon} *${r.requestNumber}* — *${r.productSku}* (${r.productName})\n`;
+          reply += `• Manager: ${r.managerName}\n`;
+          reply += `• Change: *${r.quantityChange > 0 ? `+${r.quantityChange}` : r.quantityChange} units* (Target: ${r.newStockTarget})\n`;
+          reply += `• Status: *${r.status}* ${r.reviewedBy ? `by ${r.reviewedBy}` : ""}\n`;
+          if (r.notes) reply += `• Notes: _${r.notes}_\n`;
+          reply += `\n`;
+        }
+        await sendTelegramMessage(chatId, reply);
+        db.telegramRepo.logAudit(userId, "/stockrequests");
         break;
       }
 

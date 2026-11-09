@@ -2,6 +2,7 @@ import AuthModal from "@/components/AuthModal";
 import { resolveProductImage, getCategoryPlaceholder } from "../lib/productImage";
 import {
   ArrowRight,
+  Award,
   Check,
   CheckCircle2,
   ChevronDown,
@@ -11,6 +12,7 @@ import {
   Heart,
   Instagram,
   Leaf,
+  LifeBuoy,
   LogOut,
   Mail,
   MapPin,
@@ -28,7 +30,7 @@ import {
   X,
   Youtube,
 } from "lucide-react";
-import { useEffect, useMemo, useState, FormEvent } from "react";
+import { useEffect, useMemo, useState, useRef, FormEvent } from "react";
 import { useLocation, useRoute } from "wouter";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
@@ -176,6 +178,7 @@ function SiteHeader({
   onAccount,
   currentUser,
   wishlistCount,
+  onLogout,
 }: {
   cartCount: number;
   onCart: () => void;
@@ -183,8 +186,25 @@ function SiteHeader({
   onAccount: () => void;
   currentUser: any;
   wishlistCount?: number;
+  onLogout: () => void;
 }) {
   const [, setLocation] = useLocation();
+  const [accountDropdownOpen, setAccountDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setAccountDropdownOpen(false);
+      }
+    }
+    if (accountDropdownOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [accountDropdownOpen]);
   return (
     <>
       <div className="utility-bar">
@@ -257,14 +277,109 @@ function SiteHeader({
               <span>Wishlist</span>
               {wishlistCount && wishlistCount > 0 ? <b>{wishlistCount}</b> : null}
             </button>
-            <button
-              className="icon-action account-action"
-              aria-label="Account"
-              onClick={onAccount}
-            >
-              <UserRound size={22} />
-              <span>{currentUser ? (currentUser.role === "ADMIN" || currentUser.role === "SUPER_ADMIN" ? "Admin" : currentUser.name.split(" ")[0]) : "Account"}</span>
-            </button>
+            <div className="relative" ref={dropdownRef}>
+              <button
+                className="icon-action account-action"
+                aria-label="Account"
+                onClick={() => {
+                  if (currentUser) {
+                    setAccountDropdownOpen((prev) => !prev);
+                  } else {
+                    onAccount();
+                  }
+                }}
+              >
+                <UserRound size={22} />
+                <span>{currentUser ? (currentUser.role === "ADMIN" || currentUser.role === "SUPER_ADMIN" ? "Admin" : currentUser.name.split(" ")[0]) : "Account"}</span>
+                {currentUser && (
+                  <ChevronDown size={12} className={`transition-transform duration-200 ${accountDropdownOpen ? "rotate-180" : ""}`} />
+                )}
+              </button>
+
+              {accountDropdownOpen && currentUser && (
+                <div className="absolute right-0 top-full mt-2 w-72 bg-white border border-[#DEDFD5] rounded-2xl shadow-2xl p-3 z-50 text-xs animate-in fade-in zoom-in-95 duration-150">
+                  {/* Greeting & Role */}
+                  <div className="p-3 bg-[#FBF8F0] border border-[#EFECE4] rounded-xl mb-2">
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-full bg-[#123D28] text-[#FBF8F0] font-serif font-bold text-sm flex items-center justify-center shrink-0">
+                        {currentUser.name?.[0] || "U"}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="font-bold text-[#123D28] truncate">{currentUser.name}</div>
+                        <div className="text-[10px] text-[#6C7167] truncate">{currentUser.email}</div>
+                      </div>
+                    </div>
+                    <span className="inline-block mt-2 text-[9px] uppercase font-bold tracking-wider px-2 py-0.5 rounded bg-emerald-100/80 text-emerald-900 border border-emerald-200">
+                      {currentUser.role === "ADMIN" || currentUser.role === "SUPER_ADMIN" ? "🛡️ Store Administrator" : "🌿 Verified Customer"}
+                    </span>
+                  </div>
+
+                  {/* Shortcuts */}
+                  <div className="space-y-0.5 py-1 text-[#2B3527]">
+                    <button
+                      onClick={() => { setAccountDropdownOpen(false); setLocation("/account?tab=orders"); }}
+                      className="w-full flex items-center gap-2.5 px-3 py-2 hover:bg-[#FAF8F2] hover:text-[#123D28] rounded-xl transition-colors font-medium text-left"
+                    >
+                      <Package size={15} className="text-[#8C6D3F]" />
+                      <span>My Orders &amp; Tracking</span>
+                    </button>
+                    <button
+                      onClick={() => { setAccountDropdownOpen(false); setLocation("/account?tab=wishlist"); }}
+                      className="w-full flex items-center gap-2.5 px-3 py-2 hover:bg-[#FAF8F2] hover:text-[#123D28] rounded-xl transition-colors font-medium text-left"
+                    >
+                      <Heart size={15} className="text-rose-600" />
+                      <span>My Saved Wishlist</span>
+                    </button>
+                    <button
+                      onClick={() => { setAccountDropdownOpen(false); setLocation("/account?tab=rewards"); }}
+                      className="w-full flex items-center gap-2.5 px-3 py-2 hover:bg-[#FAF8F2] hover:text-[#123D28] rounded-xl transition-colors font-medium text-left"
+                    >
+                      <Award size={15} className="text-amber-600" />
+                      <span>Loyalty Rewards &amp; Points</span>
+                    </button>
+                    <button
+                      onClick={() => { setAccountDropdownOpen(false); setLocation("/account?tab=tickets"); }}
+                      className="w-full flex items-center gap-2.5 px-3 py-2 hover:bg-[#FAF8F2] hover:text-[#123D28] rounded-xl transition-colors font-medium text-left"
+                    >
+                      <LifeBuoy size={15} className="text-emerald-700" />
+                      <span>Support Helpdesk (Tickets)</span>
+                    </button>
+                    <button
+                      onClick={() => { setAccountDropdownOpen(false); setLocation("/account?tab=addresses"); }}
+                      className="w-full flex items-center gap-2.5 px-3 py-2 hover:bg-[#FAF8F2] hover:text-[#123D28] rounded-xl transition-colors font-medium text-left"
+                    >
+                      <MapPin size={15} className="text-[#8C6D3F]" />
+                      <span>Delivery Addresses</span>
+                    </button>
+                    {(currentUser.role === "ADMIN" || currentUser.role === "SUPER_ADMIN") && (
+                      <button
+                        onClick={() => { setAccountDropdownOpen(false); setLocation("/admin"); }}
+                        className="w-full flex items-center gap-2.5 px-3 py-2 bg-[#123D28]/10 hover:bg-[#123D28]/15 text-[#123D28] font-bold rounded-xl transition-colors text-left"
+                      >
+                        <ShieldCheck size={15} className="text-[#123D28]" />
+                        <span>Admin Console &rarr;</span>
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Primary Button: View Full My Account */}
+                  <div className="pt-2 mt-1 border-t border-[#EFECE4] space-y-1.5">
+                    <button
+                      onClick={() => { setAccountDropdownOpen(false); setLocation("/account"); }}
+                      className="w-full py-2.5 px-3 bg-[#123D28] hover:bg-[#1A4D33] text-white rounded-xl font-bold text-center block transition-colors shadow-xs text-xs"
+                    >
+                      View Full My Account &rarr;
+                    </button>
+                    <button
+                      onClick={() => { setAccountDropdownOpen(false); onLogout(); }}
+                      className="w-full py-1.5 px-3 text-red-700 hover:text-red-900 hover:bg-red-50 rounded-lg font-semibold flex items-center justify-center gap-1.5 transition-colors text-xs"
+                    >
+                      <LogOut size={13} /> Sign Out
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
             <button className="icon-action cart-action" aria-label="Open cart" onClick={onCart}>
               <ShoppingBag size={23} />
               <span>Cart</span>
@@ -1454,6 +1569,7 @@ export default function Home() {
         }}
         currentUser={currentUser}
         wishlistCount={wishlist.size}
+        onLogout={() => logoutMutation.mutate()}
       />
       <main>
         <section className="hero-section">

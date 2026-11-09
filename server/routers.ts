@@ -2299,6 +2299,53 @@ addresses: router({
       getAuditLogs: adminProcedure.query(async () => {
         return db.telegramRepo.getAuditLogs();
       }),
+
+      getStockRequests: adminProcedure.query(async () => {
+        return db.telegramRepo.listStockRequests(50);
+      }),
+
+      updateRole: adminProcedure
+        .input(
+          z.object({
+            telegramId: z.string(),
+            role: z.enum(["SUPER_ADMIN", "STOCK_MANAGER"]),
+          })
+        )
+        .mutation(async ({ input }) => {
+          const success = db.telegramRepo.updateAdminRole(input.telegramId, input.role);
+          return { success };
+        }),
+
+      approveStockRequest: adminProcedure
+        .input(z.object({ requestId: z.string() }))
+        .mutation(async ({ input, ctx }) => {
+          const req = db.telegramRepo.getStockRequest(input.requestId);
+          if (!req) throw new Error("Stock request not found");
+          if (req.status !== "PENDING") throw new Error(`Request already ${req.status.toLowerCase()}`);
+          const product = db.productsRepo.getBySku(req.productSku);
+          if (product) {
+            db.inventoryRepo.updateStock(
+              product.id,
+              req.newStockTarget,
+              `Approved Stock Request ${req.requestNumber} by ${ctx.user.name}: ${req.notes || ""}`,
+              `Admin:${ctx.user.name}`
+            );
+          }
+          const updated = db.telegramRepo.approveStockRequest(input.requestId, ctx.user.name || "Admin");
+          return { success: true, request: updated };
+        }),
+
+      rejectStockRequest: adminProcedure
+        .input(
+          z.object({
+            requestId: z.string(),
+            reason: z.string().optional(),
+          })
+        )
+        .mutation(async ({ input, ctx }) => {
+          const updated = db.telegramRepo.rejectStockRequest(input.requestId, ctx.user.name || "Admin", input.reason);
+          return { success: true, request: updated };
+        }),
     }),
 
     // --- AI PRODUCT IMAGE GENERATOR (HUGGING FACE & TEMPLATE ENGINE) ---

@@ -182,6 +182,10 @@ export default function AdminDashboard() {
     enabled: Boolean(currentUser) }
   );
 
+  const { data: stockRequests = [], refetch: refetchStockRequests } = trpc.admin.telegram.getStockRequests.useQuery(undefined, {
+    enabled: Boolean(currentUser && activeTab === "telegram") }
+  );
+
   // Modals & UI States
   const [editingProduct, setEditingProduct] = useState<any | null>(null);
   const [isAddingProduct, setIsAddingProduct] = useState(false);
@@ -539,7 +543,7 @@ export default function AdminDashboard() {
 
   const addTelegramAdminMutation = trpc.admin.telegram.addAdmin.useMutation({
     onSuccess: () => {
-      toast.success("Telegram Admin added");
+      toast.success("Telegram administrator authorized");
       refetchTelegramAdmins();
     },
     onError: (err) => toast.error(err.message),
@@ -547,8 +551,33 @@ export default function AdminDashboard() {
 
   const removeTelegramAdminMutation = trpc.admin.telegram.removeAdmin.useMutation({
     onSuccess: () => {
-      toast.success("Telegram Admin removed");
+      toast.success("Telegram administrator access revoked");
       refetchTelegramAdmins();
+    },
+    onError: (err) => toast.error(err.message),
+  });
+
+  const updateTelegramRoleMutation = trpc.admin.telegram.updateRole.useMutation({
+    onSuccess: () => {
+      toast.success("Administrator role updated");
+      refetchTelegramAdmins();
+    },
+    onError: (err) => toast.error(err.message),
+  });
+
+  const approveStockRequestMutation = trpc.admin.telegram.approveStockRequest.useMutation({
+    onSuccess: () => {
+      toast.success("Stock maintenance request approved and inventory updated");
+      refetchStockRequests();
+      refetchProducts();
+    },
+    onError: (err) => toast.error(err.message),
+  });
+
+  const rejectStockRequestMutation = trpc.admin.telegram.rejectStockRequest.useMutation({
+    onSuccess: () => {
+      toast.success("Stock request rejected");
+      refetchStockRequests();
     },
     onError: (err) => toast.error(err.message),
   });
@@ -766,60 +795,58 @@ export default function AdminDashboard() {
       )}
 
       {/* Desktop Sticky Sidebar */}
-      <aside className="w-72 bg-[#123D28] text-white flex flex-col justify-between shrink-0 hidden md:flex border-r border-[#1B5237] h-screen sticky top-0 overflow-y-auto overflow-x-hidden z-10 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:bg-white/10 hover:[&::-webkit-scrollbar-thumb]:bg-white/20 [&::-webkit-scrollbar-track]:bg-transparent">
-        <div>
-          {/* Sidebar Brand Header */}
-          <div className="py-4 px-4 border-b border-white/10 flex items-center justify-between gap-2">
-            <BrandMark inverse={true} compact={true} />
-            <a
-              href="/"
-              target="_blank"
-              rel="noopener noreferrer"
-              title="View Customer Storefront"
-              className="text-[#DFE7D7] hover:text-white p-1.5 rounded-lg hover:bg-white/10 transition-colors shrink-0"
-            >
-              <ExternalLink size={16} />
-            </a>
-          </div>
-
-          {/* Grouped Sidebar Navigation */}
-          <nav className="p-3 space-y-4 text-xs font-medium">
-            {navGroups.map((group) => (
-              <div key={group.groupTitle} className="space-y-1">
-                <div className="px-3 pt-2 pb-1 text-[10px] font-bold tracking-wider uppercase text-[#E5C378]/90">
-                  {group.groupTitle}
-                </div>
-                {group.items.map(({ id, label, icon: Icon, badge }) => (
-                  <button
-                    key={id}
-                    onClick={() => navigateToTab(id)}
-                    className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-medium transition-all relative outline-hidden focus-visible:ring-2 focus-visible:ring-[#E5C378] ${
-                      activeTab === id
-                        ? "bg-white/15 text-white font-bold shadow-xs border-l-4 border-[#E5C378]"
-                        : "text-[#DFE7D7] hover:bg-white/10 hover:text-white"
-                    }`}
-                  >
-                    <Icon
-                      size={17}
-                      className={`shrink-0 transition-colors ${
-                        activeTab === id ? "text-[#E5C378]" : "text-white/80"
-                      }`}
-                    />
-                    <span className="truncate">{label}</span>
-                    {badge && (
-                      <span className="ml-auto text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-[#AE6A2B] text-white font-extrabold shadow-xs">
-                        {badge}
-                      </span>
-                    )}
-                  </button>
-                ))}
-              </div>
-            ))}
-          </nav>
+      <aside className="w-72 bg-[#123D28] text-white flex flex-col justify-between shrink-0 hidden md:flex border-r border-[#1B5237] h-screen sticky top-0 z-10 overflow-hidden select-none">
+        {/* Sidebar Brand Header */}
+        <div className="py-4 px-4 border-b border-white/10 flex items-center justify-between gap-2 shrink-0">
+          <BrandMark inverse={true} compact={true} />
+          <a
+            href="/"
+            target="_blank"
+            rel="noopener noreferrer"
+            title="View Customer Storefront"
+            className="text-[#DFE7D7] hover:text-white p-1.5 rounded-lg hover:bg-white/10 transition-colors shrink-0"
+          >
+            <ExternalLink size={16} />
+          </a>
         </div>
 
+        {/* Grouped Sidebar Navigation */}
+        <nav className="flex-1 overflow-y-auto overflow-x-hidden p-3 space-y-4 text-xs font-medium [scrollbar-width:thin] [scrollbar-color:rgba(255,255,255,0.2)_transparent] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:bg-white/20 hover:[&::-webkit-scrollbar-thumb]:bg-white/30 [&::-webkit-scrollbar-track]:bg-transparent">
+          {navGroups.map((group) => (
+            <div key={group.groupTitle} className="space-y-1">
+              <div className="px-3 pt-2 pb-1 text-[10px] font-bold tracking-wider uppercase text-[#E5C378]/90">
+                {group.groupTitle}
+              </div>
+              {group.items.map(({ id, label, icon: Icon, badge }) => (
+                <button
+                  key={id}
+                  onClick={() => navigateToTab(id)}
+                  className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-medium transition-all relative outline-hidden focus-visible:ring-2 focus-visible:ring-[#E5C378] ${
+                    activeTab === id
+                      ? "bg-white/15 text-white font-bold shadow-xs border-l-4 border-[#E5C378]"
+                      : "text-[#DFE7D7] hover:bg-white/10 hover:text-white"
+                  }`}
+                >
+                  <Icon
+                    size={17}
+                    className={`shrink-0 transition-colors ${
+                      activeTab === id ? "text-[#E5C378]" : "text-white/80"
+                    }`}
+                  />
+                  <span className="truncate">{label}</span>
+                  {badge && (
+                    <span className="ml-auto text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-[#AE6A2B] text-white font-extrabold shadow-xs">
+                      {badge}
+                    </span>
+                  )}
+                </button>
+              ))}
+            </div>
+          ))}
+        </nav>
+
         {/* Sidebar Admin Profile / Logout Footer */}
-        <div className="p-4 border-t border-white/10 text-xs bg-[#0F3321]">
+        <div className="p-4 border-t border-white/10 text-xs bg-[#0F3321] shrink-0">
           <div className="flex items-center gap-2.5 mb-3">
             <div className="w-8 h-8 rounded-full bg-white/15 flex items-center justify-center font-bold text-white border border-white/20">
               {currentUser?.name?.[0] || "A"}
@@ -2310,42 +2337,69 @@ export default function AdminDashboard() {
           {/* ========================================== */}
           {activeTab === "telegram" && (
             <div className="space-y-6">
+              {/* Telegram Administrator Allowlist Card */}
               <div className="bg-[#FFFDF8] border border-[#DEDFD5] p-5 rounded-xl shadow-xs">
-                <h3 className="font-serif text-lg font-bold text-[#123D28] mb-2 flex items-center gap-2">
-                  <Bot size={20} className="text-[#123D28]" /> Telegram Administrator Allowlist
-                </h3>
-                <p className="text-xs text-[#6C7167] mb-4">
-                  Only Telegram user IDs listed below can execute admin bot commands (e.g. `/stats`, `/order`, `/stock`, `/price`).
-                </p>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
+                  <div>
+                    <h3 className="font-serif text-lg font-bold text-[#123D28] flex items-center gap-2">
+                      <Bot size={20} className="text-[#123D28]" /> Telegram Administrator Allowlist
+                    </h3>
+                    <p className="text-xs text-[#6C7167]">
+                      Only authorized Telegram user IDs listed below can interact with the TRINAYAA bot. Founder/Super Admin has full control; Stock Managers submit requests requiring approval.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      refetchTelegramAdmins();
+                      refetchStockRequests();
+                      toast.info("Refreshed Telegram allowlist and requests");
+                    }}
+                    className="inline-flex items-center gap-1 text-xs text-[#6C7167] hover:text-[#123D28] border border-[#DEDFD5] rounded-lg px-2.5 py-1.5 bg-white shadow-2xs self-start sm:self-auto"
+                  >
+                    <RefreshCw size={12} /> Refresh
+                  </button>
+                </div>
 
                 <div className="space-y-2 mb-4">
                   {telegramAdmins.map((adm: any) => (
                     <div
                       key={adm.id}
-                      className="flex items-center justify-between p-3 border border-[#DEDFD5] rounded-md bg-[#FBF8F0]/40 text-xs"
+                      className="flex flex-col sm:flex-row sm:items-center justify-between p-3 border border-[#DEDFD5] rounded-md bg-[#FBF8F0]/40 text-xs gap-3"
                     >
-                      <div>
-                        <span className="font-mono font-bold text-[#123D28] mr-2">ID: {adm.telegramId}</span>
-                        <span className="font-semibold">{adm.name}</span>
-                        <span className="ml-2 text-[10px] bg-[#DFE7D7] text-[#123D28] px-1.5 py-0.5 rounded font-bold">
-                          {adm.role}
-                        </span>
+                      <div className="flex items-center flex-wrap gap-2">
+                        <span className="font-mono font-bold text-[#123D28]">ID: {adm.telegramId}</span>
+                        <span className="font-semibold text-slate-800">{adm.name}</span>
+                        {adm.role === "SUPER_ADMIN" ? (
+                          <span className="text-[10px] bg-emerald-100 text-emerald-800 border border-emerald-300 px-2 py-0.5 rounded-full font-bold">
+                            SUPER ADMIN (FOUNDER)
+                          </span>
+                        ) : (
+                          <span className="text-[10px] bg-amber-100 text-amber-800 border border-amber-300 px-2 py-0.5 rounded-full font-bold">
+                            STOCK MANAGER
+                          </span>
+                        )}
                       </div>
-                      <button
-                        type="button"
-                        onClick={() => removeTelegramAdminMutation.mutate({ telegramId: adm.telegramId })}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-red-200 bg-red-50 hover:bg-red-600 text-red-700 hover:text-white text-xs font-semibold transition-all duration-150 shadow-2xs active:scale-95 cursor-pointer"
-                        style={{
-                          backgroundColor: "#fef2f2",
-                          borderColor: "#fecaca",
-                          color: "#b91c1c",
-                          display: "inline-flex",
-                          alignItems: "center",
-                        }}
-                      >
-                        <Trash2 size={12} />
-                        <span>Revoke</span>
-                      </button>
+                      <div className="flex items-center gap-2">
+                        <select
+                          value={adm.role || "SUPER_ADMIN"}
+                          disabled={updateTelegramRoleMutation.isPending}
+                          onChange={(e) => updateTelegramRoleMutation.mutate({ telegramId: adm.telegramId, role: e.target.value as any })}
+                          className="text-xs px-2.5 py-1 border border-[#DEDFD5] rounded bg-white text-[#123D28] font-medium"
+                          title="Change Administrator Role"
+                        >
+                          <option value="SUPER_ADMIN">Super Admin (Founder)</option>
+                          <option value="STOCK_MANAGER">Stock Manager (Warehouse)</option>
+                        </select>
+                        <button
+                          type="button"
+                          onClick={() => removeTelegramAdminMutation.mutate({ telegramId: adm.telegramId })}
+                          className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg border border-red-200 bg-red-50 hover:bg-red-600 text-red-700 hover:text-white text-xs font-semibold transition-all duration-150 shadow-2xs active:scale-95 cursor-pointer"
+                        >
+                          <Trash2 size={12} />
+                          <span>Revoke</span>
+                        </button>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -2356,29 +2410,189 @@ export default function AdminDashboard() {
                     const form = e.target;
                     const telegramId = form.telegramId.value.trim();
                     const name = form.name.value.trim();
+                    const role = form.role.value;
                     if (telegramId && name) {
-                      addTelegramAdminMutation.mutate({ telegramId, name });
+                      addTelegramAdminMutation.mutate({ telegramId, name, role });
                       form.reset();
                     }
                   }}
-                  className="flex flex-wrap items-center gap-2 pt-2"
+                  className="flex flex-wrap items-center gap-2 pt-2 border-t border-[#DEDFD5]"
                 >
                   <input
                     name="telegramId"
                     required
-                    placeholder="Telegram User ID (e.g. 123456789)"
-                    className="text-xs px-3 py-2 border border-[#DEDFD5] rounded bg-[#FBF8F0] flex-1"
+                    placeholder="Telegram User ID (e.g. 1979530961)"
+                    className="text-xs px-3 py-2 border border-[#DEDFD5] rounded bg-[#FBF8F0] flex-1 min-w-[160px]"
                   />
                   <input
                     name="name"
                     required
                     placeholder="Admin Name / Username"
-                    className="text-xs px-3 py-2 border border-[#DEDFD5] rounded bg-[#FBF8F0] flex-1"
+                    className="text-xs px-3 py-2 border border-[#DEDFD5] rounded bg-[#FBF8F0] flex-1 min-w-[160px]"
                   />
-                  <button type="submit" className="dark-button text-xs py-2 px-4">
+                  <select
+                    name="role"
+                    defaultValue="STOCK_MANAGER"
+                    className="text-xs px-3 py-2 border border-[#DEDFD5] rounded bg-[#FBF8F0] font-medium text-[#123D28]"
+                  >
+                    <option value="STOCK_MANAGER">Stock Manager (Warehouse Staff)</option>
+                    <option value="SUPER_ADMIN">Super Admin (Founder / Executive)</option>
+                  </select>
+                  <button type="submit" className="dark-button text-xs py-2 px-4 shrink-0">
                     <Plus size={14} /> Authorize Admin
                   </button>
                 </form>
+              </div>
+
+              {/* Stock Maintenance Requests & Warehouse Dispatches */}
+              <div className="bg-[#FFFDF8] border border-[#DEDFD5] p-5 rounded-xl shadow-xs">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
+                  <div>
+                    <h3 className="font-serif text-lg font-bold text-[#123D28] flex items-center gap-2">
+                      <Layers size={20} className="text-[#AE6A2B]" /> Recent Stock Maintenance Requests
+                    </h3>
+                    <p className="text-xs text-[#6C7167]">
+                      Stock adjustments requested by warehouse Stock Managers via Telegram (/requeststock or physical warehouse photos) requiring founder approval.
+                    </p>
+                  </div>
+                  <span className="text-xs font-semibold px-2.5 py-1 bg-[#FBF8F0] border border-[#DEDFD5] rounded text-[#123D28] self-start sm:self-auto">
+                    {stockRequests.length} Total Requests
+                  </span>
+                </div>
+
+                {stockRequests.length === 0 ? (
+                  <div className="p-8 text-center bg-[#FBF8F0]/60 rounded-xl border border-dashed border-[#DEDFD5]">
+                    <Layers size={32} className="mx-auto text-[#6C7167]/50 mb-2" />
+                    <p className="text-sm font-semibold text-[#123D28]">No stock maintenance requests yet</p>
+                    <p className="text-xs text-[#6C7167] mt-1 max-w-md mx-auto">
+                      Warehouse Stock Managers can send stock adjustment requests via Telegram bot using <code className="bg-slate-200/80 px-1 py-0.5 rounded text-[11px]">/requeststock SKU +/-Qty [Notes]</code> or by uploading warehouse stock photos with SKU caption.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {stockRequests.map((req: any) => {
+                      const isPending = req.status === "PENDING";
+                      const isApproved = req.status === "APPROVED";
+                      const isRejected = req.status === "REJECTED";
+                      const isPositive = req.quantityChange > 0;
+
+                      return (
+                        <div
+                          key={req.id}
+                          className={`p-4 border rounded-xl text-xs space-y-3 transition-colors ${
+                            isPending
+                              ? "bg-amber-50/40 border-amber-200"
+                              : isApproved
+                              ? "bg-emerald-50/20 border-emerald-200"
+                              : "bg-slate-50 border-slate-200"
+                          }`}
+                        >
+                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-[#DEDFD5]/60">
+                            <div className="flex items-center gap-2">
+                              <span className="font-mono font-bold text-[#123D28]">{req.requestNumber}</span>
+                              <span
+                                className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                                  isPending
+                                    ? "bg-amber-200 text-amber-900 border border-amber-300 animate-pulse"
+                                    : isApproved
+                                    ? "bg-emerald-100 text-emerald-800 border border-emerald-300"
+                                    : "bg-rose-100 text-rose-800 border border-rose-300"
+                                }`}
+                              >
+                                {req.status}
+                              </span>
+                              {req.photoFileId && (
+                                <span className="text-[10px] bg-indigo-100 text-indigo-800 border border-indigo-200 px-1.5 py-0.2 rounded font-medium">
+                                  📷 Photo Proof Attached
+                                </span>
+                              )}
+                            </div>
+                            <span className="text-[11px] text-[#6C7167]">
+                              {new Date(req.createdAt).toLocaleString("en-IN", {
+                                day: "numeric",
+                                month: "short",
+                                year: "numeric",
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              })}
+                            </span>
+                          </div>
+
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                            <div>
+                              <span className="text-[10px] uppercase font-bold text-[#6C7167] block">Product</span>
+                              <div className="font-semibold text-[#123D28]">{req.productName}</div>
+                              <div className="font-mono text-[11px] text-[#6C7167]">{req.productSku}</div>
+                            </div>
+
+                            <div>
+                              <span className="text-[10px] uppercase font-bold text-[#6C7167] block">Stock Adjustment</span>
+                              <div className="flex items-center gap-2 mt-0.5">
+                                <span className="text-slate-600">Current: <strong>{req.currentStock}</strong></span>
+                                <span className="text-slate-400">➔</span>
+                                <span className="text-slate-900 font-bold">Target: {req.newStockTarget}</span>
+                                <span
+                                  className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
+                                    isPositive
+                                      ? "bg-emerald-100 text-emerald-800"
+                                      : "bg-rose-100 text-rose-800"
+                                  }`}
+                                >
+                                  {isPositive ? `+${req.quantityChange}` : req.quantityChange}
+                                </span>
+                              </div>
+                            </div>
+
+                            <div>
+                              <span className="text-[10px] uppercase font-bold text-[#6C7167] block">Requested By</span>
+                              <div className="font-medium text-slate-800">{req.managerName}</div>
+                              <div className="font-mono text-[10px] text-slate-500">TG: {req.managerTelegramId}</div>
+                            </div>
+                          </div>
+
+                          {req.notes && (
+                            <div className="p-2 bg-white/80 rounded border border-[#DEDFD5] text-[11px] text-slate-700">
+                              <span className="font-semibold text-[#123D28]">Notes: </span>
+                              {req.notes}
+                            </div>
+                          )}
+
+                          {isPending && (
+                            <div className="flex items-center gap-2 pt-2 border-t border-[#DEDFD5]">
+                              <button
+                                type="button"
+                                disabled={approveStockRequestMutation.isPending}
+                                onClick={() => approveStockRequestMutation.mutate({ requestId: req.id })}
+                                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-semibold shadow-xs transition-colors cursor-pointer"
+                              >
+                                <CheckCircle2 size={13} /> Approve & Update Stock
+                              </button>
+                              <button
+                                type="button"
+                                disabled={rejectStockRequestMutation.isPending}
+                                onClick={() => rejectStockRequestMutation.mutate({ requestId: req.id })}
+                                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold shadow-xs transition-colors cursor-pointer"
+                              >
+                                <X size={13} /> Reject
+                              </button>
+                            </div>
+                          )}
+
+                          {!isPending && req.reviewedBy && (
+                            <div className="text-[11px] text-slate-500 pt-1 border-t border-[#DEDFD5]/50 flex items-center justify-between">
+                              <span>
+                                {isApproved ? "Approved" : "Rejected"} by <strong className="text-slate-700">{req.reviewedBy}</strong>
+                              </span>
+                              {req.reviewedAt && (
+                                <span>{new Date(req.reviewedAt).toLocaleString("en-IN")}</span>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             </div>
           )}

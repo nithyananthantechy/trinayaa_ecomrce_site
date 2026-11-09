@@ -277,6 +277,26 @@ function initTables(db: any) {
       createdAt TEXT NOT NULL
     );
 
+    CREATE TABLE IF NOT EXISTS telegram_stock_requests (
+      id TEXT PRIMARY KEY,
+      requestNumber TEXT UNIQUE NOT NULL,
+      managerTelegramId TEXT NOT NULL,
+      managerName TEXT NOT NULL,
+      productSku TEXT NOT NULL,
+      productName TEXT NOT NULL,
+      currentStock INTEGER NOT NULL,
+      quantityChange INTEGER NOT NULL,
+      newStockTarget INTEGER NOT NULL,
+      requestType TEXT NOT NULL DEFAULT 'RESTOCK',
+      photoFileId TEXT,
+      photoUrl TEXT,
+      notes TEXT,
+      status TEXT NOT NULL DEFAULT 'PENDING',
+      reviewedBy TEXT,
+      reviewedAt TEXT,
+      createdAt TEXT NOT NULL
+    );
+
     CREATE TABLE IF NOT EXISTS business_enquiries (
       id TEXT PRIMARY KEY,
       enquiryNumber TEXT UNIQUE NOT NULL,
@@ -2713,6 +2733,112 @@ export const telegramRepo = {
   getAuditLogs(limit = 50) {
     const db = getDatabase();
     return db.prepare("SELECT * FROM telegram_audit_logs ORDER BY createdAt DESC LIMIT ?").all(limit) as any[];
+  },
+
+  getAdminRole(telegramId: string): "SUPER_ADMIN" | "STOCK_MANAGER" | null {
+    const db = getDatabase();
+    const cleanId = String(telegramId).trim();
+    const row = db.prepare("SELECT role FROM telegram_allowed_admins WHERE telegramId = ?").get(cleanId) as { role: string } | undefined;
+    if (row && (row.role === "STOCK_MANAGER" || row.role === "SUPER_ADMIN")) {
+      return row.role as any;
+    }
+    const envAdmins = [
+      ...(process.env.TELEGRAM_ALLOWED_ADMIN_IDS || "").split(","),
+      ...(process.env.TELEGRAM_ADMIN_IDS || "").split(","),
+    ].map((s) => s.trim()).filter(Boolean);
+    if (envAdmins.includes(cleanId)) return "SUPER_ADMIN";
+    return null;
+  },
+
+  getFounderAdminIds(): string[] {
+    const db = getDatabase();
+    const envAdmins = [
+      ...(process.env.TELEGRAM_ALLOWED_ADMIN_IDS || "").split(","),
+      ...(process.env.TELEGRAM_ADMIN_IDS || "").split(","),
+    ].map((s) => s.trim()).filter(Boolean);
+    const dbAdmins = db.prepare("SELECT telegramId FROM telegram_allowed_admins WHERE role = 'SUPER_ADMIN'").all() as { telegramId: string }[];
+    const set = new Set([...envAdmins, ...dbAdmins.map((d) => String(d.telegramId).trim())]);
+    return Array.from(set).filter(Boolean);
+  },
+
+  createStockRequest(data: {
+    managerTelegramId: string;
+    managerName: string;
+    productSku: string;
+    productName: string;
+    currentStock: number;
+    quantityChange: number;
+    newStockTarget: number;
+    requestType?: string;
+    photoFileId?: string;
+    photoUrl?: string;
+    notes?: string;
+  }) {
+    const db = getDatabase();
+    const id = "stk_req_" + Date.now() + "_" + Math.floor(Math.random() * 1000);
+    const requestNumber = "REQ-" + (1000 + Math.floor(Math.random() * 9000));
+    const now = new Date().toISOString();
+    db.prepare(`
+      INSERT INTO telegram_stock_requests (
+        id, requestNumber, managerTelegramId, managerName,
+        productSku, productName, currentStock, quantityChange,
+        newStockTarget, requestType, photoFileId, photoUrl, notes,
+        status, reviewedBy, reviewedAt, createdAt
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'PENDING', NULL, NULL, ?)
+    `).run(
+      id,
+      requestNumber,
+      data.managerTelegramId,
+      data.managerName,
+      data.productSku,
+      data.productName,
+      data.currentStock,
+      data.quantityChange,
+      data.newStockTarget,
+      data.requestType || 'RESTOCK',
+      data.photoFileId || null,
+      data.photoUrl || null,
+      data.notes || '',
+      now
+    );
+    return db.prepare("SELECT * FROM telegram_stock_requests WHERE id = ?").get(id) as any;
+  },
+
+  getStockRequest(idOrNumber: string) {
+    const db = getDatabase();
+    return db.prepare("SELECT * FROM telegram_stock_requests WHERE id = ? OR requestNumber = ?").get(idOrNumber, idOrNumber) as any;
+  },
+
+  listStockRequests(limit = 50) {
+    const db = getDatabase();
+    return db.prepare("SELECT * FROM telegram_stock_requests ORDER BY createdAt DESC LIMIT ?").all(limit) as any[];
+  },
+
+  approveStockRequest(idOrNumber: string, reviewedBy: string) {
+    const db = getDatabase();
+    const req = db.prepare("SELECT * FROM telegram_stock_requests WHERE id = ? OR requestNumber = ?").get(idOrNumber, idOrNumber) as any;
+    if (!req) return null;
+    const now = new Date().toISOString();
+    db.prepare("UPDATE telegram_stock_requests SET status = 'APPROVED', reviewedBy = ?, reviewedAt = ? WHERE id = ?")
+      .run(reviewedBy, now, req.id);
+    return db.prepare("SELECT * FROM telegram_stock_requests WHERE id = ?").get(req.id) as any;
+  },
+
+  rejectStockRequest(idOrNumber: string, reviewedBy: string, reason?: string) {
+    const db = getDatabase();
+    const req = db.prepare("SELECT * FROM telegram_stock_requests WHERE id = ? OR requestNumber = ?").get(idOrNumber, idOrNumber) as any;
+    if (!req) return null;
+    const now = new Date().toISOString();
+    const updatedNotes = reason ? (req.notes ? `${req.notes} [Rejected: ${reason}]` : `Rejected: ${reason}`) : req.notes;
+    db.prepare("UPDATE telegram_stock_requests SET status = 'REJECTED', reviewedBy = ?, reviewedAt = ?, notes = ? WHERE id = ?")
+      .run(reviewedBy, now, updatedNotes, req.id);
+    return db.prepare("SELECT * FROM telegram_stock_requests WHERE id = ?").get(req.id) as any;
+  },
+
+  updateAdminRole(telegramId: string, role: string) {
+    const db = getDatabase();
+    const res = db.prepare("UPDATE telegram_allowed_admins SET role = ? WHERE telegramId = ?").run(role, String(telegramId).trim());
+    return res.changes > 0;
   }
 };
 
