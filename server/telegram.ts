@@ -17,14 +17,14 @@ export function maskPhone(phone?: string | null): string {
   if (!phone) return "N/A";
   const cleaned = phone.trim();
   if (cleaned.length <= 5) return cleaned;
-  return cleaned.slice(0, 5) + "*".repeat(Math.max(3, cleaned.length - 5));
+  return cleaned.slice(0, 5) + "•••••";
 }
 
 export function maskEmail(email?: string | null): string {
   if (!email || !email.includes("@")) return "N/A";
   const [local, domain] = email.trim().split("@");
-  if (local.length <= 1) return `*@${domain}`;
-  return `${local[0]}***@${domain}`;
+  if (local.length <= 1) return `•@${domain}`;
+  return `${local[0]}•••@${domain}`;
 }
 
 export function maskAddress(address?: any): string {
@@ -120,8 +120,10 @@ export function clearProcessedCallbacks() {
 export const ADMIN_MAIN_KEYBOARD = {
   keyboard: [
     [{ text: "📊 Store Dashboard" }, { text: "📦 Recent Orders" }],
-    [{ text: "🌿 Products & Stock" }, { text: "🎉 Active Offers" }],
-    [{ text: "👥 Customers" }, { text: "❓ Help & Menu" }],
+    [{ text: "🌿 Products & Stock" }, { text: "💼 Wholesale Enquiries" }],
+    [{ text: "⭐ Product Reviews" }, { text: "👥 Customers" }],
+    [{ text: "🎉 Active Offers" }, { text: "🎁 Loyalty Rewards" }],
+    [{ text: "❓ Help & Menu" }],
   ],
   resize_keyboard: true,
   is_persistent: true,
@@ -129,6 +131,11 @@ export const ADMIN_MAIN_KEYBOARD = {
 
 export function getOverviewMessage() {
   const stats = db.adminStatsRepo.getOverview();
+  const enquiries = db.businessEnquiriesRepo.list({ limit: 100 });
+  const totalEnquiries = enquiries.total || enquiries.enquiries?.length || 0;
+  const reviews = db.reviewsRepo.listAll();
+  const pendingReviews = reviews.filter((r: any) => r.status === "PENDING").length;
+
   const text = `📊 *TRINAYAA STORE METRICS*\n\n` +
     `📦 *Products:*\n` +
     `• Total: ${stats.totalProducts}\n` +
@@ -138,6 +145,8 @@ export function getOverviewMessage() {
     `• Total Orders: ${stats.totalOrders}\n` +
     `• Pending / In-progress: ${stats.pendingOrders}\n` +
     `• Completed / Delivered: ${stats.completedOrders}\n\n` +
+    `💼 *B2B Wholesale Enquiries:* ${totalEnquiries}\n` +
+    `⭐ *Pending Review Moderation:* ${pendingReviews}\n` +
     `💰 *Verified Revenue:* ₹${stats.totalRevenue.toLocaleString("en-IN")}\n` +
     `🎉 *Active Festival Offers:* ${stats.activeCampaigns}\n` +
     `👥 *Registered Customers:* ${stats.totalCustomers}`;
@@ -149,8 +158,16 @@ export function getOverviewMessage() {
         { text: "🌿 Top Products", callback_data: "cmd_products" },
       ],
       [
-        { text: "🎉 Active Offers", callback_data: "cmd_offers" },
+        { text: "💼 Wholesale B2B", callback_data: "cmd_enquiries" },
+        { text: "⭐ Product Reviews", callback_data: "cmd_reviews" },
+      ],
+      [
         { text: "👥 Customers", callback_data: "cmd_customers" },
+        { text: "🎁 Loyalty Rewards", callback_data: "cmd_rewards" },
+      ],
+      [
+        { text: "🎉 Active Offers", callback_data: "cmd_offers" },
+        { text: "❓ Help & Menu", callback_data: "cmd_full_help" },
       ],
     ],
   };
@@ -250,9 +267,132 @@ export function getCustomersSummaryMessage() {
   }
   const keyboard = {
     inline_keyboard: [
-      [{ text: "📊 Store Dashboard", callback_data: "cmd_stats" }, { text: "📦 Recent Orders", callback_data: "cmd_orders" }],
+      [
+        { text: "📊 Store Dashboard", callback_data: "cmd_stats" },
+        { text: "📦 Recent Orders", callback_data: "cmd_orders" },
+      ],
+      [
+        { text: "💼 Wholesale Enquiries", callback_data: "cmd_enquiries" },
+        { text: "🎁 Loyalty Rewards", callback_data: "cmd_rewards" },
+      ],
     ],
   };
+  return { text: reply, keyboard };
+}
+
+export function getB2BEnquiriesSummaryMessage() {
+  const enquiries = db.businessEnquiriesRepo.list({ limit: 5 });
+  const allEnquiries = db.businessEnquiriesRepo.list({ limit: 500 });
+  const total = allEnquiries.total || allEnquiries.enquiries?.length || 0;
+  const newCount = (allEnquiries.enquiries || []).filter((e: any) => e.status === "NEW").length;
+  const quotedCount = (allEnquiries.enquiries || []).filter((e: any) => e.status === "QUOTED").length;
+
+  let reply = `💼 *WHOLESALE & B2B ENQUIRIES*\n\n` +
+    `• Total Requests: *${total}*\n` +
+    `• 🟡 New / Unhandled: *${newCount}*\n` +
+    `• 🟢 Quoted / In-Progress: *${quotedCount}*\n\n` +
+    `*Recent Enquiries:*\n`;
+
+  const list = enquiries.enquiries || [];
+  if (list.length === 0) {
+    reply += `_No B2B wholesale enquiries submitted yet._\n`;
+  } else {
+    for (const e of list) {
+      const dateStr = new Date(e.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short" });
+      const statusIcon = e.status === "NEW" ? "🆕" : e.status === "QUOTED" ? "💬" : "✅";
+      reply += `${statusIcon} *${e.enquiryNumber}* — *${e.companyName || e.contactName}*\n` +
+               `  Type: ${e.buyerType || "Retailer"} | Location: ${e.deliveryCity || "Tamil Nadu"}\n` +
+               `  Phone: ${maskPhone(e.phone)} | Status: \`${e.status}\` (${dateStr})\n\n`;
+    }
+  }
+
+  const keyboard = {
+    inline_keyboard: [
+      [
+        { text: "💼 Refresh Enquiries", callback_data: "cmd_enquiries" },
+        { text: "📊 Store Dashboard", callback_data: "cmd_stats" },
+      ],
+      [
+        { text: "⭐ Product Reviews", callback_data: "cmd_reviews" },
+        { text: "🎁 Loyalty Rewards", callback_data: "cmd_rewards" },
+      ],
+    ],
+  };
+
+  return { text: reply, keyboard };
+}
+
+export function getReviewsSummaryMessage() {
+  const allReviews = db.reviewsRepo.listAll();
+  const total = allReviews.length;
+  const pending = allReviews.filter((r: any) => r.status === "PENDING");
+  const approved = allReviews.filter((r: any) => r.status === "APPROVED");
+  const avgRating = total > 0 ? (allReviews.reduce((acc: number, r: any) => acc + (r.rating || 5), 0) / total).toFixed(1) : "5.0";
+
+  let reply = `⭐ *PRODUCT REVIEWS & MODERATION*\n\n` +
+    `• Total Reviews: *${total}*\n` +
+    `• ⏳ Pending Moderation: *${pending.length}*\n` +
+    `• ✅ Approved & Live: *${approved.length}*\n` +
+    `• 🌟 Store Average Rating: *${avgRating} / 5.0*\n\n`;
+
+  if (pending.length > 0) {
+    reply += `*⏳ Awaiting Admin Approval:*\n`;
+    for (const r of pending.slice(0, 3)) {
+      const stars = "⭐".repeat(Math.min(5, Math.max(1, r.rating || 5)));
+      reply += `• ${stars} *${r.productName || "Botanical Product"}*\n` +
+               `  By: ${r.customer_name || "Customer"} — "${r.title || r.review?.slice(0, 40) || ""}"\n` +
+               `  ID: \`${r.id}\`\n\n`;
+    }
+  } else {
+    reply += `*Recent Customer Reviews:*\n`;
+    for (const r of allReviews.slice(0, 4)) {
+      const stars = "⭐".repeat(Math.min(5, Math.max(1, r.rating || 5)));
+      reply += `• ${stars} *${r.productName || "Botanical Product"}* (\`${r.status}\`)\n` +
+               `  By: ${r.customer_name || "Customer"} — "${r.title || r.review?.slice(0, 40) || ""}"\n\n`;
+    }
+  }
+
+  const keyboard = {
+    inline_keyboard: [
+      [
+        { text: "⭐ Refresh Reviews", callback_data: "cmd_reviews" },
+        { text: "💼 Wholesale Enquiries", callback_data: "cmd_enquiries" },
+      ],
+      [
+        { text: "📊 Store Dashboard", callback_data: "cmd_stats" },
+        { text: "🎁 Loyalty Rewards", callback_data: "cmd_rewards" },
+      ],
+    ],
+  };
+
+  return { text: reply, keyboard };
+}
+
+export function getRewardsSummaryMessage() {
+  const settings = db.rewardsRepo.getSettings();
+  let reply = `🎁 *CUSTOMER LOYALTY & SEED REWARDS*\n\n` +
+    `• System Status: *${settings.rewardsEnabled ? "🟢 ACTIVE" : "🔴 DISABLED"}*\n` +
+    `• Review Feedback Reward: *+${settings.feedbackRewardPoints || 50} Seed Points*\n` +
+    `• Free Product Gift Threshold: *₹${(settings.freeProductRewardThreshold || 1500).toLocaleString("en-IN")}*\n\n` +
+    `🌿 *How Trinayaa Seed Rewards Work:*\n` +
+    `1. Customers earn Seed Points on every purchase (1 pt per ₹10 spent).\n` +
+    `2. Customers earn +50 points when posting verified botanical reviews.\n` +
+    `3. 1 Seed Point = ₹1 instant discount during checkout redemption.\n` +
+    `4. Orders above ₹1,500 unlock complimentary cold-pressed oil or herbal seed sample!\n`;
+
+  const keyboard = {
+    inline_keyboard: [
+      [
+        { text: "🎁 Refresh Rewards", callback_data: "cmd_rewards" },
+        { text: "👥 Customer Base", callback_data: "cmd_customers" },
+      ],
+      [
+        { text: "📊 Store Dashboard", callback_data: "cmd_stats" },
+        { text: "💼 Wholesale Enquiries", callback_data: "cmd_enquiries" },
+      ],
+    ],
+  };
+
   return { text: reply, keyboard };
 }
 
@@ -265,6 +405,10 @@ export function getFullHelpText() {
     `• \`/order <ID>\` — Order details with masked info (e.g. \`/order TRN-10482\`)\n` +
     `• \`/updateorder <ID> [Status]\` — Update order status\n` +
     `• \`/customers\` — View customer base summary\n\n` +
+    `*💼 Wholesale & Moderation (New):*\n` +
+    `• \`/enquiries\` or \`/b2b\` — View wholesale bulk quotation requests\n` +
+    `• \`/reviews\` — Inspect and moderate customer product reviews\n` +
+    `• \`/rewards\` — Customer loyalty seed reward points & rules\n\n` +
     `*🌿 Catalogue & Inventory:*\n` +
     `• \`/products\` — Top catalogue products list\n` +
     `• \`/product <SKU/Name>\` — Search product details & quick stock buttons\n` +
@@ -307,7 +451,17 @@ export async function sendTelegramMessage(chatId: string | number, text: string,
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
     });
-    return await response.json();
+    let data: any = await response.json();
+    if (!data.ok && data.description && data.description.includes("can't parse entities")) {
+      delete payload.parse_mode;
+      const retryResponse = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      data = await retryResponse.json();
+    }
+    return data;
   } catch (error) {
     console.error("[Telegram Send Error]:", error);
     return { ok: false, error };
@@ -977,6 +1131,27 @@ async function handleCallbackQuery(cb: any) {
       break;
     }
 
+    case "cmd_enquiries": {
+      const { text, keyboard } = getB2BEnquiriesSummaryMessage();
+      await sendTelegramMessage(chatId, text, keyboard);
+      db.telegramRepo.logAudit(userId, "CALLBACK_ENQUIRIES");
+      break;
+    }
+
+    case "cmd_reviews": {
+      const { text, keyboard } = getReviewsSummaryMessage();
+      await sendTelegramMessage(chatId, text, keyboard);
+      db.telegramRepo.logAudit(userId, "CALLBACK_REVIEWS");
+      break;
+    }
+
+    case "cmd_rewards": {
+      const { text, keyboard } = getRewardsSummaryMessage();
+      await sendTelegramMessage(chatId, text, keyboard);
+      db.telegramRepo.logAudit(userId, "CALLBACK_REWARDS");
+      break;
+    }
+
     case "cmd_full_help": {
       await sendTelegramMessage(chatId, getFullHelpText(), ADMIN_MAIN_KEYBOARD);
       db.telegramRepo.logAudit(userId, "CALLBACK_HELP");
@@ -1160,6 +1335,15 @@ export async function handleTelegramUpdate(update: any) {
   } else if (text.includes("Products") || lowerText === "products" || lowerText === "catalogue" || lowerText === "catalog") {
     command = "/products";
     args = [];
+  } else if (text.includes("Wholesale Enquiries") || text.includes("Wholesale") || lowerText === "enquiries" || lowerText === "wholesale" || lowerText === "b2b") {
+    command = "/enquiries";
+    args = [];
+  } else if (text.includes("Product Reviews") || text.includes("Reviews") || lowerText === "reviews" || lowerText === "review") {
+    command = "/reviews";
+    args = [];
+  } else if (text.includes("Loyalty Rewards") || text.includes("Rewards") || lowerText === "rewards" || lowerText === "loyalty" || lowerText === "points" || lowerText === "seed") {
+    command = "/rewards";
+    args = [];
   } else if (text.includes("Active Offers") || lowerText === "offers" || lowerText === "promotions" || lowerText === "coupons" || lowerText === "discount" || lowerText === "discounts") {
     command = "/offers";
     args = [];
@@ -1177,6 +1361,9 @@ export async function handleTelegramUpdate(update: any) {
     else if (command === "stockadd") command = "/stockadd";
     else if (command === "stocksub") command = "/stocksub";
     else if (command === "stockset") command = "/stockset";
+    else if (command === "enquiries" || command === "b2b") command = "/enquiries";
+    else if (command === "reviews") command = "/reviews";
+    else if (command === "rewards") command = "/rewards";
   }
 
   try {
@@ -1191,7 +1378,9 @@ export async function handleTelegramUpdate(update: any) {
           `💡 *Zero Typing Required:*\n` +
           `• Tap *📊 Store Dashboard* or *📦 Recent Orders* below for instant live numbers.\n` +
           `• Tap *🌿 Products & Stock* to inspect items and restock instantly.\n` +
-          `• Type simple words like \`orders\`, \`stock\`, \`offers\` or \`வணக்கம்\` anytime!`;
+          `• Tap *💼 Wholesale Enquiries* or *⭐ Product Reviews* to inspect customer activity.\n` +
+          `• Tap *🎁 Loyalty Rewards* to view Seed Points rules.\n` +
+          `• Type simple words like \`orders\`, \`stock\`, \`offers\`, \`b2b\`, \`reviews\` or \`வணக்கம்\` anytime!`;
 
         const welcomeInlineKeyboard = {
           inline_keyboard: [
@@ -1201,10 +1390,17 @@ export async function handleTelegramUpdate(update: any) {
             ],
             [
               { text: "🌿 Products & Stock", callback_data: "cmd_products" },
-              { text: "🎉 Active Offers", callback_data: "cmd_offers" },
+              { text: "💼 Wholesale Enquiries", callback_data: "cmd_enquiries" },
             ],
             [
+              { text: "⭐ Product Reviews", callback_data: "cmd_reviews" },
               { text: "👥 Customers Base", callback_data: "cmd_customers" },
+            ],
+            [
+              { text: "🎉 Active Offers", callback_data: "cmd_offers" },
+              { text: "🎁 Loyalty Rewards", callback_data: "cmd_rewards" },
+            ],
+            [
               { text: "📋 Full Command Guide", callback_data: "cmd_full_help" },
             ],
           ],
@@ -1810,6 +2006,32 @@ export async function handleTelegramUpdate(update: any) {
         const { text: reply, keyboard } = getCustomersSummaryMessage();
         await sendTelegramMessage(chatId, reply, keyboard);
         db.telegramRepo.logAudit(userId, "/customers");
+        break;
+      }
+
+      case "/enquiries":
+      case "/wholesale":
+      case "/b2b": {
+        const { text: reply, keyboard } = getB2BEnquiriesSummaryMessage();
+        await sendTelegramMessage(chatId, reply, keyboard);
+        db.telegramRepo.logAudit(userId, "/enquiries");
+        break;
+      }
+
+      case "/reviews":
+      case "/review": {
+        const { text: reply, keyboard } = getReviewsSummaryMessage();
+        await sendTelegramMessage(chatId, reply, keyboard);
+        db.telegramRepo.logAudit(userId, "/reviews");
+        break;
+      }
+
+      case "/rewards":
+      case "/loyalty":
+      case "/points": {
+        const { text: reply, keyboard } = getRewardsSummaryMessage();
+        await sendTelegramMessage(chatId, reply, keyboard);
+        db.telegramRepo.logAudit(userId, "/rewards");
         break;
       }
 
