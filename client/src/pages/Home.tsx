@@ -67,7 +67,7 @@ function getGuestToken(): string {
 }
 
 const IMG = {
-  hero: "/images/hero/trinayaa_home_hero_banner_2x.jpg?v=2",
+  hero: "/images/hero/trinayaa_home_hero_banner_2x.jpg?v=3",
   moringa: "/images/products/packaged/pouch_001.png",
   blackSeed: "/images/products/packaged/pouch_002.png",
   hibiscus: "/images/products/packaged/pouch_003.png",
@@ -1581,7 +1581,7 @@ export default function Home() {
           >
             <img
               src={IMG.hero}
-              srcSet="/images/hero/trinayaa_home_hero_banner.jpg?v=2 1024w, /images/hero/trinayaa_home_hero_banner_2x.jpg?v=2 2048w"
+              srcSet="/images/hero/trinayaa_home_hero_banner.jpg?v=3 1024w, /images/hero/trinayaa_home_hero_banner_2x.jpg?v=3 2048w"
               sizes="(max-width: 1024px) 100vw, 1400px"
               alt="TRINAYAA — Rooted in Nature. Made for Everyday Wellness. Natural Herbs, Seeds, Raw Powders."
               className="w-full h-auto object-cover block transition-transform duration-700 group-hover:scale-[1.006]"
