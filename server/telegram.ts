@@ -120,10 +120,10 @@ export function clearProcessedCallbacks() {
 export const ADMIN_MAIN_KEYBOARD = {
   keyboard: [
     [{ text: "📊 Store Dashboard" }, { text: "📦 Recent Orders" }],
-    [{ text: "🌿 Products & Stock" }, { text: "💼 Wholesale Enquiries" }],
-    [{ text: "⭐ Product Reviews" }, { text: "👥 Customers" }],
-    [{ text: "🎉 Active Offers" }, { text: "🎁 Loyalty Rewards" }],
-    [{ text: "❓ Help & Menu" }],
+    [{ text: "🌿 Products & Stock" }, { text: "📋 Stock Requests" }],
+    [{ text: "💼 Wholesale Enquiries" }, { text: "⭐ Product Reviews" }],
+    [{ text: "👥 Customers" }, { text: "🎁 Loyalty Rewards" }],
+    [{ text: "🎉 Active Offers" }, { text: "❓ Help & Menu" }],
   ],
   resize_keyboard: true,
   is_persistent: true,
@@ -135,6 +135,8 @@ export function getOverviewMessage() {
   const totalEnquiries = enquiries.total || enquiries.enquiries?.length || 0;
   const reviews = db.reviewsRepo.listAll();
   const pendingReviews = reviews.filter((r: any) => r.status === "PENDING").length;
+  const stockRequests = db.telegramRepo.listStockRequests(50);
+  const pendingStockRequests = stockRequests.filter((r: any) => r.status === "PENDING").length;
 
   const text = `📊 *TRINAYAA STORE METRICS*\n\n` +
     `📦 *Products:*\n` +
@@ -145,6 +147,7 @@ export function getOverviewMessage() {
     `• Total Orders: ${stats.totalOrders}\n` +
     `• Pending / In-progress: ${stats.pendingOrders}\n` +
     `• Completed / Delivered: ${stats.completedOrders}\n\n` +
+    `📋 *Pending Stock Requests:* ${pendingStockRequests > 0 ? `*${pendingStockRequests} (Action Required)*` : "0"}\n` +
     `💼 *B2B Wholesale Enquiries:* ${totalEnquiries}\n` +
     `⭐ *Pending Review Moderation:* ${pendingReviews}\n` +
     `💰 *Verified Revenue:* ₹${stats.totalRevenue.toLocaleString("en-IN")}\n` +
@@ -158,15 +161,18 @@ export function getOverviewMessage() {
         { text: "🌿 Top Products", callback_data: "cmd_products" },
       ],
       [
+        { text: "📋 Stock Requests", callback_data: "cmd_stockrequests" },
         { text: "💼 Wholesale B2B", callback_data: "cmd_enquiries" },
+      ],
+      [
         { text: "⭐ Product Reviews", callback_data: "cmd_reviews" },
-      ],
-      [
         { text: "👥 Customers", callback_data: "cmd_customers" },
-        { text: "🎁 Loyalty Rewards", callback_data: "cmd_rewards" },
       ],
       [
+        { text: "🎁 Loyalty Rewards", callback_data: "cmd_rewards" },
         { text: "🎉 Active Offers", callback_data: "cmd_offers" },
+      ],
+      [
         { text: "❓ Help & Menu", callback_data: "cmd_full_help" },
       ],
     ],
@@ -396,6 +402,73 @@ export function getRewardsSummaryMessage() {
   return { text: reply, keyboard };
 }
 
+export function getStockRequestsSummaryMessage(limit = 10) {
+  const allRequests = db.telegramRepo.listStockRequests(50);
+  const total = allRequests.length;
+  const pending = allRequests.filter((r: any) => r.status === "PENDING");
+  const approved = allRequests.filter((r: any) => r.status === "APPROVED");
+  const rejected = allRequests.filter((r: any) => r.status === "REJECTED");
+
+  let reply = `📋 *RECENT STOCK MAINTENANCE REQUESTS*\n\n` +
+    `• Total Requests: *${total}*\n` +
+    `• ⏳ Pending Founder Approval: *${pending.length}*\n` +
+    `• ✅ Approved: *${approved.length}*\n` +
+    `• ❌ Rejected: *${rejected.length}*\n\n`;
+
+  const inline_keyboard: any[] = [];
+
+  if (pending.length > 0) {
+    reply += `*⏳ Awaiting Founder Review & Approval:*\n`;
+    for (const r of pending.slice(0, 5)) {
+      const deltaSign = r.quantityChange > 0 ? `+${r.quantityChange}` : `${r.quantityChange}`;
+      const dateStr = r.createdAt ? new Date(r.createdAt).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" }) : "Recent";
+      reply += `• 📌 *${r.requestNumber}* — *${r.productName || r.productSku}* (\`${r.productSku}\`)\n` +
+               `  Stock: ${r.currentStock} ➜ *${r.newStockTarget}* (*${deltaSign} units*)\n` +
+               `  Requested by: @${r.managerName || "Warehouse"} (ID: \`${r.managerTelegramId}\`)\n` +
+               `  Time: ${dateStr}\n`;
+      if (r.notes) {
+        reply += `  Notes: _${r.notes}_\n`;
+      }
+      reply += `\n`;
+
+      // Quick inline actions for this pending request
+      inline_keyboard.push([
+        { text: `✅ Approve ${r.requestNumber} (${deltaSign})`, callback_data: `stock_req_approve:${r.requestNumber}` },
+        { text: `❌ Reject`, callback_data: `stock_req_reject:${r.requestNumber}` },
+      ]);
+    }
+  }
+
+  // Also display recent resolved history
+  const recentHistory = allRequests.filter((r: any) => r.status !== "PENDING").slice(0, 3);
+  if (recentHistory.length > 0) {
+    reply += `*Recent Request History:*\n`;
+    for (const r of recentHistory) {
+      const icon = r.status === "APPROVED" ? "✅" : "❌";
+      const deltaSign = r.quantityChange > 0 ? `+${r.quantityChange}` : `${r.quantityChange}`;
+      reply += `• ${icon} *${r.requestNumber}* (\`${r.productSku}\`): ${deltaSign} units (${r.status})\n` +
+               `  Reviewed by: ${r.reviewedBy || "Admin"}\n`;
+    }
+    reply += `\n`;
+  }
+
+  if (total === 0) {
+    reply += `_No stock maintenance requests recorded yet._\n`;
+  }
+
+  // Navigation rows
+  inline_keyboard.push([
+    { text: "📋 Refresh Requests", callback_data: "cmd_stockrequests" },
+    { text: "🌿 Products & Stock", callback_data: "cmd_products" },
+  ]);
+  inline_keyboard.push([
+    { text: "📊 Store Dashboard", callback_data: "cmd_stats" },
+    { text: "📦 Recent Orders", callback_data: "cmd_orders" },
+  ]);
+
+  return { text: reply, keyboard: { inline_keyboard } };
+}
+
 export function getFullHelpText() {
   return `🌿 *TRINAYAA Enterprise Admin Bot*\n` +
     `Connected to Live Database & Service Layer\n\n` +
@@ -405,7 +478,9 @@ export function getFullHelpText() {
     `• \`/order <ID>\` — Order details with masked info (e.g. \`/order TRN-10482\`)\n` +
     `• \`/updateorder <ID> [Status]\` — Update order status\n` +
     `• \`/customers\` — View customer base summary\n\n` +
-    `*💼 Wholesale & Moderation (New):*\n` +
+    `*💼 Wholesale, Stock & Moderation:*\n` +
+    `• \`/stockrequests\` or \`/requests\` — Review & approve warehouse stock requests\n` +
+    `• \`/requeststock <SKU> <Delta> [Notes]\` — Submit warehouse stock adjustment\n` +
     `• \`/enquiries\` or \`/b2b\` — View wholesale bulk quotation requests\n` +
     `• \`/reviews\` — Inspect and moderate customer product reviews\n` +
     `• \`/rewards\` — Customer loyalty seed reward points & rules\n\n` +
@@ -1036,7 +1111,15 @@ async function handleCallbackQuery(cb: any) {
         `• Approved By: @${userName} (Founder)\n` +
         `• Previous Stock: ${req.currentStock} units\n` +
         `• New Live Stock: *${req.newStockTarget} units*\n` +
-        `• Status: *Live & Available on TRINAYAA* 🌿`
+        `• Status: *Live & Available on TRINAYAA* 🌿`,
+        {
+          inline_keyboard: [
+            [
+              { text: "📋 View Stock Requests", callback_data: "cmd_stockrequests" },
+              { text: "📊 Store Dashboard", callback_data: "cmd_stats" },
+            ]
+          ]
+        }
       );
 
       if (req.managerTelegramId && req.managerTelegramId !== userId) {
@@ -1078,7 +1161,15 @@ async function handleCallbackQuery(cb: any) {
         `• Request: \`${req.requestNumber}\`\n` +
         `• Product: *${req.productName}* (\`${req.productSku}\`)\n` +
         `• Rejected By: @${userName}\n` +
-        `• Current Stock Unchanged: *${req.currentStock} units*`
+        `• Current Stock Unchanged: *${req.currentStock} units*`,
+        {
+          inline_keyboard: [
+            [
+              { text: "📋 View Stock Requests", callback_data: "cmd_stockrequests" },
+              { text: "📊 Store Dashboard", callback_data: "cmd_stats" },
+            ]
+          ]
+        }
       );
 
       if (req.managerTelegramId && req.managerTelegramId !== userId) {
@@ -1149,6 +1240,13 @@ async function handleCallbackQuery(cb: any) {
       const { text, keyboard } = getRewardsSummaryMessage();
       await sendTelegramMessage(chatId, text, keyboard);
       db.telegramRepo.logAudit(userId, "CALLBACK_REWARDS");
+      break;
+    }
+
+    case "cmd_stockrequests": {
+      const { text, keyboard } = getStockRequestsSummaryMessage(10);
+      await sendTelegramMessage(chatId, text, keyboard);
+      db.telegramRepo.logAudit(userId, "CALLBACK_STOCKREQUESTS");
       break;
     }
 
@@ -1326,7 +1424,10 @@ export async function handleTelegramUpdate(update: any) {
   const lowerText = text.toLowerCase();
 
   // Natural language & reply keyboard matching for zero-typing client UX
-  if (text.includes("Dashboard") || lowerText === "dashboard" || lowerText === "stats" || lowerText === "overview" || lowerText === "metrics") {
+  if (text.includes("Stock Requests") || text.includes("Stock Maintenance") || lowerText === "stock requests" || lowerText === "stockrequests" || lowerText === "requests" || lowerText === "stockreqs" || lowerText === "maintenance") {
+    command = "/stockrequests";
+    args = [];
+  } else if (text.includes("Dashboard") || lowerText === "dashboard" || lowerText === "stats" || lowerText === "overview" || lowerText === "metrics") {
     command = "/dashboard";
     args = [];
   } else if (text.includes("Recent Orders") || lowerText === "orders" || lowerText === "recent orders" || lowerText === "recent") {
@@ -1358,12 +1459,15 @@ export async function handleTelegramUpdate(update: any) {
     else if (command === "shipping" || command === "shippingslip" || command === "slip") command = "/shipping";
     else if (command === "product") command = "/product";
     else if (command === "stock") command = "/stock";
+    else if (command === "stockrequests" || command === "stockreqs" || command === "requests" || command === "stockmaintenance") command = "/stockrequests";
+    else if (command === "requeststock") command = "/requeststock";
     else if (command === "stockadd") command = "/stockadd";
     else if (command === "stocksub") command = "/stocksub";
     else if (command === "stockset") command = "/stockset";
     else if (command === "enquiries" || command === "b2b") command = "/enquiries";
     else if (command === "reviews") command = "/reviews";
     else if (command === "rewards") command = "/rewards";
+    else if (command === "customers") command = "/customers";
   }
 
   try {
@@ -1377,10 +1481,10 @@ export async function handleTelegramUpdate(update: any) {
           `Tap any button on the persistent menu below, or use the interactive action buttons on this card.\n\n` +
           `💡 *Zero Typing Required:*\n` +
           `• Tap *📊 Store Dashboard* or *📦 Recent Orders* below for instant live numbers.\n` +
-          `• Tap *🌿 Products & Stock* to inspect items and restock instantly.\n` +
+          `• Tap *🌿 Products & Stock* or *📋 Stock Requests* to inspect items & review requests.\n` +
           `• Tap *💼 Wholesale Enquiries* or *⭐ Product Reviews* to inspect customer activity.\n` +
           `• Tap *🎁 Loyalty Rewards* to view Seed Points rules.\n` +
-          `• Type simple words like \`orders\`, \`stock\`, \`offers\`, \`b2b\`, \`reviews\` or \`வணக்கம்\` anytime!`;
+          `• Type simple words like \`requests\`, \`orders\`, \`stock\`, \`offers\`, \`b2b\`, \`reviews\` or \`வணக்கம்\` anytime!`;
 
         const welcomeInlineKeyboard = {
           inline_keyboard: [
@@ -1390,17 +1494,18 @@ export async function handleTelegramUpdate(update: any) {
             ],
             [
               { text: "🌿 Products & Stock", callback_data: "cmd_products" },
+              { text: "📋 Stock Requests", callback_data: "cmd_stockrequests" },
+            ],
+            [
               { text: "💼 Wholesale Enquiries", callback_data: "cmd_enquiries" },
-            ],
-            [
               { text: "⭐ Product Reviews", callback_data: "cmd_reviews" },
-              { text: "👥 Customers Base", callback_data: "cmd_customers" },
             ],
             [
-              { text: "🎉 Active Offers", callback_data: "cmd_offers" },
+              { text: "👥 Customers Base", callback_data: "cmd_customers" },
               { text: "🎁 Loyalty Rewards", callback_data: "cmd_rewards" },
             ],
             [
+              { text: "🎉 Active Offers", callback_data: "cmd_offers" },
               { text: "📋 Full Command Guide", callback_data: "cmd_full_help" },
             ],
           ],
@@ -1771,23 +1876,11 @@ export async function handleTelegramUpdate(update: any) {
         break;
       }
 
-      case "/stockrequests": {
-        const requests = db.telegramRepo.listStockRequests(10);
-        if (requests.length === 0) {
-          await sendTelegramMessage(chatId, "📋 *No stock maintenance requests recorded yet.*");
-          break;
-        }
-        let reply = `📋 *Recent Stock Maintenance Requests (${requests.length}):*\n\n`;
-        for (const r of requests) {
-          const statusIcon = r.status === "APPROVED" ? "✅" : r.status === "REJECTED" ? "❌" : "⏳";
-          reply += `${statusIcon} *${r.requestNumber}* — *${r.productSku}* (${r.productName})\n`;
-          reply += `• Manager: ${r.managerName}\n`;
-          reply += `• Change: *${r.quantityChange > 0 ? `+${r.quantityChange}` : r.quantityChange} units* (Target: ${r.newStockTarget})\n`;
-          reply += `• Status: *${r.status}* ${r.reviewedBy ? `by ${r.reviewedBy}` : ""}\n`;
-          if (r.notes) reply += `• Notes: _${r.notes}_\n`;
-          reply += `\n`;
-        }
-        await sendTelegramMessage(chatId, reply);
+      case "/stockrequests":
+      case "/stockreqs":
+      case "/requests": {
+        const { text, keyboard } = getStockRequestsSummaryMessage(10);
+        await sendTelegramMessage(chatId, text, keyboard);
         db.telegramRepo.logAudit(userId, "/stockrequests");
         break;
       }
