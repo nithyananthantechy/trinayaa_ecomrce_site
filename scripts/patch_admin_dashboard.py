@@ -53,3 +53,4 @@ with open('client/src/pages/admin/AdminDashboard.tsx', 'w', encoding='utf-8') as
     f.write(text)
 
 print("AdminDashboard.tsx patched successfully.")
+

@@ -1,0 +1,2792 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TRINAYAA — Client Demonstration Catalogue Audit</title>
+  <style>
+    :root {
+      --bg: #F9F8F5;
+      --card-bg: #FFFFFF;
+      --forest: #123D28;
+      --gold: #BA9655;
+      --text: #2A2F2B;
+      --muted: #6B7268;
+      --border: #E8E4DC;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Georgia", serif;
+      background: var(--bg);
+      color: var(--text);
+      padding: 32px;
+    }
+    header {
+      background: #FFFFFF;
+      padding: 28px 36px;
+      border-radius: 16px;
+      border: 1px solid var(--border);
+      margin-bottom: 28px;
+      box-shadow: 0 4px 20px rgba(18,61,40,0.04);
+    }
+    h1 {
+      font-family: Georgia, serif;
+      color: var(--forest);
+      font-size: 28px;
+      margin-bottom: 8px;
+      letter-spacing: 0.5px;
+    }
+    .subtitle {
+      color: var(--muted);
+      font-size: 15px;
+      margin-bottom: 20px;
+    }
+    .stats-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 20px;
+      padding-top: 16px;
+      border-top: 1px solid var(--border);
+    }
+    .stat-pill {
+      display: flex;
+      flex-direction: column;
+      background: #F5F2EB;
+      padding: 10px 18px;
+      border-radius: 10px;
+      border: 1px solid #E5DFD4;
+    }
+    .stat-val {
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--forest);
+    }
+    .stat-lbl {
+      font-size: 12px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 20px;
+    }
+    .product-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .product-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 8px 24px rgba(18,61,40,0.08);
+      border-color: var(--gold);
+    }
+    .img-container {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 1/1;
+      background: #F5F2EC;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .img-container img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    .badge {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      padding: 4px 8px;
+      border-radius: 6px;
+      backdrop-filter: blur(4px);
+    }
+    .badge-verified {
+      background: rgba(18, 61, 40, 0.9);
+      color: #FFFFFF;
+      border: 1px solid #2B6E4A;
+    }
+    .badge-placeholder {
+      background: rgba(245, 242, 235, 0.95);
+      color: #6B7268;
+      border: 1px solid #D5CEBE;
+    }
+    .card-info {
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+    }
+    .sku-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 6px;
+    }
+    .sku {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--muted);
+      letter-spacing: 0.5px;
+    }
+    .price {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--forest);
+    }
+    .title-en {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text);
+      line-height: 1.3;
+      margin-bottom: 4px;
+    }
+    .title-ta {
+      font-size: 12px;
+      color: #7B8278;
+      margin-bottom: 8px;
+    }
+    .meta {
+      font-size: 11px;
+      color: var(--muted);
+      margin-top: auto;
+      padding-top: 6px;
+      border-top: 1px dashed var(--border);
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>TRINAYAA Botanical Apothecary · Client Demonstration Catalogue</h1>
+    <div class="subtitle">Complete 162-Product Catalogue Audit & Demo-Ready Deterministic Image Resolution</div>
+    <div class="stats-row">
+      <div class="stat-pill">
+        <span class="stat-val">162</span>
+        <span class="stat-lbl">Total Products</span>
+      </div>
+      <div class="stat-pill">
+        <span class="stat-val" style="color: #047857;">26</span>
+        <span class="stat-lbl">Verified Botanical Photos</span>
+      </div>
+      <div class="stat-pill">
+        <span class="stat-val" style="color: #B45309;">136</span>
+        <span class="stat-lbl">Category Placeholders</span>
+      </div>
+      <div class="stat-pill">
+        <span class="stat-val" style="color: #047857;">0</span>
+        <span class="stat-lbl">Broken Image Paths</span>
+      </div>
+      <div class="stat-pill">
+        <span class="stat-val" style="color: #047857;">0</span>
+        <span class="stat-lbl">Repeated / Fake Pouches</span>
+      </div>
+    </div>
+  </header>
+
+  <div class="grid">
+    
+    <div class="product-card">
+      <div class="img-container">
+        <img src="/images/products/generated/TRN-1001.webp" alt="Licorice Root" loading="lazy" />
+        <span class="badge badge-verified">✓ VERIFIED BOTANICAL</span>
+      </div>
+      <div class="card-info">
+        <div class="sku-row">
+          <span class="sku">TRN-1001</span>
+          <span class="price">₹150</span>
+        </div>
+        <div class="title-en">Licorice Root</div>
+        <div class="title-ta">அதிமதுரம்</div>
+        <div class="meta">Health Care · Herb</div>
+      </div>
+    </div>
+    
+    <div class="product-card">
+      <div class="img-container">
+        <img src="/images/products/generated/TRN-1010.webp" alt="Lesser Galangal" loading="lazy" />
+        <span class="badge badge-verified">✓ VERIFIED BOTANICAL</span>
+      </div>
+      <div class="card-info">
+        <div class="sku-row">
+          <span class="sku">TRN-1010</span>
+          <span class="price">₹150</span>
+        </div>
+        <div class="title-en">Lesser Galangal</div>
+        <div class="title-ta">சித்தரத்தை</div>
+        <div class="meta">Health Care · Whole ingredient</div>
+      </div>
+    </div>
+    
+    <div class="product-card">
+      <div class="img-container">
+        <img src="/images/products/placeholders/placeholder_seeds.webp" alt="Babchi Seeds  Powder" loading="lazy" />
+        <span class="badge badge-placeholder">✦ CATEGORY PLACEHOLDER</span>
+      </div>
+      <div class="card-info">
+        <div class="sku-row">
+          <span class="sku">TRN-1100</span>
+          <span class="price">₹150</span>
+        </div>
+        <div class="title-en">Babchi Seeds  Powder</div>
+        <div class="title-ta">கார்போக அரிசி பொடி</div>
+        <div class="meta">Health Care · Seed</div>
+      </div>
+    </div>
+    
+    <div class="product-card">
+      <div class="img-container">
+        <img src="/images/products/placeholders/placeholder_raw_powders.webp" alt="Lesser Galangal  Powder" loading="lazy" />
+        <span class="badge badge-placeholder">✦ CATEGORY PLACEHOLDER</span>
+      </div>
+      <div class="card-info">
+        <div class="sku-row">
+          <span class="sku">TRN-1101</span>
+          <span class="price">₹150</span>
+        </div>
+        <div class="title-en">Lesser Galangal  Powder</div>
+        <div class="title-ta">சித்தரத்தை பொடி</div>
+        <div class="meta">Health Care · Powder</div>
+      </div>
+    </div>
+    
+    <div class="product-card">
+      <div class="img-container">
+        <img src="/images/products/placeholders/placeholder_raw_powders.webp" alt="Sweet basil  Powder" loading="lazy" />
+        <span class="badge badge-placeholder">✦ CATEGORY PLACEHOLDER</span>
+      </div>
+      <div class="card-info">
+        <div class="sku-row">
+          <span class="sku">TRN-1102</span>
+          <span class="price">₹150</span>
+        </div>
+        <div class="title-en">Sweet basil  Powder</div>
+        <div class="title-ta">சீனி துளசி பொடி</div>
+        <div class="meta">Health Care · Powder</div>
+      </div>
+    </div>
+    
+    <div class="product-card">
+      <div class="img-container">
+        <img src="/images/products/placeholders/placeholder_raw_powders.webp" alt="Indian Silver Fir  Powder" loading="lazy" />
+        <span class="badge badge-placeholder">✦ CATEGORY PLACEHOLDER</span>
+      </div>
+      <div class="card-info">
+        <div class="sku-row">
+          <span class="sku">TRN-1103</span>
+          <span class="price">₹150</span>
+        </div>
+        <div class="title-en">Indian Silver Fir  Powder</div>
+        <div class="title-ta">தாளிச்சபத்திரி பொடி</div>
+        <div class="meta">Health Care · Powder</div>
+      </div>
+    </div>
+    
+    <div class="product-card">
+      <div class="img-container">
+        <img src="/images/products/placeholders/placeholder_raw_powders.webp" alt="Long pepper  Powder" loading="lazy" />
+        <span class="badge badge-placeholder">✦ CATEGORY PLACEHOLDER</span>
+      </div>
+      <div class="card-info">
+        <div class="sku-row">
+          <span class="sku">TRN-1104</span>
+          <span class="price">₹150</span>
+        </div>
+        <div class="title-en">Long pepper  Powder</div>
+        <div class="title-ta">திப்பிலி பொடி</div>
+        <div class="meta">Health Care · Powder</div>
+      </div>
+    </div>
+    
+    <div class="product-card">
+      <div class="img-container">
+        <img src="/images/products/placeholders/placeholder_seeds.webp" alt="Indian Mallow Seeds  Powder" loading="lazy" />
+        <span class="badge badge-placeholder">✦ CATEGORY PLACEHOLDER</span>
+      </div>
+      <div class="card-info">
+        <div class="sku-row">
+          <span class="sku">TRN-1105</span>
+          <span class="price">₹150</span>
+        </div>
+        <div class="title-en">Indian Mallow Seeds  Powder</div>
+        <div class="title-ta">துத்தி பொடி</div>
+        <div class="meta">Health Care · Seed</div>
+      </div>
+    </div>
+    
+    <div class="product-card">
+      <div class="img-container">
+        <img src="/images/products/placeholders/placeholder_raw_powders.webp" alt="Indian Sarasparilla  Powder" loading="lazy" />
+        <span class="badge badge-placeholder">✦ CATEGORY PLACEHOLDER</span>
+      </div>
+      <div class="card-info">
+        <div class="sku-row">
+          <span class="sku">TRN-1106</span>
+          <span class="price">₹150</span>
+        </div>
+        <div class="title-en">Indian Sarasparilla  Powder</div>
+        <div class="title-ta">நன்னாரி பொடி</div>
+        <div class="meta">Health Care · Powder</div>
+      </div>
+    </div>
+    
+    <div class="product-card">
+      <div class="img-container">
+        <img src="/images/products/placeholders/placeholder_seeds.webp" alt="Black Plum Seeds/Jamun Seeds  Powder" loading="lazy" />
+        <span class="badge badge-placeholder">✦ CATEGORY PLACEHOLDER</span>
+      </div>
+      <div class="card-info">
+        <div class="sku-row">
+          <span class="sku">TRN-1107</span>
+          <span class="price">₹150</span>
+        </div>
+        <div class="title-en">Black Plum Seeds/Jamun Seeds  Powder</div>
+        <div class="title-ta">நாவல்கொட்டை பொடி</div>
+        <div class="meta">Health Care · Seed</div>
+      </div>
+    </div>
+    
+    <div class="product-card">
+      <div class="img-container">
+        <img src="/images/products/placeholders/placeholder_raw_powders.webp" alt="Black Plum Bark/Jamun Bark  Powder" loading="lazy" />
+        <span class="badge badge-placeholder">✦ CATEGORY PLACEHOLDER</span>
+      </div>
+      <div class="card-info">
+        <div class="sku-row">
+          <span class="sku">TRN-1108</span>
+          <span class="price">₹150</span>
+        </div>
+        <div class="title-en">Black Plum Bark/Jamun Bark  Powder</div>
+        <div class="title-ta">நாவல் பட்டை பொடி</div>
+        <div class="meta">Health Care · Powder</div>
+      </div>
+    </div>
+    
+    <div class="product-card">
+      <div class="img-container">
+        <img src="/images/products/placeholders/placeholder_raw_powders.webp" alt="King of bitter  Powder" loading="lazy" />
+        <span class="badge badge-placeholder">✦ CATEGORY PLACEHOLDER</span>
+      </div>
+      <div class="card-info">
+        <div class="sku-row">
+          <span class="sku">TRN-1109</span>
+          <span class="price">₹150</span>
+        </div>
+        <div class="title-en">King of bitter  Powder</div>
+        <div class="title-ta">நிலவேம்பு பொடி</div>
+        <div class="meta">Health Care · Powder</div>
+      </div>
+    </div>
+    
+    <div class="product-card">
+      <div class="img-container">
+        <img src="/images/products/generated/TRN-1011.webp" alt="Sweet basil" loading="lazy" />
+        <span class="badge badge-verified">✓ VERIFIED BOTANICAL</span>
+      </div>
+      <div class="card-info">
+        <div class="sku-row">
+          <span class="sku">TRN-1011</span>
+          <span class="price">₹150</span>
+        </div>
+        <div class="title-en">Sweet basil</div>
+        <div class="title-ta">சீனித்துளசி</div>
+        <div class="meta">Health Care · Whole ingredient</div>
+      </div>
+    </div>
+    
+    <div class="product-card">
+      <div class="img-container">
+        <img src="/images/products/placeholders/placeholder_raw_powders.webp" alt="Caltrops Large  Powder" loading="lazy" />
+        <span class="badge badge-placeholder">✦ CATEGORY PLACEHOLDER</span>
+      </div>
+      <div class="card-info">
+        <div class="sku-row">
+          <span class="sku">TRN-1110</span>
+          <span class="price">₹150</span>
+        </div>
+        <div class="title-en">Caltrops Large  Powder</div>
+        <div class="title-ta">நெருஞ்சில் (பெ) பொடி</div>
+        <div class="meta">Health Care · Powder</div>
+      </div>
+    </div>
+    
+    <div class="product-card">
+      <div class="img-container">
+        <img src="/images/products/placeholders/placeholder_raw_powders.webp" alt="Caltrops Small  Powder" loading="lazy" />
+        <span class="badge badge-placeholder">✦ CATEGORY PLACEHOLDER</span>
+      </div>
+      <div class="card-info">
+        <div class="sku-row">
+          <span class="sku">TRN-1111</span>
+          <span class="price">₹150</span>
+        </div>
+        <div class="title-en">Caltrops Small  Powder</div>
+        <div class="title-ta">நெருஞ்சில் (சி) பொடி</div>
+        <div class="meta">Health Care · Powder</div>
+      </div>
+    </div>
+    
+    <div class="product-card">
+      <div class="img-container">
+        <img src="/images/products/placeholders/placeholder_raw_powders.webp" alt="Indian Goosberry  Powder - 1" loading="lazy" />
+        <span class="badge badge-placeholder">✦ CATEGORY PLACEHOLDER</span>
+      </div>
+      <div class="card-info">
+        <div class="sku-row">
+          <span class="sku">TRN-1112</span>
+          <span class="price">₹150</span>
+        </div>
+        <div class="title-en">Indian Goosberry  Powder - 1</div>
+        <div class="title-ta">நெல்லிக்காய் பொடி-1</div>
+        <div class="meta">Health Care · Powder</div>
+      </div>
+    </div>
+    
+    <div class="product-card">
+      <div class="img-container">
+        <img src="/images/products/placeholders/placeholder_raw_powders.webp" alt="Indian Goosberry  Powder - 2" loading="lazy" />
+        <span class="badge badge-placeholder">✦ CATEGORY PLACEHOLDER</span>
+      </div>
+      <div class="card-info">
+        <div class="sku-row">
+          <span class="sku">TRN-1113</span>
+          <span class="price">₹150</span>
+        </div>
+        <div class="title-en">Indian Goosberry  Powder - 2</div>
+        <div class="title-ta">நெல்லிக்காய் பொடி-2</div>
+        <div class="meta">Health Care · Powder</div>
+      </div>
+    </div>
+    
+    <div class="product-card">
+      <div class="img-container">
+        <img src="/images/products/placeholders/placeholder_raw_powders.webp" alt="Sappan Wood  Powder" loading="lazy" />
+        <span class="badge badge-placeholder">✦ CATEGORY PLACEHOLDER</span>
+      </div>
+      <div class="card-info">
+        <div class="sku-row">
+          <span class="sku">TRN-1114</span>
+          <span class="price">₹150</span>
+        </div>
+        <div class="title-en">Sappan Wood  Powder</div>
+        <div class="title-ta">பதிமுகம் பொடி</div>
+        <div class="meta">Health Care · Powder</div>
+      </div>
+    </div>
+    
+    <div class="product-card">
+      <div class="img-container">
+        <img src="/images/products/placeholders/placeholder_raw_powders.webp" alt="Veldt Grape  Powder" loading="lazy" />
+        <span class="badge badge-placeholder">✦ CATEGORY PLACEHOLDER</span>
+      </div>
+      <div class="card-info">
+        <div class="sku-row">
+          <span class="sku">TRN-1115</span>
+          <span class="price">₹150</span>
+        </div>
+        <div class="title-en">Veldt Grape  Powder</div>
+        <div class="title-ta">பிரண்டை பொடி</div>
+        <div class="meta">Health Care · Powder</div>
+      </div>
+    </div>
+    
+    <div class="product-card">
+      <div class="img-container">
+        <img src="/images/products/placeholders/placeholder_raw_powders.webp" alt="Menthol Crystal  Powder" loading="lazy" />
+        <span class="badge badge-placeholder">✦ CATEGORY PLACEHOLDER</span>
+      </div>
+      <div class="card-info">
+        <div class="sku-row">
+          <span class="sku">TRN-1116</span>
+          <span class="price">₹150</span>
+        </div>
+        <div class="title-en">Menthol Crystal  Powder</div>
+        <div class="title-ta">புதினா பொடி</div>
+        <div class="meta">Health Care · Powder</div>
+      </div>
+    </div>
+    
+    <div class="product-card">
+      <div class="img-container">
+        <img src="/images/products/placeholders/placeholder_raw_powders.webp" alt="Greater Galangal  Powder" loading="lazy" />
+        <span class="badge badge-placeholder">✦ CATEGORY PLACEHOLDER</span>
+      </div>
+      <div class="card-info">
+        <div class="sku-row">
+          <span class="sku">TRN-1117</span>
+          <span class="price">₹150</span>
+        </div>
+        <div class="title-en">Greater Galangal  Powder</div>
+        <div class="title-ta">பேரரத்தை பொடி</div>
+        <div class="meta">Health Care · Powder</div>
+      </div>
+    </div>
+    
+    <div class="product-card">
+      <div class="img-container">
+        <img src="/images/products/placeholders/placeholder_raw_powders.webp" alt="Arjun bark  Powder" loading="lazy" />
+        <span class="badge badge-placeholder">✦ CATEGORY PLACEHOLDER</span>
+      </div>
+      <div class="card-info">
+        <div class="sku-row">
+          <span class="sku">TRN-1118</span>
+          <span class="price">₹150</span>
+        </div>
+        <div class="title-en">Arjun bark  Powder</div>
+        <div class="title-ta">மருதம்பட்டை பொடி</div>
+        <div class="meta">Health Care · Powder</div>
+      </div>
+    </div>
+    
+    <div class="product-card">
+      <div class="img-container">
+        <img src="/images/products/placeholders/placeholder_raw_powders.webp" alt="Blue Jack  Powder" loading="lazy" />
+        <span class="badge badge-placeholder">✦ CATEGORY PLACEHOLDER</span>
+      </div>
+      <div class="card-info">
+        <div class="sku-row">
+          <span class="sku">TRN-1119</span>
+          <span class="price">₹150</span>
+        </div>
+        <div class="title-en">Blue Jack  Powder</div>
+        <div class="title-ta">மாசிக்காய் பொடி</div>
+        <div class="meta">Health Care · Powder</div>
+      </div>
+    </div>
+    
+    <div class="product-card">
+      <div class="img-container">
+        <img src="/images/products/generated/TRN-1012.webp" alt="Lotus Flower" loading="lazy" />
+        <span class="badge badge-verified">✓ VERIFIED BOTANICAL</span>
+      </div>
+      <div class="card-info">
+        <div class="sku-row">
+          <span class="sku">TRN-1012</span>
+          <span class="price">₹150</span>
+        </div>
+        <div class="title-en">Lotus Flower</div>
+        <div class="title-ta">தாமரை பூ</div>
+        <div class="meta">Health Care · Herb</div>
+      </div>
+    </div>
+    
+    <div class="product-card">
+      <div class="img-container">
+        <img src="/images/products/placeholders/placeholder_raw_powders.webp" alt="Pomegranate Skin  Powder" loading="lazy" />
+        <span class="badge badge-placeholder">✦ CATEGORY PLACEHOLDER</span>
+      </div>
+      <div class="card-info">
+        <div class="sku-row">
+          <span class="sku">TRN-1120</span>
+          <span class="price">₹150</span>
+        </div>
+        <div class="title-en">Pomegranate Skin  Powder</div>
+        <div class="title-ta">மாதுளை தோல் பொடி</div>
+        <div class="meta">Health Care · Powder</div>
+      </div>
+    </div>
+    
+    <div class="product-card">
+      <div class="img-container">
+        <img src="/images/products/placeholders/placeholder_raw_powders.webp" alt="Mango Kernel  Powder" loading="lazy" />
+        <span class="badge badge-placeholder">✦ CATEGORY PLACEHOLDER</span>
+      </div>
+      <div class="card-info">
+        <div class="sku-row">
+          <span class="sku">TRN-1121</span>
+          <span class="price">₹150</span>
+        </div>
+        <div class="title-en">Mango Kernel  Powder</div>
+        <div class="title-ta">மாம்பருப்பு பொடி</div>
+        <div class="meta">Health Care · Powder</div>
+      </div>
+    </div>
+    
+    <div class="product-card">
+      <div class="img-container">
+        <img src="/images/products/placeholders/placeholder_raw_powders.webp" alt="Goat Leg Tuber  Powder" loading="lazy" />
+        <span class="badge badge-placeholder">✦ CATEGORY PLACEHOLDER</span>
+      </div>
+      <div class="card-info">
+        <div class="sku-row">
+          <span class="sku">TRN-1122</span>
+          <span class="price">₹150</span>
+        </div>
+        <div class="title-en">Goat Leg Tuber  Powder</div>
+        <div class="title-ta">முடவாட்டுக் கால் பொடி</div>
+        <div class="meta">Health Care · Powder</div>
+      </div>
+    </div>
+    
+    <div class="product-card">
+      <div class="img-container">
+        <img src="/images/products/placeholders/placeholder_seeds.webp" alt="Drumstick Seeds  Powder" loading="lazy" />
+        <span class="badge badge-placeholder">✦ CATEGORY PLACEHOLDER</span>
+      </div>
+      <div class="card-info">
+        <div class="sku-row">
+          <span class="sku">TRN-1123</span>
+          <span class="price">₹150</span>
+        </div>
+        <div class="title-en">Drumstick Seeds  Powder</div>
+        <div class="title-ta">முருங்கை விதை பொடி</div>
+        <div class="meta">Health Care · Seed</div>
+      </div>
+    </div>
+    
+    <div class="product-card">
+      <div class="img-container">
+        <img src="/images/products/placeholders/placeholder_raw_powders.webp" alt="Drumstick Gum  Powder" loading="lazy" />
+        <span class="badge badge-placeholder">✦ CATEGORY PLACEHOLDER</span>
+      </div>
+      <div class="card-info">
+        <div class="sku-row">
+          <span class="sku">TRN-1124</span>
+          <span class="price">₹150</span>
+        </div>
+        <div class="title-en">Drumstick Gum  Powder</div>
+        <div class="title-ta">முருங்கை பிசின் பொடி</div>
+        <div class="meta">Health Care · Powder</div>
+      </div>
+    </div>
+    
+    <div class="product-card">
+      <div class="img-container">
+        <img src="/images/products/placeholders/placeholder_raw_powders.webp" alt="Drumstick Leaves  Powder" loading="lazy" />
+        <span class="badge badge-placeholder">✦ CATEGORY PLACEHOLDER</span>
+      </div>
+      <div class="card-info">
+        <div class="sku-row">
+          <span class="sku">TRN-1125</span>
+          <span class="price">₹150</span>
+        </div>
+        <div class="title-en">Drumstick Leaves  Powder</div>
+        <div class="title-ta">முருங்கை இலை பொடி</div>
+        <div class="meta">Health Care · Powder</div>
+      </div>
+    </div>
+    
+    <div class="product-card">
+      <div class="img-container">
+        <img src="/images/products/placeholders/placeholder_raw_powders.webp" alt="Tailed pepper  Powder" loading="lazy" />
+        <span class="badge badge-placeholder">✦ CATEGORY PLACEHOLDER</span>
+      </div>
+      <div class="card-info">
+        <div class="sku-row">
+          <span class="sku">TRN-1126</span>
+          <span class="price">₹150</span>
+        </div>
+        <div class="title-en">Tailed pepper  Powder</div>
+        <div class="title-ta">வால்மிளகு பொடி</div>
+        <div class="meta">Health Care · Powder</div>
+      </div>
+    </div>
+    
+    <div class="product-card">
+      <div class="img-container">
+        <img src="/images/products/placeholders/placeholder_raw_powders.webp" alt="Nutmeg  Powder" loading="lazy" />
+        <span class="badge badge-placeholder">✦ CATEGORY PLACEHOLDER</span>
+      </div>
+      <div class="card-info">
+        <div class="sku-row">
+          <span class="sku">TRN-1127</span>
+          <span class="price">₹150</span>
+        </div>
+        <div class="title-en">Nutmeg  Powder</div>
+        <div class="title-ta">ஜாதிக்காய் பொடி</div>
+        <div class="meta">Health Care · Powder</div>
+      </div>
+    </div>
+    
+    <div class="product-card">
+      <div class="img-container">
+        <img src="/images/products/placeholders/placeholder_raw_powders.webp" alt="Sweet Flag  Powder" loading="lazy" />
+        <span class="badge badge-placeholder">✦ CATEGORY PLACEHOLDER</span>
+      </div>
+      <div class="card-info">
+        <div class="sku-row">
+          <span class="sku">TRN-1128</span>
+          <span class="price">₹150</span>
+        </div>
+        <div class="title-en">Sweet Flag  Powder</div>
+        <div class="title-ta">வசம்பு பொடி</div>
+        <div class="meta">Health Care · Powder</div>
+      </div>
+    </div>
+    
+    <div class="product-card">
+      <div class="img-container">
+        <img src="/images/products/placeholders/placeholder_seeds.webp" alt="Flax seeds  Powder" loading="lazy" />
+        <span class="badge badge-placeholder">✦ CATEGORY PLACEHOLDER</span>
+      </div>
+      <div class="card-info">
+        <div class="sku-row">
+          <span class="sku">TRN-1129</span>
+          <span class="price">₹150</span>
+        </div>
+        <div class="title-en">Flax seeds  Powder</div>
+        <div class="title-ta">ஆளிவிதை பொடி</div>
+        <div class="meta">Health Care · Seed</div>
+      </div>
+    </div>
+    
+    <div class="product-card">
+      <div class="img-container">
+        <img src="/images/products/generated/TRN-1013.webp" alt="Lotus Seeds" loading="lazy" />
+        <span class="badge badge-verified">✓ VERIFIED BOTANICAL</span>
+      </div>
+      <div class="card-info">
+        <div class="sku-row">
+          <span class="sku">TRN-1013</span>
+          <span class="price">₹150</span>
+        </div>
+        <div class="title-en">Lotus Seeds</div>
+        <div class="title-ta">தாமரை விதை</div>
+        <div class="meta">Health Care · Seed</div>
+      </div>
+    </div>
+    
+    <div class="product-card">
+      <div class="img-container">
+        <img src="/images/products/placeholders/placeholder_raw_powders.webp" alt="Rosemary  Powder" loading="lazy" />
+        <span class="badge badge-placeholder">✦ CATEGORY PLACEHOLDER</span>
+      </div>
+      <div class="card-info">
+        <div class="sku-row">
+          <span class="sku">TRN-1130</span>
+          <span class="price">₹150</span>
+        </div>
+        <div class="title-en">Rosemary  Powder</div>
+        <div class="title-ta">ரோஸ்மேரி பொடி</div>
+        <div class="meta">Hair Care · Powder</div>
+      </div>
+    </div>
+    
+    <div class="product-card">
+      <div class="img-container">
+        <img src="/images/products/placeholders/placeholder_raw_powders.webp" alt="Henna Leaves  Powder" loading="lazy" />
+        <span class="badge badge-placeholder">✦ CATEGORY PLACEHOLDER</span>
+      </div>
+      <div class="card-info">
+        <div class="sku-row">
+          <span class="sku">TRN-1131</span>
+          <span class="price">₹150</span>
+        </div>
+        <div class="title-en">Henna Leaves  Powder</div>
+        <div class="title-ta">மருதாணி இலை பொடி</div>
+        <div class="meta">Hair Care · Powder</div>
+      </div>
+    </div>
+    
+    <div class="product-card">
+      <div class="img-container">
+        <img src="/images/products/placeholders/placeholder_raw_powders.webp" alt="Marjoram  Powder" loading="lazy" />
+        <span class="badge badge-placeholder">✦ CATEGORY PLACEHOLDER</span>
+      </div>
+      <div class="card-info">
+        <div class="sku-row">
+          <span class="sku">TRN-1132</span>
+          <span class="price">₹150</span>
+        </div>
+        <div class="title-en">Marjoram  Powder</div>
+        <div class="title-ta">மரிக்கொழுந்து பொடி</div>
+        <div class="meta">Hair Care · Powder</div>
+      </div>
+    </div>
+    
+    <div class="product-card">
+      <div class="img-container">
+        <img src="/images/products/placeholders/placeholder_raw_powders.webp" alt="Country Senna Leaf  Powder" loading="lazy" />
+        <span class="badge badge-placeholder">✦ CATEGORY PLACEHOLDER</span>
+      </div>
+      <div class="card-info">
+        <div class="sku-row">
+          <span class="sku">TRN-1133</span>
+          <span class="price">₹150</span>
+        </div>
+        <div class="title-en">Country Senna Leaf  Powder</div>
+        <div class="title-ta">நிலாவரை பொடி</div>
+        <div class="meta">Hair Care · Powder</div>
+      </div>
+    </div>
+    
+    <div class="product-card">
+      <div class="img-container">
+        <img src="/images/products/placeholders/placeholder_raw_powders.webp" alt="Hibiscus Leaf  Powder" loading="lazy" />
+        <span class="badge badge-placeholder">✦ CATEGORY PLACEHOLDER</span>
+      </div>
+      <div class="card-info">
+        <div class="sku-row">
+          <span class="sku">TRN-1134</span>
+          <span class="price">₹150</span>
+        </div>
+        <div class="title-en">Hibiscus Leaf  Powder</div>
+        <div class="title-ta">செம்பருத்தி இலை பொடி</div>
+        <div class="meta">Hair Care · Powder</div>
+      </div>
+    </div>
+    
+    <div class="product-card">
+      <div class="img-container">
+        <img src="/images/products/placeholders/placeholder_raw_powders.webp" alt="Hibiscus Flower  Powder" loading="lazy" />
+        <span class="badge badge-placeholder">✦ CATEGORY PLACEHOLDER</span>
+      </div>
+      <div class="card-info">
+        <div class="sku-row">
+          <span class="sku">TRN-1135</span>
+          <span class="price">₹150</span>
+        </div>
+        <div class="title-en">Hibiscus Flower  Powder</div>
+        <div class="title-ta">செம்பருத்தி பூ பொடி</div>
+        <div class="meta">Hair Care · Powder</div>
+      </div>
+    </div>
+    
+    <div class="product-card">
+      <div class="img-container">
+        <img src="/images/products/placeholders/placeholder_raw_powders.webp" alt="Soap pod  Powder" loading="lazy" />
+        <span class="badge badge-placeholder">✦ CATEGORY PLACEHOLDER</span>
+      </div>
+      <div class="card-info">
+        <div class="sku-row">
+          <span class="sku">TRN-1136</span>
+          <span class="price">₹150</span>
+        </div>
+        <div class="title-en">Soap pod  Powder</div>
+        <div class="title-ta">சீயக்காய் பொடி</div>
+        <div class="meta">Hair Care · Powder</div>
+      </div>
+    </div>
+    
+    <div class="product-card">
+      <div class="img-container">
+        <img src="/images/products/placeholders/placeholder_seeds.webp" alt="Dil Seeds  Powder" loading="lazy" />
+        <span class="badge badge-placeholder">✦ CATEGORY PLACEHOLDER</span>
+      </div>
+      <div class="card-info">
+        <div class="sku-row">
+          <span class="sku">TRN-1137</span>
+          <span class="price">₹150</span>
+        </div>
+        <div class="title-en">Dil Seeds  Powder</div>
+        <div class="title-ta">சதக்குப்பை பொடி</div>
+        <div class="meta">Hair Care · Seed</div>
+      </div>
+    </div>
+    
+    <div class="product-card">
+      <div class="img-container">
+        <img src="/images/products/placeholders/placeholder_raw_powders.webp" alt="Nutgrass  Powder" loading="lazy" />
+        <span class="badge badge-placeholder">✦ CATEGORY PLACEHOLDER</span>
+      </div>
+      <div class="card-info">
+        <div class="sku-row">
+          <span class="sku">TRN-1138</span>
+          <span class="price">₹150</span>
+        </div>
+        <div class="title-en">Nutgrass  Powder</div>
+        <div class="title-ta">கோரைக்கிழங்கு பொடி</div>
+        <div class="meta">Hair Care · Powder</div>
+      </div>
+    </div>
+    
+    <div class="product-card">
+      <div class="img-container">
+        <img src="/images/products/placeholders/placeholder_raw_powders.webp" alt="Black Cumin  Powder" loading="lazy" />
+        <span class="badge badge-placeholder">✦ CATEGORY PLACEHOLDER</span>
+      </div>
+      <div class="card-info">
+        <div class="sku-row">
+          <span class="sku">TRN-1139</span>
+          <span class="price">₹150</span>
+        </div>
+        <div class="title-en">Black Cumin  Powder</div>
+        <div class="title-ta">கருஞ்சீரகம் பொடி</div>
+        <div class="meta">Hair Care · Powder</div>
+      </div>
+    </div>
+    
+    <div class="product-card">
+      <div class="img-container">
+        <img src="/images/products/generated/TRN-1014.webp" alt="Indian Silver Fir" loading="lazy" />
+        <span class="badge badge-verified">✓ VERIFIED BOTANICAL</span>
+      </div>
+      <div class="card-info">
+        <div class="sku-row">
+          <span class="sku">TRN-1014</span>
+          <span class="price">₹150</span>
+        </div>
+        <div class="title-en">Indian Silver Fir</div>
+        <div class="title-ta">தாளிசபத்திரி</div>
+        <div class="meta">Health Care · Whole ingredient</div>
+      </div>
+    </div>
+    
+    <div class="product-card">
+      <div class="img-container">
+        <img src="/images/products/placeholders/placeholder_raw_powders.webp" alt="Red Fruit Creeper  Powder" loading="lazy" />
+        <span class="badge badge-placeholder">✦ CATEGORY PLACEHOLDER</span>
+      </div>
+      <div class="card-info">
+        <div class="sku-row">
+          <span class="sku">TRN-1140</span>
+          <span class="price">₹150</span>
+        </div>
+        <div class="title-en">Red Fruit Creeper  Powder</div>
+        <div class="title-ta">கருடக்கிழங்கு பொடி</div>
+        <div class="meta">Hair Care · Powder</div>
+      </div>
+    </div>
+    
+    <div class="product-card">
+      <div class="img-container">
+        <img src="/images/products/placeholders/placeholder_raw_powders.webp" alt="Senna Flowers Powder" loading="lazy" />
+        <span class="badge badge-placeholder">✦ CATEGORY PLACEHOLDER</span>
+      </div>
+      <div class="card-info">
+        <div class="sku-row">
+          <span class="sku">TRN-1141</span>
+          <span class="price">₹150</span>
+        </div>
+        <div class="title-en">Senna Flowers Powder</div>
+        <div class="title-ta">ஆவாரம்பூ பொடி</div>
+        <div class="meta">Skin Care · Powder</div>
+      </div>
+    </div>
+    
+    <div class="product-card">
+      <div class="img-container">
+        <img src="/images/products/placeholders/placeholder_raw_powders.webp" alt="Alkanet Roots  Powder" loading="lazy" />
+        <span class="badge badge-placeholder">✦ CATEGORY PLACEHOLDER</span>
+      </div>
+      <div class="card-info">
+        <div class="sku-row">
+          <span class="sku">TRN-1142</span>
+          <span class="price">₹150</span>
+        </div>
+        <div class="title-en">Alkanet Roots  Powder</div>
+        <div class="title-ta">வேம்பாலம்பட்டை பொடி</div>
+        <div class="meta">Skin Care · Powder</div>
+      </div>
+    </div>
+    
+    <div class="product-card">
+      <div class="img-container">
+        <img src="/images/products/placeholders/placeholder_raw_powders.webp" alt="Camel Grass  Powder - 1" loading="lazy" />
+        <span class="badge badge-placeholder">✦ CATEGORY PLACEHOLDER</span>
+      </div>
+      <div class="card-info">
+        <div class="sku-row">
+          <span class="sku">TRN-1143</span>
+          <span class="price">₹150</span>
+        </div>
+        <div class="title-en">Camel Grass  Powder - 1</div>
+        <div class="title-ta">வெட்டிவேர் பொடி -1</div>
+        <div class="meta">Skin Care · Powder</div>
+      </div>
+    </div>
+    
+    <div class="product-card">
+      <div class="img-container">
+        <img src="/images/products/placeholders/placeholder_raw_powders.webp" alt="Camel Grass  Powder - 2" loading="lazy" />
+        <span class="badge badge-placeholder">✦ CATEGORY PLACEHOLDER</span>
+      </div>
+      <div class="card-info">
+        <div class="sku-row">
+          <span class="sku">TRN-1144</span>
+          <span class="price">₹150</span>
+        </div>
+        <div class="title-en">Camel Grass  Powder - 2</div>
+        <div class="title-ta">வெட்டிவேர் பொடி -2</div>
+        <div class="meta">Skin Care · Powder</div>
+      </div>
+    </div>
+    
+    <div class="product-card">
+      <div class="img-container">
+        <img src="/images/products/placeholders/placeholder_raw_powders.webp" alt="Bilva Leaves  Powder" loading="lazy" />
+        <span class="badge badge-placeholder">✦ CATEGORY PLACEHOLDER</span>
+      </div>
+      <div class="card-info">
+        <div class="sku-row">
+          <span class="sku">TRN-1145</span>
+          <span class="price">₹150</span>
+        </div>
+        <div class="title-en">Bilva Leaves  Powder</div>
+        <div class="title-ta">வில்வ இலை பொடி</div>
+        <div class="meta">Skin Care · Powder</div>
+      </div>
+    </div>
+    
+    <div class="product-card">
+      <div class="img-container">
+        <img src="/images/products/placeholders/placeholder_raw_powders.webp" alt="Bilva Fruit  Powder" loading="lazy" />
+        <span class="badge badge-placeholder">✦ CATEGORY PLACEHOLDER</span>
+      </div>
+      <div class="card-info">
+        <div class="sku-row">
+          <span class="sku">TRN-1146</span>
+          <span class="price">₹150</span>
+        </div>
+        <div class="title-en">Bilva Fruit  Powder</div>
+        <div class="title-ta">வில்வ பழம் பொடி</div>
+        <div class="meta">Skin Care · Powder</div>
+      </div>
+    </div>
+    
+    <div class="product-card">
+      <div class="img-container">
+        <img src="/images/products/placeholders/placeholder_raw_powders.webp" alt="Indian Rose  Powder - 1" loading="lazy" />
+        <span class="badge badge-placeholder">✦ CATEGORY PLACEHOLDER</span>
+      </div>
+      <div class="card-info">
+        <div class="sku-row">
+          <span class="sku">TRN-1147</span>
+          <span class="price">₹150</span>
+        </div>
+        <div class="title-en">Indian Rose  Powder - 1</div>
+        <div class="title-ta">ரோஸ் பொடி -1</div>
+        <div class="meta">Skin Care · Powder</div>
+      </div>
+    </div>
+    
+    <div class="product-card">
+      <div class="img-container">
+        <img src="/images/products/placeholders/placeholder_raw_powders.webp" alt="Indian Rose  Powder - 2" loading="lazy" />
+        <span class="badge badge-placeholder">✦ CATEGORY PLACEHOLDER</span>
+      </div>
+      <div class="card-info">
+        <div class="sku-row">
+          <span class="sku">TRN-1148</span>
+          <span class="price">₹150</span>
+        </div>
+        <div class="title-en">Indian Rose  Powder - 2</div>
+        <div class="title-ta">ரோஸ் பொடி -2</div>
+        <div class="meta">Skin Care · Powder</div>
+      </div>
+    </div>
+    
+    <div class="product-card">
+      <div class="img-container">
+        <img src="/images/products/placeholders/placeholder_raw_powders.webp" alt="Fuller Earth  Powder" loading="lazy" />
+        <span class="badge badge-placeholder">✦ CATEGORY PLACEHOLDER</span>
+      </div>
+      <div class="card-info">
+        <div class="sku-row">
+          <span class="sku">TRN-1149</span>
+          <span class="price">₹150</span>
+        </div>
+        <div class="title-en">Fuller Earth  Powder</div>
+        <div class="title-ta">முல்தானி மட்டி பொடி</div>
+        <div class="meta">Skin Care · Powder</div>
+      </div>
+    </div>
+    
+    <div class="product-card">
+      <div class="img-container">
+        <img src="/images/products/generated/TRN-1015.webp" alt="Long pepper" loading="lazy" />
+        <span class="badge badge-verified">✓ VERIFIED BOTANICAL</span>
+      </div>
+      <div class="card-info">
+        <div class="sku-row">
+          <span class="sku">TRN-1015</span>
+          <span class="price">₹150</span>
+        </div>
+        <div class="title-en">Long pepper</div>
+        <div class="title-ta">திப்பிலி (அரிசி)</div>
+        <div class="meta">Health Care · Whole ingredient</div>
+      </div>
+    </div>
+    
+    <div class="product-card">
+      <div class="img-container">
+        <img src="/images/products/placeholders/placeholder_raw_powders.webp" alt="Indian madder  Powder" loading="lazy" />
+        <span class="badge badge-placeholder">✦ CATEGORY PLACEHOLDER</span>
+      </div>
+      <div class="card-info">
+        <div class="sku-row">
+          <span class="sku">TRN-1150</span>
+          <span class="price">₹150</span>
+        </div>
+        <div class="title-en">Indian madder  Powder</div>
+        <div class="title-ta">மஞ்சிஷ்டா பொடி</div>
+        <div class="meta">Skin Care · Powder</div>
+      </div>
+    </div>
+    
+    <div class="product-card">
+      <div class="img-container">
+        <img src="/images/products/placeholders/placeholder_raw_powders.webp" alt="Indian Rennet  Powder" loading="lazy" />
+        <span class="badge badge-placeholder">✦ CATEGORY PLACEHOLDER</span>
+      </div>
+      <div class="card-info">
+        <div class="sku-row">
+          <span class="sku">TRN-1151</span>
+          <span class="price">₹150</span>
+        </div>
+        <div class="title-en">Indian Rennet  Powder</div>
+        <div class="title-ta">பன்னீர் பூ பொடி</div>
+        <div class="meta">Skin Care · Powder</div>
+      </div>
+    </div>
+    
+    <div class="product-card">
+      <div class="img-container">
+        <img src="/images/products/placeholders/placeholder_raw_powders.webp" alt="Alam Stone  Powder" loading="lazy" />
+        <span class="badge badge-placeholder">✦ CATEGORY PLACEHOLDER</span>
+      </div>
+      <div class="card-info">
+        <div class="sku-row">
+          <span class="sku">TRN-1152</span>
+          <span class="price">₹150</span>
+        </div>
+        <div class="title-en">Alam Stone  Powder</div>
+        <div class="title-ta">படிகாரம் பொடி</div>
+        <div class="meta">Skin Care · Powder</div>
+      </div>
+    </div>
+    
+    <div class="product-card">
+      <div class="img-container">
+        <img src="/images/products/placeholders/placeholder_raw_powders.webp" alt="Rough Chaff  Powder" loading="lazy" />
+        <span class="badge badge-placeholder">✦ CATEGORY PLACEHOLDER</span>
+      </div>
+      <div class="card-info">
+        <div class="sku-row">
+          <span class="sku">TRN-1153</span>
+          <span class="price">₹150</span>
+        </div>
+        <div class="title-en">Rough Chaff  Powder</div>
+        <div class="title-ta">நாயுருவி அரிசி பொடி</div>
+        <div class="meta">Skin Care · Powder</div>
+      </div>
+    </div>
+    
+    <div class="product-card">
+      <div class="img-container">
+        <img src="/images/products/placeholders/placeholder_raw_powders.webp" alt="Sweet Basil  Powder" loading="lazy" />
+        <span class="badge badge-placeholder">✦ CATEGORY PLACEHOLDER</span>
+      </div>
+      <div class="card-info">
+        <div class="sku-row">
+          <span class="sku">TRN-1154</span>
+          <span class="price">₹150</span>
+        </div>
+        <div class="title-en">Sweet Basil  Powder</div>
+        <div class="title-ta">திருநீற்று பச்சிலை பொடி</div>
+        <div class="meta">Skin Care · Powder</div>
+      </div>
+    </div>
+    
+    <div class="product-card">
+      <div class="img-container">
+        <img src="/images/products/placeholders/placeholder_raw_powders.webp" alt="Wild Turmeric  Powder" loading="lazy" />
+        <span class="badge badge-placeholder">✦ CATEGORY PLACEHOLDER</span>
+      </div>
+      <div class="card-info">
+        <div class="sku-row">
+          <span class="sku">TRN-1155</span>
+          <span class="price">₹150</span>
+        </div>
+        <div class="title-en">Wild Turmeric  Powder</div>
+        <div class="title-ta">கஸ்தூரி மஞ்சள் பொடி</div>
+        <div class="meta">Skin Care · Powder</div>
+      </div>
+    </div>
+    
+    <div class="product-card">
+      <div class="img-container">
+        <img src="/images/products/placeholders/placeholder_raw_powders.webp" alt="Lemon Peel  Powder" loading="lazy" />
+        <span class="badge badge-placeholder">✦ CATEGORY PLACEHOLDER</span>
+      </div>
+      <div class="card-info">
+        <div class="sku-row">
+          <span class="sku">TRN-1156</span>
+          <span class="price">₹150</span>
+        </div>
+        <div class="title-en">Lemon Peel  Powder</div>
+        <div class="title-ta">எலுமிச்சை தோல் பொடி</div>
+        <div class="meta">Skin Care · Powder</div>
+      </div>
+    </div>
+    
+    <div class="product-card">
+      <div class="img-container">
+        <img src="/images/products/placeholders/placeholder_raw_powders.webp" alt="White Dammer  Powder" loading="lazy" />
+        <span class="badge badge-placeholder">✦ CATEGORY PLACEHOLDER</span>
+      </div>
+      <div class="card-info">
+        <div class="sku-row">
+          <span class="sku">TRN-1157</span>
+          <span class="price">₹150</span>
+        </div>
+        <div class="title-en">White Dammer  Powder</div>
+        <div class="title-ta">குங்கிலியம் பொடி</div>
+        <div class="meta">Aromatherapy & Incense · Powder</div>
+      </div>
+    </div>
+    
+    <div class="product-card">
+      <div class="img-container">
+        <img src="/images/products/placeholders/placeholder_raw_powders.webp" alt="Turmeric  Powder" loading="lazy" />
+        <span class="badge badge-placeholder">✦ CATEGORY PLACEHOLDER</span>
+      </div>
+      <div class="card-info">
+        <div class="sku-row">
+          <span class="sku">TRN-1158</span>
+          <span class="price">₹150</span>
+        </div>
+        <div class="title-en">Turmeric  Powder</div>
+        <div class="title-ta">விரலி மஞ்சள் பொடி</div>
+        <div class="meta">Spices & Culinary · Powder</div>
+      </div>
+    </div>
+    
+    <div class="product-card">
+      <div class="img-container">
+        <img src="/images/products/placeholders/placeholder_raw_powders.webp" alt="Garlic  Powder" loading="lazy" />
+        <span class="badge badge-placeholder">✦ CATEGORY PLACEHOLDER</span>
+      </div>
+      <div class="card-info">
+        <div class="sku-row">
+          <span class="sku">TRN-1159</span>
+          <span class="price">₹150</span>
+        </div>
+        <div class="title-en">Garlic  Powder</div>
+        <div class="title-ta">பூண்டு பொடி</div>
+        <div class="meta">Spices & Culinary · Powder</div>
+      </div>
+    </div>
+    
+    <div class="product-card">
+      <div class="img-container">
+        <img src="/images/products/generated/TRN-1016.webp" alt="Big Pepper" loading="lazy" />
+        <span class="badge badge-verified">✓ VERIFIED BOTANICAL</span>
+      </div>
+      <div class="card-info">
+        <div class="sku-row">
+          <span class="sku">TRN-1016</span>
+          <span class="price">₹150</span>
+        </div>
+        <div class="title-en">Big Pepper</div>
+        <div class="title-ta">திப்பிலி (யானை)</div>
+        <div class="meta">Health Care · Whole ingredient</div>
+      </div>
+    </div>
+    
+    <div class="product-card">
+      <div class="img-container">
+        <img src="/images/products/placeholders/placeholder_raw_powders.webp" alt="Cinnamon  Powder" loading="lazy" />
+        <span class="badge badge-placeholder">✦ CATEGORY PLACEHOLDER</span>
+      </div>
+      <div class="card-info">
+        <div class="sku-row">
+          <span class="sku">TRN-1160</span>
+          <span class="price">₹150</span>
+        </div>
+        <div class="title-en">Cinnamon  Powder</div>
+        <div class="title-ta">இலவங்கம் பொடி</div>
+        <div class="meta">Spices & Culinary · Powder</div>
+      </div>
+    </div>
+    
+    <div class="product-card">
+      <div class="img-container">
+        <img src="/images/products/placeholders/placeholder_raw_powders.webp" alt="Bishop Weed  Powder" loading="lazy" />
+        <span class="badge badge-placeholder">✦ CATEGORY PLACEHOLDER</span>
+      </div>
+      <div class="card-info">
+        <div class="sku-row">
+          <span class="sku">TRN-1161</span>
+          <span class="price">₹150</span>
+        </div>
+        <div class="title-en">Bishop Weed  Powder</div>
+        <div class="title-ta">ஓமம் பொடி</div>
+        <div class="meta">Spices & Culinary · Powder</div>
+      </div>
+    </div>
+    
+    <div class="product-card">
+      <div class="img-container">
+        <img src="/images/products/placeholders/placeholder_raw_powders.webp" alt="Dry Ginger Powder" loading="lazy" />
+        <span class="badge badge-placeholder">✦ CATEGORY PLACEHOLDER</span>
+      </div>
+      <div class="card-info">
+        <div class="sku-row">
+          <span class="sku">TRN-1162</span>
+          <span class="price">₹150</span>
+        </div>
+        <div class="title-en">Dry Ginger Powder</div>
+        <div class="title-ta">சுக்கு பொடி</div>
+        <div class="meta">Spices & Culinary · Powder</div>
+      </div>
+    </div>
+    
+    <div class="product-card">
+      <div class="img-container">
+        <img src="/images/products/generated/TRN-1017.webp" alt="Round Pepper" loading="lazy" />
+        <span class="badge badge-verified">✓ VERIFIED BOTANICAL</span>
+      </div>
+      <div class="card-info">
+        <div class="sku-row">
+          <span class="sku">TRN-1017</span>
+          <span class="price">₹150</span>
+        </div>
+        <div class="title-en">Round Pepper</div>
+        <div class="title-ta">திப்பிலி (உருண்டை)</div>
+        <div class="meta">Health Care · Whole ingredient</div>
+      </div>
+    </div>
+    
+    <div class="product-card">
+      <div class="img-container">
+        <img src="/images/products/generated/TRN-1018.webp" alt="Indian Mallow Seeds" loading="lazy" />
+        <span class="badge badge-verified">✓ VERIFIED BOTANICAL</span>
+      </div>
+      <div class="card-info">
+        <div class="sku-row">
+          <span class="sku">TRN-1018</span>
+          <span class="price">₹150</span>
+        </div>
+        <div class="title-en">Indian Mallow Seeds</div>
+        <div class="title-ta">துத்தி விதை</div>
+        <div class="meta">Health Care · Seed</div>
+      </div>
+    </div>
+    
+    <div class="product-card">
+      <div class="img-container">
+        <img src="/images/products/placeholders/placeholder_health_care.webp" alt="Indian Sarasparilla" loading="lazy" />
+        <span class="badge badge-placeholder">✦ CATEGORY PLACEHOLDER</span>
+      </div>
+      <div class="card-info">
+        <div class="sku-row">
+          <span class="sku">TRN-1019</span>
+          <span class="price">₹150</span>
+        </div>
+        <div class="title-en">Indian Sarasparilla</div>
+        <div class="title-ta">நன்னாரி</div>
+        <div class="meta">Health Care · Whole ingredient</div>
+      </div>
+    </div>
+    
+    <div class="product-card">
+      <div class="img-container">
+        <img src="/images/products/generated/TRN-1002.webp" alt="Ashwagandha - 1" loading="lazy" />
+        <span class="badge badge-verified">✓ VERIFIED BOTANICAL</span>
+      </div>
+      <div class="card-info">
+        <div class="sku-row">
+          <span class="sku">TRN-1002</span>
+          <span class="price">₹150</span>
+        </div>
+        <div class="title-en">Ashwagandha - 1</div>
+        <div class="title-ta">அமுக்கரா</div>
+        <div class="meta">Health Care · Whole ingredient</div>
+      </div>
+    </div>
+    
+    <div class="product-card">
+      <div class="img-container">
+        <img src="/images/products/placeholders/placeholder_seeds.webp" alt="Black Plum Seeds/Jamun Seeds" loading="lazy" />
+        <span class="badge badge-placeholder">✦ CATEGORY PLACEHOLDER</span>
+      </div>
+      <div class="card-info">
+        <div class="sku-row">
+          <span class="sku">TRN-1020</span>
+          <span class="price">₹150</span>
+        </div>
+        <div class="title-en">Black Plum Seeds/Jamun Seeds</div>
+        <div class="title-ta">நாவல் கொட்டை</div>
+        <div class="meta">Health Care · Seed</div>
+      </div>
+    </div>
+    
+    <div class="product-card">
+      <div class="img-container">
+        <img src="/images/products/generated/TRN-1021.webp" alt="Black Plum Bark/Jamun Bark" loading="lazy" />
+        <span class="badge badge-verified">✓ VERIFIED BOTANICAL</span>
+      </div>
+      <div class="card-info">
+        <div class="sku-row">
+          <span class="sku">TRN-1021</span>
+          <span class="price">₹150</span>
+        </div>
+        <div class="title-en">Black Plum Bark/Jamun Bark</div>
+        <div class="title-ta">நாவல் பட்டை</div>
+        <div class="meta">Health Care · Herb</div>
+      </div>
+    </div>
+    
+    <div class="product-card">
+      <div class="img-container">
+        <img src="/images/products/generated/TRN-1022.webp" alt="King of bitter" loading="lazy" />
+        <span class="badge badge-verified">✓ VERIFIED BOTANICAL</span>
+      </div>
+      <div class="card-info">
+        <div class="sku-row">
+          <span class="sku">TRN-1022</span>
+          <span class="price">₹150</span>
+        </div>
+        <div class="title-en">King of bitter</div>
+        <div class="title-ta">நிலவேம்பு</div>
+        <div class="meta">Health Care · Whole ingredient</div>
+      </div>
+    </div>
+    
+    <div class="product-card">
+      <div class="img-container">
+        <img src="/images/products/generated/TRN-1023.webp" alt="Caltrops Large" loading="lazy" />
+        <span class="badge badge-verified">✓ VERIFIED BOTANICAL</span>
+      </div>
+      <div class="card-info">
+        <div class="sku-row">
+          <span class="sku">TRN-1023</span>
+          <span class="price">₹150</span>
+        </div>
+        <div class="title-en">Caltrops Large</div>
+        <div class="title-ta">நெருஞ்சில் முள் (பெ)</div>
+        <div class="meta">Health Care · Whole ingredient</div>
+      </div>
+    </div>
+    
+    <div class="product-card">
+      <div class="img-container">
+        <img src="/images/products/generated/TRN-1024.webp" alt="Caltrops Small" loading="lazy" />
+        <span class="badge badge-verified">✓ VERIFIED BOTANICAL</span>
+      </div>
+      <div class="card-info">
+        <div class="sku-row">
+          <span class="sku">TRN-1024</span>
+          <span class="price">₹150</span>
+        </div>
+        <div class="title-en">Caltrops Small</div>
+        <div class="title-ta">நெருஞ்சில் முள் (சி)</div>
+        <div class="meta">Health Care · Whole ingredient</div>
+      </div>
+    </div>
+    
+    <div class="product-card">
+      <div class="img-container">
+        <img src="/images/products/generated/TRN-1025.webp" alt="Indian Goosberry" loading="lazy" />
+        <span class="badge badge-verified">✓ VERIFIED BOTANICAL</span>
+      </div>
+      <div class="card-info">
+        <div class="sku-row">
+          <span class="sku">TRN-1025</span>
+          <span class="price">₹150</span>
+        </div>
+        <div class="title-en">Indian Goosberry</div>
+        <div class="title-ta">நெல்லி வத்தல்</div>
+        <div class="meta">Health Care · Whole ingredient</div>
+      </div>
+    </div>
+    
+    <div class="product-card">
+      <div class="img-container">
+        <img src="/images/products/generated/TRN-1026.webp" alt="Sappan Wood" loading="lazy" />
+        <span class="badge badge-verified">✓ VERIFIED BOTANICAL</span>
+      </div>
+      <div class="card-info">
+        <div class="sku-row">
+          <span class="sku">TRN-1026</span>
+          <span class="price">₹150</span>
+        </div>
+        <div class="title-en">Sappan Wood</div>
+        <div class="title-ta">பதிமுகம்</div>
+        <div class="meta">Health Care · Whole ingredient</div>
+      </div>
+    </div>
+    
+    <div class="product-card">
+      <div class="img-container">
+        <img src="/images/products/generated/TRN-1027.webp" alt="Indian Cotton Seeds" loading="lazy" />
+        <span class="badge badge-verified">✓ VERIFIED BOTANICAL</span>
+      </div>
+      <div class="card-info">
+        <div class="sku-row">
+          <span class="sku">TRN-1027</span>
+          <span class="price">₹150</span>
+        </div>
+        <div class="title-en">Indian Cotton Seeds</div>
+        <div class="title-ta">பருத்தி விதை</div>
+        <div class="meta">Health Care · Seed</div>
+      </div>
+    </div>
+    
+    <div class="product-card">
+      <div class="img-container">
+        <img src="/images/products/generated/TRN-1028.webp" alt="Almond Gum" loading="lazy" />
+        <span class="badge badge-verified">✓ VERIFIED BOTANICAL</span>
+      </div>
+      <div class="card-info">
+        <div class="sku-row">
+          <span class="sku">TRN-1028</span>
+          <span class="price">₹150</span>
+        </div>
+        <div class="title-en">Almond Gum</div>
+        <div class="title-ta">பாதாம்பிசின்</div>
+        <div class="meta">Health Care · Whole ingredient</div>
+      </div>
+    </div>
+    
+    <div class="product-card">
+      <div class="img-container">
+        <img src="/images/products/placeholders/placeholder_health_care.webp" alt="Veldt Grape" loading="lazy" />
+        <span class="badge badge-placeholder">✦ CATEGORY PLACEHOLDER</span>
+      </div>
+      <div class="card-info">
+        <div class="sku-row">
+          <span class="sku">TRN-1029</span>
+          <span class="price">₹150</span>
+        </div>
+        <div class="title-en">Veldt Grape</div>
+        <div class="title-ta">பிரண்டை</div>
+        <div class="meta">Health Care · Whole ingredient</div>
+      </div>
+    </div>
+    
+    <div class="product-card">
+      <div class="img-container">
+        <img src="/images/products/generated/TRN-1003.webp" alt="Peepal Seeds" loading="lazy" />
+        <span class="badge badge-verified">✓ VERIFIED BOTANICAL</span>
+      </div>
+      <div class="card-info">
+        <div class="sku-row">
+          <span class="sku">TRN-1003</span>
+          <span class="price">₹150</span>
+        </div>
+        <div class="title-en">Peepal Seeds</div>
+        <div class="title-ta">அரச விதை</div>
+        <div class="meta">Health Care · Seed</div>
+      </div>
+    </div>
+    
+    <div class="product-card">
+      <div class="img-container">
+        <img src="/images/products/placeholders/placeholder_health_care.webp" alt="Menthol Crystal" loading="lazy" />
+        <span class="badge badge-placeholder">✦ CATEGORY PLACEHOLDER</span>
+      </div>
+      <div class="card-info">
+        <div class="sku-row">
+          <span class="sku">TRN-1030</span>
+          <span class="price">₹150</span>
+        </div>
+        <div class="title-en">Menthol Crystal</div>
+        <div class="title-ta">புதினா உப்பு</div>
+        <div class="meta">Health Care · Whole ingredient</div>
+      </div>
+    </div>
+    
+    <div class="product-card">
+      <div class="img-container">
+        <img src="/images/products/placeholders/placeholder_health_care.webp" alt="Greater Galangal" loading="lazy" />
+        <span class="badge badge-placeholder">✦ CATEGORY PLACEHOLDER</span>
+      </div>
+      <div class="card-info">
+        <div class="sku-row">
+          <span class="sku">TRN-1031</span>
+          <span class="price">₹150</span>
+        </div>
+        <div class="title-en">Greater Galangal</div>
+        <div class="title-ta">பேரரத்தை</div>
+        <div class="meta">Health Care · Whole ingredient</div>
+      </div>
+    </div>
+    
+    <div class="product-card">
+      <div class="img-container">
+        <img src="/images/products/placeholders/placeholder_health_care.webp" alt="Arjun bark" loading="lazy" />
+        <span class="badge badge-placeholder">✦ CATEGORY PLACEHOLDER</span>
+      </div>
+      <div class="card-info">
+        <div class="sku-row">
+          <span class="sku">TRN-1032</span>
+          <span class="price">₹150</span>
+        </div>
+        <div class="title-en">Arjun bark</div>
+        <div class="title-ta">மருதம்பட்டை</div>
+        <div class="meta">Health Care · Herb</div>
+      </div>
+    </div>
+    
+    <div class="product-card">
+      <div class="img-container">
+        <img src="/images/products/placeholders/placeholder_health_care.webp" alt="Blue Jack" loading="lazy" />
+        <span class="badge badge-placeholder">✦ CATEGORY PLACEHOLDER</span>
+      </div>
+      <div class="card-info">
+        <div class="sku-row">
+          <span class="sku">TRN-1033</span>
+          <span class="price">₹150</span>
+        </div>
+        <div class="title-en">Blue Jack</div>
+        <div class="title-ta">மாசிக்காய்</div>
+        <div class="meta">Health Care · Whole ingredient</div>
+      </div>
+    </div>
+    
+    <div class="product-card">
+      <div class="img-container">
+        <img src="/images/products/placeholders/placeholder_health_care.webp" alt="Pomegranate Skin" loading="lazy" />
+        <span class="badge badge-placeholder">✦ CATEGORY PLACEHOLDER</span>
+      </div>
+      <div class="card-info">
+        <div class="sku-row">
+          <span class="sku">TRN-1034</span>
+          <span class="price">₹150</span>
+        </div>
+        <div class="title-en">Pomegranate Skin</div>
+        <div class="title-ta">மாதுளை தோல்</div>
+        <div class="meta">Health Care · Whole ingredient</div>
+      </div>
+    </div>
+    
+    <div class="product-card">
+      <div class="img-container">
+        <img src="/images/products/placeholders/placeholder_seeds.webp" alt="Pomegranate Seeds" loading="lazy" />
+        <span class="badge badge-placeholder">✦ CATEGORY PLACEHOLDER</span>
+      </div>
+      <div class="card-info">
+        <div class="sku-row">
+          <span class="sku">TRN-1035</span>
+          <span class="price">₹150</span>
+        </div>
+        <div class="title-en">Pomegranate Seeds</div>
+        <div class="title-ta">மாதுளை விதை</div>
+        <div class="meta">Health Care · Seed</div>
+      </div>
+    </div>
+    
+    <div class="product-card">
+      <div class="img-container">
+        <img src="/images/products/placeholders/placeholder_health_care.webp" alt="Mango Kernel" loading="lazy" />
+        <span class="badge badge-placeholder">✦ CATEGORY PLACEHOLDER</span>
+      </div>
+      <div class="card-info">
+        <div class="sku-row">
+          <span class="sku">TRN-1036</span>
+          <span class="price">₹150</span>
+        </div>
+        <div class="title-en">Mango Kernel</div>
+        <div class="title-ta">மாம்பருப்பு</div>
+        <div class="meta">Health Care · Whole ingredient</div>
+      </div>
+    </div>
+    
+    <div class="product-card">
+      <div class="img-container">
+        <img src="/images/products/placeholders/placeholder_health_care.webp" alt="Goat Leg Tuber" loading="lazy" />
+        <span class="badge badge-placeholder">✦ CATEGORY PLACEHOLDER</span>
+      </div>
+      <div class="card-info">
+        <div class="sku-row">
+          <span class="sku">TRN-1037</span>
+          <span class="price">₹150</span>
+        </div>
+        <div class="title-en">Goat Leg Tuber</div>
+        <div class="title-ta">முடவாட்டுக்கால் கிழங்கு</div>
+        <div class="meta">Health Care · Whole ingredient</div>
+      </div>
+    </div>
+    
+    <div class="product-card">
+      <div class="img-container">
+        <img src="/images/products/placeholders/placeholder_seeds.webp" alt="Drumstick Seeds" loading="lazy" />
+        <span class="badge badge-placeholder">✦ CATEGORY PLACEHOLDER</span>
+      </div>
+      <div class="card-info">
+        <div class="sku-row">
+          <span class="sku">TRN-1038</span>
+          <span class="price">₹150</span>
+        </div>
+        <div class="title-en">Drumstick Seeds</div>
+        <div class="title-ta">முருங்கை விதை</div>
+        <div class="meta">Health Care · Seed</div>
+      </div>
+    </div>
+    
+    <div class="product-card">
+      <div class="img-container">
+        <img src="/images/products/placeholders/placeholder_health_care.webp" alt="Drumstick Gum" loading="lazy" />
+        <span class="badge badge-placeholder">✦ CATEGORY PLACEHOLDER</span>
+      </div>
+      <div class="card-info">
+        <div class="sku-row">
+          <span class="sku">TRN-1039</span>
+          <span class="price">₹150</span>
+        </div>
+        <div class="title-en">Drumstick Gum</div>
+        <div class="title-ta">முருங்கை பிசின்</div>
+        <div class="meta">Health Care · Whole ingredient</div>
+      </div>
+    </div>
+    
+    <div class="product-card">
+      <div class="img-container">
+        <img src="/images/products/generated/TRN-1004.webp" alt="Ashwagandha - 2" loading="lazy" />
+        <span class="badge badge-verified">✓ VERIFIED BOTANICAL</span>
+      </div>
+      <div class="card-info">
+        <div class="sku-row">
+          <span class="sku">TRN-1004</span>
+          <span class="price">₹150</span>
+        </div>
+        <div class="title-en">Ashwagandha - 2</div>
+        <div class="title-ta">அஸ்வகந்தா</div>
+        <div class="meta">Health Care · Whole ingredient</div>
+      </div>
+    </div>
+    
+    <div class="product-card">
+      <div class="img-container">
+        <img src="/images/products/placeholders/placeholder_health_care.webp" alt="Drumstick Flower" loading="lazy" />
+        <span class="badge badge-placeholder">✦ CATEGORY PLACEHOLDER</span>
+      </div>
+      <div class="card-info">
+        <div class="sku-row">
+          <span class="sku">TRN-1040</span>
+          <span class="price">₹150</span>
+        </div>
+        <div class="title-en">Drumstick Flower</div>
+        <div class="title-ta">முருங்கை பூ</div>
+        <div class="meta">Health Care · Herb</div>
+      </div>
+    </div>
+    
+    <div class="product-card">
+      <div class="img-container">
+        <img src="/images/products/placeholders/placeholder_health_care.webp" alt="Indian Screw Tree" loading="lazy" />
+        <span class="badge badge-placeholder">✦ CATEGORY PLACEHOLDER</span>
+      </div>
+      <div class="card-info">
+        <div class="sku-row">
+          <span class="sku">TRN-1041</span>
+          <span class="price">₹150</span>
+        </div>
+        <div class="title-en">Indian Screw Tree</div>
+        <div class="title-ta">வலம்புரி - இடம்புரி</div>
+        <div class="meta">Health Care · Whole ingredient</div>
+      </div>
+    </div>
+    
+    <div class="product-card">
+      <div class="img-container">
+        <img src="/images/products/placeholders/placeholder_health_care.webp" alt="Tailed pepper" loading="lazy" />
+        <span class="badge badge-placeholder">✦ CATEGORY PLACEHOLDER</span>
+      </div>
+      <div class="card-info">
+        <div class="sku-row">
+          <span class="sku">TRN-1042</span>
+          <span class="price">₹150</span>
+        </div>
+        <div class="title-en">Tailed pepper</div>
+        <div class="title-ta">வால்மிளகு</div>
+        <div class="meta">Health Care · Whole ingredient</div>
+      </div>
+    </div>
+    
+    <div class="product-card">
+      <div class="img-container">
+        <img src="/images/products/placeholders/placeholder_health_care.webp" alt="Nutmeg" loading="lazy" />
+        <span class="badge badge-placeholder">✦ CATEGORY PLACEHOLDER</span>
+      </div>
+      <div class="card-info">
+        <div class="sku-row">
+          <span class="sku">TRN-1043</span>
+          <span class="price">₹150</span>
+        </div>
+        <div class="title-en">Nutmeg</div>
+        <div class="title-ta">ஜாதிக்காய்</div>
+        <div class="meta">Health Care · Whole ingredient</div>
+      </div>
+    </div>
+    
+    <div class="product-card">
+      <div class="img-container">
+        <img src="/images/products/placeholders/placeholder_health_care.webp" alt="Sweet Flag" loading="lazy" />
+        <span class="badge badge-placeholder">✦ CATEGORY PLACEHOLDER</span>
+      </div>
+      <div class="card-info">
+        <div class="sku-row">
+          <span class="sku">TRN-1044</span>
+          <span class="price">₹150</span>
+        </div>
+        <div class="title-en">Sweet Flag</div>
+        <div class="title-ta">வசம்பு</div>
+        <div class="meta">Health Care · Whole ingredient</div>
+      </div>
+    </div>
+    
+    <div class="product-card">
+      <div class="img-container">
+        <img src="/images/products/placeholders/placeholder_hair_care.webp" alt="Rosemary" loading="lazy" />
+        <span class="badge badge-placeholder">✦ CATEGORY PLACEHOLDER</span>
+      </div>
+      <div class="card-info">
+        <div class="sku-row">
+          <span class="sku">TRN-1045</span>
+          <span class="price">₹150</span>
+        </div>
+        <div class="title-en">Rosemary</div>
+        <div class="title-ta">ரோஸ்மேரி</div>
+        <div class="meta">Hair Care · Whole ingredient</div>
+      </div>
+    </div>
+    
+    <div class="product-card">
+      <div class="img-container">
+        <img src="/images/products/placeholders/placeholder_hair_care.webp" alt="Henna" loading="lazy" />
+        <span class="badge badge-placeholder">✦ CATEGORY PLACEHOLDER</span>
+      </div>
+      <div class="card-info">
+        <div class="sku-row">
+          <span class="sku">TRN-1046</span>
+          <span class="price">₹150</span>
+        </div>
+        <div class="title-en">Henna</div>
+        <div class="title-ta">மருதாணி</div>
+        <div class="meta">Hair Care · Whole ingredient</div>
+      </div>
+    </div>
+    
+    <div class="product-card">
+      <div class="img-container">
+        <img src="/images/products/placeholders/placeholder_hair_care.webp" alt="Marjoram" loading="lazy" />
+        <span class="badge badge-placeholder">✦ CATEGORY PLACEHOLDER</span>
+      </div>
+      <div class="card-info">
+        <div class="sku-row">
+          <span class="sku">TRN-1047</span>
+          <span class="price">₹150</span>
+        </div>
+        <div class="title-en">Marjoram</div>
+        <div class="title-ta">மரிக்கொழுந்து</div>
+        <div class="meta">Hair Care · Whole ingredient</div>
+      </div>
+    </div>
+    
+    <div class="product-card">
+      <div class="img-container">
+        <img src="/images/products/placeholders/placeholder_hair_care.webp" alt="Country Senna Leaf" loading="lazy" />
+        <span class="badge badge-placeholder">✦ CATEGORY PLACEHOLDER</span>
+      </div>
+      <div class="card-info">
+        <div class="sku-row">
+          <span class="sku">TRN-1048</span>
+          <span class="price">₹150</span>
+        </div>
+        <div class="title-en">Country Senna Leaf</div>
+        <div class="title-ta">நிலாவரை</div>
+        <div class="meta">Hair Care · Herb</div>
+      </div>
+    </div>
+    
+    <div class="product-card">
+      <div class="img-container">
+        <img src="/images/products/placeholders/placeholder_hair_care.webp" alt="Hibiscus Leaf" loading="lazy" />
+        <span class="badge badge-placeholder">✦ CATEGORY PLACEHOLDER</span>
+      </div>
+      <div class="card-info">
+        <div class="sku-row">
+          <span class="sku">TRN-1049</span>
+          <span class="price">₹150</span>
+        </div>
+        <div class="title-en">Hibiscus Leaf</div>
+        <div class="title-ta">செம்பருத்தி இலை</div>
+        <div class="meta">Hair Care · Herb</div>
+      </div>
+    </div>
+    
+    <div class="product-card">
+      <div class="img-container">
+        <img src="/images/products/generated/TRN-1005.webp" alt="Inknut/Myrobalan" loading="lazy" />
+        <span class="badge badge-verified">✓ VERIFIED BOTANICAL</span>
+      </div>
+      <div class="card-info">
+        <div class="sku-row">
+          <span class="sku">TRN-1005</span>
+          <span class="price">₹150</span>
+        </div>
+        <div class="title-en">Inknut/Myrobalan</div>
+        <div class="title-ta">கடுக்காய்</div>
+        <div class="meta">Health Care · Whole ingredient</div>
+      </div>
+    </div>
+    
+    <div class="product-card">
+      <div class="img-container">
+        <img src="/images/products/placeholders/placeholder_hair_care.webp" alt="Hibiscus Flower" loading="lazy" />
+        <span class="badge badge-placeholder">✦ CATEGORY PLACEHOLDER</span>
+      </div>
+      <div class="card-info">
+        <div class="sku-row">
+          <span class="sku">TRN-1050</span>
+          <span class="price">₹150</span>
+        </div>
+        <div class="title-en">Hibiscus Flower</div>
+        <div class="title-ta">செம்பருத்தி பூ</div>
+        <div class="meta">Hair Care · Herb</div>
+      </div>
+    </div>
+    
+    <div class="product-card">
+      <div class="img-container">
+        <img src="/images/products/placeholders/placeholder_hair_care.webp" alt="Soap pod Special" loading="lazy" />
+        <span class="badge badge-placeholder">✦ CATEGORY PLACEHOLDER</span>
+      </div>
+      <div class="card-info">
+        <div class="sku-row">
+          <span class="sku">TRN-1051</span>
+          <span class="price">₹150</span>
+        </div>
+        <div class="title-en">Soap pod Special</div>
+        <div class="title-ta">சீயக்காய் - 1</div>
+        <div class="meta">Hair Care · Whole ingredient</div>
+      </div>
+    </div>
+    
+    <div class="product-card">
+      <div class="img-container">
+        <img src="/images/products/placeholders/placeholder_hair_care.webp" alt="Soap pod" loading="lazy" />
+        <span class="badge badge-placeholder">✦ CATEGORY PLACEHOLDER</span>
+      </div>
+      <div class="card-info">
+        <div class="sku-row">
+          <span class="sku">TRN-1052</span>
+          <span class="price">₹150</span>
+        </div>
+        <div class="title-en">Soap pod</div>
+        <div class="title-ta">சீயக்காய் - 2</div>
+        <div class="meta">Hair Care · Whole ingredient</div>
+      </div>
+    </div>
+    
+    <div class="product-card">
+      <div class="img-container">
+        <img src="/images/products/placeholders/placeholder_seeds.webp" alt="Dil Seeds" loading="lazy" />
+        <span class="badge badge-placeholder">✦ CATEGORY PLACEHOLDER</span>
+      </div>
+      <div class="card-info">
+        <div class="sku-row">
+          <span class="sku">TRN-1053</span>
+          <span class="price">₹150</span>
+        </div>
+        <div class="title-en">Dil Seeds</div>
+        <div class="title-ta">சதக்குப்பை</div>
+        <div class="meta">Hair Care · Seed</div>
+      </div>
+    </div>
+    
+    <div class="product-card">
+      <div class="img-container">
+        <img src="/images/products/placeholders/placeholder_hair_care.webp" alt="Nutgrass" loading="lazy" />
+        <span class="badge badge-placeholder">✦ CATEGORY PLACEHOLDER</span>
+      </div>
+      <div class="card-info">
+        <div class="sku-row">
+          <span class="sku">TRN-1054</span>
+          <span class="price">₹150</span>
+        </div>
+        <div class="title-en">Nutgrass</div>
+        <div class="title-ta">கோரைக்கிழங்கு</div>
+        <div class="meta">Hair Care · Whole ingredient</div>
+      </div>
+    </div>
+    
+    <div class="product-card">
+      <div class="img-container">
+        <img src="/images/products/placeholders/placeholder_hair_care.webp" alt="Red Fruit Creeper" loading="lazy" />
+        <span class="badge badge-placeholder">✦ CATEGORY PLACEHOLDER</span>
+      </div>
+      <div class="card-info">
+        <div class="sku-row">
+          <span class="sku">TRN-1055</span>
+          <span class="price">₹150</span>
+        </div>
+        <div class="title-en">Red Fruit Creeper</div>
+        <div class="title-ta">கருடக்கிழங்கு</div>
+        <div class="meta">Hair Care · Whole ingredient</div>
+      </div>
+    </div>
+    
+    <div class="product-card">
+      <div class="img-container">
+        <img src="/images/products/placeholders/placeholder_hair_care.webp" alt="Indian Indigo" loading="lazy" />
+        <span class="badge badge-placeholder">✦ CATEGORY PLACEHOLDER</span>
+      </div>
+      <div class="card-info">
+        <div class="sku-row">
+          <span class="sku">TRN-1056</span>
+          <span class="price">₹150</span>
+        </div>
+        <div class="title-en">Indian Indigo</div>
+        <div class="title-ta">அவுரி விதை</div>
+        <div class="meta">Hair Care · Whole ingredient</div>
+      </div>
+    </div>
+    
+    <div class="product-card">
+      <div class="img-container">
+        <img src="/images/products/placeholders/placeholder_hair_care.webp" alt="Black Cumin" loading="lazy" />
+        <span class="badge badge-placeholder">✦ CATEGORY PLACEHOLDER</span>
+      </div>
+      <div class="card-info">
+        <div class="sku-row">
+          <span class="sku">TRN-1057</span>
+          <span class="price">₹150</span>
+        </div>
+        <div class="title-en">Black Cumin</div>
+        <div class="title-ta">கருஞ்சீரகம்</div>
+        <div class="meta">Hair Care · Whole ingredient</div>
+      </div>
+    </div>
+    
+    <div class="product-card">
+      <div class="img-container">
+        <img src="/images/products/placeholders/placeholder_raw_powders.webp" alt="Soap Pod Powder" loading="lazy" />
+        <span class="badge badge-placeholder">✦ CATEGORY PLACEHOLDER</span>
+      </div>
+      <div class="card-info">
+        <div class="sku-row">
+          <span class="sku">TRN-1058</span>
+          <span class="price">₹150</span>
+        </div>
+        <div class="title-en">Soap Pod Powder</div>
+        <div class="title-ta">சீயக்காய் மிக்ஸ் பொடி</div>
+        <div class="meta">Hair Care · Powder</div>
+      </div>
+    </div>
+    
+    <div class="product-card">
+      <div class="img-container">
+        <img src="/images/products/placeholders/placeholder_skin_care.webp" alt="Alkanet Roots" loading="lazy" />
+        <span class="badge badge-placeholder">✦ CATEGORY PLACEHOLDER</span>
+      </div>
+      <div class="card-info">
+        <div class="sku-row">
+          <span class="sku">TRN-1059</span>
+          <span class="price">₹150</span>
+        </div>
+        <div class="title-en">Alkanet Roots</div>
+        <div class="title-ta">வேம்பாளம் பட்டை</div>
+        <div class="meta">Skin Care · Herb</div>
+      </div>
+    </div>
+    
+    <div class="product-card">
+      <div class="img-container">
+        <img src="/images/products/generated/TRN-1006.webp" alt="Indian Aloe Gum" loading="lazy" />
+        <span class="badge badge-verified">✓ VERIFIED BOTANICAL</span>
+      </div>
+      <div class="card-info">
+        <div class="sku-row">
+          <span class="sku">TRN-1006</span>
+          <span class="price">₹150</span>
+        </div>
+        <div class="title-en">Indian Aloe Gum</div>
+        <div class="title-ta">கரியபவளம்</div>
+        <div class="meta">Health Care · Whole ingredient</div>
+      </div>
+    </div>
+    
+    <div class="product-card">
+      <div class="img-container">
+        <img src="/images/products/placeholders/placeholder_skin_care.webp" alt="Camel Grass" loading="lazy" />
+        <span class="badge badge-placeholder">✦ CATEGORY PLACEHOLDER</span>
+      </div>
+      <div class="card-info">
+        <div class="sku-row">
+          <span class="sku">TRN-1060</span>
+          <span class="price">₹150</span>
+        </div>
+        <div class="title-en">Camel Grass</div>
+        <div class="title-ta">வெட்டிவேர்</div>
+        <div class="meta">Skin Care · Whole ingredient</div>
+      </div>
+    </div>
+    
+    <div class="product-card">
+      <div class="img-container">
+        <img src="/images/products/placeholders/placeholder_skin_care.webp" alt="Turmeric" loading="lazy" />
+        <span class="badge badge-placeholder">✦ CATEGORY PLACEHOLDER</span>
+      </div>
+      <div class="card-info">
+        <div class="sku-row">
+          <span class="sku">TRN-1061</span>
+          <span class="price">₹150</span>
+        </div>
+        <div class="title-en">Turmeric</div>
+        <div class="title-ta">விரலிமஞ்சள்</div>
+        <div class="meta">Skin Care · Whole ingredient</div>
+      </div>
+    </div>
+    
+    <div class="product-card">
+      <div class="img-container">
+        <img src="/images/products/placeholders/placeholder_skin_care.webp" alt="Bilva Fruit Dry" loading="lazy" />
+        <span class="badge badge-placeholder">✦ CATEGORY PLACEHOLDER</span>
+      </div>
+      <div class="card-info">
+        <div class="sku-row">
+          <span class="sku">TRN-1062</span>
+          <span class="price">₹150</span>
+        </div>
+        <div class="title-en">Bilva Fruit Dry</div>
+        <div class="title-ta">வில்வ ஓடு</div>
+        <div class="meta">Skin Care · Whole ingredient</div>
+      </div>
+    </div>
+    
+    <div class="product-card">
+      <div class="img-container">
+        <img src="/images/products/placeholders/placeholder_skin_care.webp" alt="Indian Rose" loading="lazy" />
+        <span class="badge badge-placeholder">✦ CATEGORY PLACEHOLDER</span>
+      </div>
+      <div class="card-info">
+        <div class="sku-row">
+          <span class="sku">TRN-1063</span>
+          <span class="price">₹150</span>
+        </div>
+        <div class="title-en">Indian Rose</div>
+        <div class="title-ta">ரோஜாபூ</div>
+        <div class="meta">Skin Care · Whole ingredient</div>
+      </div>
+    </div>
+    
+    <div class="product-card">
+      <div class="img-container">
+        <img src="/images/products/placeholders/placeholder_skin_care.webp" alt="Fuller Earth" loading="lazy" />
+        <span class="badge badge-placeholder">✦ CATEGORY PLACEHOLDER</span>
+      </div>
+      <div class="card-info">
+        <div class="sku-row">
+          <span class="sku">TRN-1064</span>
+          <span class="price">₹150</span>
+        </div>
+        <div class="title-en">Fuller Earth</div>
+        <div class="title-ta">முல்தானி மட்டி</div>
+        <div class="meta">Skin Care · Whole ingredient</div>
+      </div>
+    </div>
+    
+    <div class="product-card">
+      <div class="img-container">
+        <img src="/images/products/placeholders/placeholder_skin_care.webp" alt="Indian madder" loading="lazy" />
+        <span class="badge badge-placeholder">✦ CATEGORY PLACEHOLDER</span>
+      </div>
+      <div class="card-info">
+        <div class="sku-row">
+          <span class="sku">TRN-1065</span>
+          <span class="price">₹150</span>
+        </div>
+        <div class="title-en">Indian madder</div>
+        <div class="title-ta">மஞ்சிஷ்டா</div>
+        <div class="meta">Skin Care · Whole ingredient</div>
+      </div>
+    </div>
+    
+    <div class="product-card">
+      <div class="img-container">
+        <img src="/images/products/placeholders/placeholder_skin_care.webp" alt="Indian Rennet" loading="lazy" />
+        <span class="badge badge-placeholder">✦ CATEGORY PLACEHOLDER</span>
+      </div>
+      <div class="card-info">
+        <div class="sku-row">
+          <span class="sku">TRN-1066</span>
+          <span class="price">₹150</span>
+        </div>
+        <div class="title-en">Indian Rennet</div>
+        <div class="title-ta">பன்னீர் பூ</div>
+        <div class="meta">Skin Care · Whole ingredient</div>
+      </div>
+    </div>
+    
+    <div class="product-card">
+      <div class="img-container">
+        <img src="/images/products/placeholders/placeholder_skin_care.webp" alt="Alam Stone" loading="lazy" />
+        <span class="badge badge-placeholder">✦ CATEGORY PLACEHOLDER</span>
+      </div>
+      <div class="card-info">
+        <div class="sku-row">
+          <span class="sku">TRN-1067</span>
+          <span class="price">₹150</span>
+        </div>
+        <div class="title-en">Alam Stone</div>
+        <div class="title-ta">படிகாரம்</div>
+        <div class="meta">Skin Care · Whole ingredient</div>
+      </div>
+    </div>
+    
+    <div class="product-card">
+      <div class="img-container">
+        <img src="/images/products/placeholders/placeholder_skin_care.webp" alt="Rough Chaff" loading="lazy" />
+        <span class="badge badge-placeholder">✦ CATEGORY PLACEHOLDER</span>
+      </div>
+      <div class="card-info">
+        <div class="sku-row">
+          <span class="sku">TRN-1068</span>
+          <span class="price">₹150</span>
+        </div>
+        <div class="title-en">Rough Chaff</div>
+        <div class="title-ta">நாயுருவி அரிசி</div>
+        <div class="meta">Skin Care · Whole ingredient</div>
+      </div>
+    </div>
+    
+    <div class="product-card">
+      <div class="img-container">
+        <img src="/images/products/placeholders/placeholder_skin_care.webp" alt="Sweet Basil" loading="lazy" />
+        <span class="badge badge-placeholder">✦ CATEGORY PLACEHOLDER</span>
+      </div>
+      <div class="card-info">
+        <div class="sku-row">
+          <span class="sku">TRN-1069</span>
+          <span class="price">₹150</span>
+        </div>
+        <div class="title-en">Sweet Basil</div>
+        <div class="title-ta">திருநீற்று பச்சிலை</div>
+        <div class="meta">Skin Care · Whole ingredient</div>
+      </div>
+    </div>
+    
+    <div class="product-card">
+      <div class="img-container">
+        <img src="/images/products/generated/TRN-1007.webp" alt="Fever Nut" loading="lazy" />
+        <span class="badge badge-verified">✓ VERIFIED BOTANICAL</span>
+      </div>
+      <div class="card-info">
+        <div class="sku-row">
+          <span class="sku">TRN-1007</span>
+          <span class="price">₹150</span>
+        </div>
+        <div class="title-en">Fever Nut</div>
+        <div class="title-ta">கழற்சிக்காய்</div>
+        <div class="meta">Health Care · Whole ingredient</div>
+      </div>
+    </div>
+    
+    <div class="product-card">
+      <div class="img-container">
+        <img src="/images/products/placeholders/placeholder_skin_care.webp" alt="Wild Turmeric" loading="lazy" />
+        <span class="badge badge-placeholder">✦ CATEGORY PLACEHOLDER</span>
+      </div>
+      <div class="card-info">
+        <div class="sku-row">
+          <span class="sku">TRN-1070</span>
+          <span class="price">₹150</span>
+        </div>
+        <div class="title-en">Wild Turmeric</div>
+        <div class="title-ta">கஸ்தூரி மஞ்சள்</div>
+        <div class="meta">Skin Care · Whole ingredient</div>
+      </div>
+    </div>
+    
+    <div class="product-card">
+      <div class="img-container">
+        <img src="/images/products/placeholders/placeholder_skin_care.webp" alt="Lemon Peel" loading="lazy" />
+        <span class="badge badge-placeholder">✦ CATEGORY PLACEHOLDER</span>
+      </div>
+      <div class="card-info">
+        <div class="sku-row">
+          <span class="sku">TRN-1071</span>
+          <span class="price">₹150</span>
+        </div>
+        <div class="title-en">Lemon Peel</div>
+        <div class="title-ta">எலுமிச்சை தோல்</div>
+        <div class="meta">Skin Care · Whole ingredient</div>
+      </div>
+    </div>
+    
+    <div class="product-card">
+      <div class="img-container">
+        <img src="/images/products/placeholders/placeholder_skin_care.webp" alt="Senna Flowers" loading="lazy" />
+        <span class="badge badge-placeholder">✦ CATEGORY PLACEHOLDER</span>
+      </div>
+      <div class="card-info">
+        <div class="sku-row">
+          <span class="sku">TRN-1072</span>
+          <span class="price">₹150</span>
+        </div>
+        <div class="title-en">Senna Flowers</div>
+        <div class="title-ta">ஆவாரம்பூ</div>
+        <div class="meta">Skin Care · Herb</div>
+      </div>
+    </div>
+    
+    <div class="product-card">
+      <div class="img-container">
+        <img src="/images/products/placeholders/placeholder_aromatherapy_incense.webp" alt="Benzoin Resin - 1" loading="lazy" />
+        <span class="badge badge-placeholder">✦ CATEGORY PLACEHOLDER</span>
+      </div>
+      <div class="card-info">
+        <div class="sku-row">
+          <span class="sku">TRN-1073</span>
+          <span class="price">₹150</span>
+        </div>
+        <div class="title-en">Benzoin Resin - 1</div>
+        <div class="title-ta">சாம்பிராணி 1</div>
+        <div class="meta">Aromatherapy & Incense · Whole ingredient</div>
+      </div>
+    </div>
+    
+    <div class="product-card">
+      <div class="img-container">
+        <img src="/images/products/placeholders/placeholder_aromatherapy_incense.webp" alt="Benzoin Resin - 2" loading="lazy" />
+        <span class="badge badge-placeholder">✦ CATEGORY PLACEHOLDER</span>
+      </div>
+      <div class="card-info">
+        <div class="sku-row">
+          <span class="sku">TRN-1074</span>
+          <span class="price">₹150</span>
+        </div>
+        <div class="title-en">Benzoin Resin - 2</div>
+        <div class="title-ta">சாம்பிராணி 2</div>
+        <div class="meta">Aromatherapy & Incense · Whole ingredient</div>
+      </div>
+    </div>
+    
+    <div class="product-card">
+      <div class="img-container">
+        <img src="/images/products/placeholders/placeholder_aromatherapy_incense.webp" alt="Benzoin Resin - 3" loading="lazy" />
+        <span class="badge badge-placeholder">✦ CATEGORY PLACEHOLDER</span>
+      </div>
+      <div class="card-info">
+        <div class="sku-row">
+          <span class="sku">TRN-1075</span>
+          <span class="price">₹150</span>
+        </div>
+        <div class="title-en">Benzoin Resin - 3</div>
+        <div class="title-ta">சாம்பிராணி 3</div>
+        <div class="meta">Aromatherapy & Incense · Whole ingredient</div>
+      </div>
+    </div>
+    
+    <div class="product-card">
+      <div class="img-container">
+        <img src="/images/products/placeholders/placeholder_aromatherapy_incense.webp" alt="Black Dammer" loading="lazy" />
+        <span class="badge badge-placeholder">✦ CATEGORY PLACEHOLDER</span>
+      </div>
+      <div class="card-info">
+        <div class="sku-row">
+          <span class="sku">TRN-1076</span>
+          <span class="price">₹150</span>
+        </div>
+        <div class="title-en">Black Dammer</div>
+        <div class="title-ta">குங்கிலியம் (க)</div>
+        <div class="meta">Aromatherapy & Incense · Whole ingredient</div>
+      </div>
+    </div>
+    
+    <div class="product-card">
+      <div class="img-container">
+        <img src="/images/products/placeholders/placeholder_aromatherapy_incense.webp" alt="White Dammer" loading="lazy" />
+        <span class="badge badge-placeholder">✦ CATEGORY PLACEHOLDER</span>
+      </div>
+      <div class="card-info">
+        <div class="sku-row">
+          <span class="sku">TRN-1077</span>
+          <span class="price">₹150</span>
+        </div>
+        <div class="title-en">White Dammer</div>
+        <div class="title-ta">குங்கிலியம் (வெ)</div>
+        <div class="meta">Aromatherapy & Incense · Whole ingredient</div>
+      </div>
+    </div>
+    
+    <div class="product-card">
+      <div class="img-container">
+        <img src="/images/products/placeholders/placeholder_wellness_drinks.webp" alt="Magic ginger" loading="lazy" />
+        <span class="badge badge-placeholder">✦ CATEGORY PLACEHOLDER</span>
+      </div>
+      <div class="card-info">
+        <div class="sku-row">
+          <span class="sku">TRN-1078</span>
+          <span class="price">₹150</span>
+        </div>
+        <div class="title-en">Magic ginger</div>
+        <div class="title-ta">மேஜிக் இஞ்சி</div>
+        <div class="meta">Welness Drinks · Whole ingredient</div>
+      </div>
+    </div>
+    
+    <div class="product-card">
+      <div class="img-container">
+        <img src="/images/products/placeholders/placeholder_wellness_drinks.webp" alt="Amla Tea" loading="lazy" />
+        <span class="badge badge-placeholder">✦ CATEGORY PLACEHOLDER</span>
+      </div>
+      <div class="card-info">
+        <div class="sku-row">
+          <span class="sku">TRN-1079</span>
+          <span class="price">₹150</span>
+        </div>
+        <div class="title-en">Amla Tea</div>
+        <div class="title-ta">நெல்லி டி</div>
+        <div class="meta">Welness Drinks · Whole ingredient</div>
+      </div>
+    </div>
+    
+    <div class="product-card">
+      <div class="img-container">
+        <img src="/images/products/generated/TRN-1008.webp" alt="Babchi Seeds" loading="lazy" />
+        <span class="badge badge-verified">✓ VERIFIED BOTANICAL</span>
+      </div>
+      <div class="card-info">
+        <div class="sku-row">
+          <span class="sku">TRN-1008</span>
+          <span class="price">₹150</span>
+        </div>
+        <div class="title-en">Babchi Seeds</div>
+        <div class="title-ta">கார்போக அரிசி</div>
+        <div class="meta">Health Care · Seed</div>
+      </div>
+    </div>
+    
+    <div class="product-card">
+      <div class="img-container">
+        <img src="/images/products/placeholders/placeholder_wellness_drinks.webp" alt="Ginger Soup" loading="lazy" />
+        <span class="badge badge-placeholder">✦ CATEGORY PLACEHOLDER</span>
+      </div>
+      <div class="card-info">
+        <div class="sku-row">
+          <span class="sku">TRN-1080</span>
+          <span class="price">₹150</span>
+        </div>
+        <div class="title-en">Ginger Soup</div>
+        <div class="title-ta">இஞ்சி சூப்</div>
+        <div class="meta">Welness Drinks · Whole ingredient</div>
+      </div>
+    </div>
+    
+    <div class="product-card">
+      <div class="img-container">
+        <img src="/images/products/placeholders/placeholder_seeds.webp" alt="Pumpkin Seeds" loading="lazy" />
+        <span class="badge badge-placeholder">✦ CATEGORY PLACEHOLDER</span>
+      </div>
+      <div class="card-info">
+        <div class="sku-row">
+          <span class="sku">TRN-1081</span>
+          <span class="price">₹150</span>
+        </div>
+        <div class="title-en">Pumpkin Seeds</div>
+        <div class="title-ta">பூசணி விதை</div>
+        <div class="meta">Welness Drinks · Seed</div>
+      </div>
+    </div>
+    
+    <div class="product-card">
+      <div class="img-container">
+        <img src="/images/products/placeholders/placeholder_seeds.webp" alt="Cucumber Seeds" loading="lazy" />
+        <span class="badge badge-placeholder">✦ CATEGORY PLACEHOLDER</span>
+      </div>
+      <div class="card-info">
+        <div class="sku-row">
+          <span class="sku">TRN-1082</span>
+          <span class="price">₹150</span>
+        </div>
+        <div class="title-en">Cucumber Seeds</div>
+        <div class="title-ta">வெள்ளரி விதை</div>
+        <div class="meta">Welness Drinks · Seed</div>
+      </div>
+    </div>
+    
+    <div class="product-card">
+      <div class="img-container">
+        <img src="/images/products/placeholders/placeholder_seeds.webp" alt="Sunflower Seeds" loading="lazy" />
+        <span class="badge badge-placeholder">✦ CATEGORY PLACEHOLDER</span>
+      </div>
+      <div class="card-info">
+        <div class="sku-row">
+          <span class="sku">TRN-1083</span>
+          <span class="price">₹150</span>
+        </div>
+        <div class="title-en">Sunflower Seeds</div>
+        <div class="title-ta">சூரியகாந்தி விதை</div>
+        <div class="meta">Welness Drinks · Seed</div>
+      </div>
+    </div>
+    
+    <div class="product-card">
+      <div class="img-container">
+        <img src="/images/products/placeholders/placeholder_seeds.webp" alt="Chia Seeds" loading="lazy" />
+        <span class="badge badge-placeholder">✦ CATEGORY PLACEHOLDER</span>
+      </div>
+      <div class="card-info">
+        <div class="sku-row">
+          <span class="sku">TRN-1084</span>
+          <span class="price">₹150</span>
+        </div>
+        <div class="title-en">Chia Seeds</div>
+        <div class="title-ta">சியா விதை</div>
+        <div class="meta">Welness Drinks · Seed</div>
+      </div>
+    </div>
+    
+    <div class="product-card">
+      <div class="img-container">
+        <img src="/images/products/placeholders/placeholder_seeds.webp" alt="Flax Sseeds" loading="lazy" />
+        <span class="badge badge-placeholder">✦ CATEGORY PLACEHOLDER</span>
+      </div>
+      <div class="card-info">
+        <div class="sku-row">
+          <span class="sku">TRN-1085</span>
+          <span class="price">₹150</span>
+        </div>
+        <div class="title-en">Flax Sseeds</div>
+        <div class="title-ta">ஆளி விதை</div>
+        <div class="meta">Welness Drinks · Seed</div>
+      </div>
+    </div>
+    
+    <div class="product-card">
+      <div class="img-container">
+        <img src="/images/products/placeholders/placeholder_seeds.webp" alt="Basil Seeds" loading="lazy" />
+        <span class="badge badge-placeholder">✦ CATEGORY PLACEHOLDER</span>
+      </div>
+      <div class="card-info">
+        <div class="sku-row">
+          <span class="sku">TRN-1086</span>
+          <span class="price">₹150</span>
+        </div>
+        <div class="title-en">Basil Seeds</div>
+        <div class="title-ta">சப்ஜா விதை</div>
+        <div class="meta">Welness Drinks · Seed</div>
+      </div>
+    </div>
+    
+    <div class="product-card">
+      <div class="img-container">
+        <img src="/images/products/placeholders/placeholder_seeds.webp" alt="Spogel Seeds" loading="lazy" />
+        <span class="badge badge-placeholder">✦ CATEGORY PLACEHOLDER</span>
+      </div>
+      <div class="card-info">
+        <div class="sku-row">
+          <span class="sku">TRN-1087</span>
+          <span class="price">₹150</span>
+        </div>
+        <div class="title-en">Spogel Seeds</div>
+        <div class="title-ta">இசப்புகல் விதை</div>
+        <div class="meta">Welness Drinks · Seed</div>
+      </div>
+    </div>
+    
+    <div class="product-card">
+      <div class="img-container">
+        <img src="/images/products/placeholders/placeholder_seeds.webp" alt="fenugreek Seeds" loading="lazy" />
+        <span class="badge badge-placeholder">✦ CATEGORY PLACEHOLDER</span>
+      </div>
+      <div class="card-info">
+        <div class="sku-row">
+          <span class="sku">TRN-1088</span>
+          <span class="price">₹150</span>
+        </div>
+        <div class="title-en">fenugreek Seeds</div>
+        <div class="title-ta">வெந்தய விதைகள்</div>
+        <div class="meta">Welness Drinks · Seed</div>
+      </div>
+    </div>
+    
+    <div class="product-card">
+      <div class="img-container">
+        <img src="/images/products/placeholders/placeholder_spices_culinary.webp" alt="Cinnamon" loading="lazy" />
+        <span class="badge badge-placeholder">✦ CATEGORY PLACEHOLDER</span>
+      </div>
+      <div class="card-info">
+        <div class="sku-row">
+          <span class="sku">TRN-1089</span>
+          <span class="price">₹150</span>
+        </div>
+        <div class="title-en">Cinnamon</div>
+        <div class="title-ta">இலவங்கம்</div>
+        <div class="meta">Spices & Culinary · Whole ingredient</div>
+      </div>
+    </div>
+    
+    <div class="product-card">
+      <div class="img-container">
+        <img src="/images/products/generated/TRN-1009.webp" alt="Malabar Tamarind" loading="lazy" />
+        <span class="badge badge-verified">✓ VERIFIED BOTANICAL</span>
+      </div>
+      <div class="card-info">
+        <div class="sku-row">
+          <span class="sku">TRN-1009</span>
+          <span class="price">₹150</span>
+        </div>
+        <div class="title-en">Malabar Tamarind</div>
+        <div class="title-ta">குடம்புளி</div>
+        <div class="meta">Health Care · Whole ingredient</div>
+      </div>
+    </div>
+    
+    <div class="product-card">
+      <div class="img-container">
+        <img src="/images/products/placeholders/placeholder_spices_culinary.webp" alt="Cardamom" loading="lazy" />
+        <span class="badge badge-placeholder">✦ CATEGORY PLACEHOLDER</span>
+      </div>
+      <div class="card-info">
+        <div class="sku-row">
+          <span class="sku">TRN-1090</span>
+          <span class="price">₹150</span>
+        </div>
+        <div class="title-en">Cardamom</div>
+        <div class="title-ta">ஏலரிசி</div>
+        <div class="meta">Spices & Culinary · Whole ingredient</div>
+      </div>
+    </div>
+    
+    <div class="product-card">
+      <div class="img-container">
+        <img src="/images/products/placeholders/placeholder_spices_culinary.webp" alt="Bishop Weed" loading="lazy" />
+        <span class="badge badge-placeholder">✦ CATEGORY PLACEHOLDER</span>
+      </div>
+      <div class="card-info">
+        <div class="sku-row">
+          <span class="sku">TRN-1091</span>
+          <span class="price">₹150</span>
+        </div>
+        <div class="title-en">Bishop Weed</div>
+        <div class="title-ta">ஓமம்</div>
+        <div class="meta">Spices & Culinary · Whole ingredient</div>
+      </div>
+    </div>
+    
+    <div class="product-card">
+      <div class="img-container">
+        <img src="/images/products/placeholders/placeholder_spices_culinary.webp" alt="Dry Ginger" loading="lazy" />
+        <span class="badge badge-placeholder">✦ CATEGORY PLACEHOLDER</span>
+      </div>
+      <div class="card-info">
+        <div class="sku-row">
+          <span class="sku">TRN-1092</span>
+          <span class="price">₹150</span>
+        </div>
+        <div class="title-en">Dry Ginger</div>
+        <div class="title-ta">சுக்கு</div>
+        <div class="meta">Spices & Culinary · Whole ingredient</div>
+      </div>
+    </div>
+    
+    <div class="product-card">
+      <div class="img-container">
+        <img src="/images/products/placeholders/placeholder_spices_culinary.webp" alt="Garlic" loading="lazy" />
+        <span class="badge badge-placeholder">✦ CATEGORY PLACEHOLDER</span>
+      </div>
+      <div class="card-info">
+        <div class="sku-row">
+          <span class="sku">TRN-1093</span>
+          <span class="price">₹150</span>
+        </div>
+        <div class="title-en">Garlic</div>
+        <div class="title-ta">பூண்டு - புகை</div>
+        <div class="meta">Spices & Culinary · Whole ingredient</div>
+      </div>
+    </div>
+    
+    <div class="product-card">
+      <div class="img-container">
+        <img src="/images/products/placeholders/placeholder_raw_powders.webp" alt="Licorice Root Powder" loading="lazy" />
+        <span class="badge badge-placeholder">✦ CATEGORY PLACEHOLDER</span>
+      </div>
+      <div class="card-info">
+        <div class="sku-row">
+          <span class="sku">TRN-1094</span>
+          <span class="price">₹150</span>
+        </div>
+        <div class="title-en">Licorice Root Powder</div>
+        <div class="title-ta">அதிமதுரம் பொடி</div>
+        <div class="meta">Health Care · Powder</div>
+      </div>
+    </div>
+    
+    <div class="product-card">
+      <div class="img-container">
+        <img src="/images/products/placeholders/placeholder_raw_powders.webp" alt="Ashwagandha Powder" loading="lazy" />
+        <span class="badge badge-placeholder">✦ CATEGORY PLACEHOLDER</span>
+      </div>
+      <div class="card-info">
+        <div class="sku-row">
+          <span class="sku">TRN-1095</span>
+          <span class="price">₹150</span>
+        </div>
+        <div class="title-en">Ashwagandha Powder</div>
+        <div class="title-ta">அமுக்கரா பொடி</div>
+        <div class="meta">Health Care · Powder</div>
+      </div>
+    </div>
+    
+    <div class="product-card">
+      <div class="img-container">
+        <img src="/images/products/placeholders/placeholder_seeds.webp" alt="Peepal Seeds Powder" loading="lazy" />
+        <span class="badge badge-placeholder">✦ CATEGORY PLACEHOLDER</span>
+      </div>
+      <div class="card-info">
+        <div class="sku-row">
+          <span class="sku">TRN-1096</span>
+          <span class="price">₹150</span>
+        </div>
+        <div class="title-en">Peepal Seeds Powder</div>
+        <div class="title-ta">அரச விதை பொடி</div>
+        <div class="meta">Health Care · Seed</div>
+      </div>
+    </div>
+    
+    <div class="product-card">
+      <div class="img-container">
+        <img src="/images/products/placeholders/placeholder_raw_powders.webp" alt="Inknut/Myrobalan  Powder" loading="lazy" />
+        <span class="badge badge-placeholder">✦ CATEGORY PLACEHOLDER</span>
+      </div>
+      <div class="card-info">
+        <div class="sku-row">
+          <span class="sku">TRN-1097</span>
+          <span class="price">₹150</span>
+        </div>
+        <div class="title-en">Inknut/Myrobalan  Powder</div>
+        <div class="title-ta">கடுக்காய் பொடி</div>
+        <div class="meta">Health Care · Powder</div>
+      </div>
+    </div>
+    
+    <div class="product-card">
+      <div class="img-container">
+        <img src="/images/products/placeholders/placeholder_raw_powders.webp" alt="Indian Aloevera  Powder" loading="lazy" />
+        <span class="badge badge-placeholder">✦ CATEGORY PLACEHOLDER</span>
+      </div>
+      <div class="card-info">
+        <div class="sku-row">
+          <span class="sku">TRN-1098</span>
+          <span class="price">₹150</span>
+        </div>
+        <div class="title-en">Indian Aloevera  Powder</div>
+        <div class="title-ta">கற்றாழை பொடி</div>
+        <div class="meta">Health Care · Powder</div>
+      </div>
+    </div>
+    
+    <div class="product-card">
+      <div class="img-container">
+        <img src="/images/products/placeholders/placeholder_raw_powders.webp" alt="Fever Nut  Powder" loading="lazy" />
+        <span class="badge badge-placeholder">✦ CATEGORY PLACEHOLDER</span>
+      </div>
+      <div class="card-info">
+        <div class="sku-row">
+          <span class="sku">TRN-1099</span>
+          <span class="price">₹150</span>
+        </div>
+        <div class="title-en">Fever Nut  Powder</div>
+        <div class="title-ta">கழற்சிக்காய் பொடி</div>
+        <div class="meta">Health Care · Powder</div>
+      </div>
+    </div>
+    
+  </div>
+</body>
+</html>

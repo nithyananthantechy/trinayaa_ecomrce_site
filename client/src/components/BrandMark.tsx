@@ -28,14 +28,14 @@ export default function BrandMark({ inverse = false, compact = false, className 
             TRINAYAA
           </div>
           <div
-            className={`flex items-center justify-center gap-0.5 text-[5.5px] sm:text-[6px] font-semibold tracking-[0.03em] uppercase mt-0.5 leading-none text-center ${
+            className={`flex items-center justify-center gap-0.5 text-[5.5px] sm:text-[6px] font-semibold tracking-[0.04em] uppercase mt-0.5 leading-none text-center ${
               inverse ? "text-[#E5DECF]" : "text-[#123D28]"
             }`}
-            style={{ fontFamily: "Montserrat, system-ui, sans-serif" }}
+            style={{ fontFamily: "'Montserrat', system-ui, sans-serif" }}
           >
-            <span className="text-[5px] opacity-90">🍃</span>
+            <span className="text-[5px] text-[#123D28]/80 font-bold">«</span>
             <span className="whitespace-nowrap px-0.5">PURE SEEDS · RAW POWDERS · TRUE HERBS</span>
-            <span className="text-[5px] opacity-90">🍃</span>
+            <span className="text-[5px] text-[#123D28]/80 font-bold">»</span>
           </div>
         </div>
       </div>
@@ -66,11 +66,11 @@ export default function BrandMark({ inverse = false, compact = false, className 
           className={`flex items-center justify-center gap-1.5 text-[6.5px] sm:text-[7.5px] md:text-[8px] font-bold tracking-[0.1em] uppercase mt-0.5 leading-none text-center ${
             inverse ? "text-[#E5DECF]" : "text-[#123D28]"
           }`}
-          style={{ fontFamily: "Montserrat, system-ui, sans-serif" }}
+          style={{ fontFamily: "'Montserrat', system-ui, sans-serif" }}
         >
-          <span className="text-[6px] opacity-90">🍃</span>
+          <span className="text-[7px] text-[#123D28]/80 font-bold">«</span>
           <span className="whitespace-nowrap">PURE SEEDS · RAW POWDERS · TRUE HERBS</span>
-          <span className="text-[6px] opacity-90">🍃</span>
+          <span className="text-[7px] text-[#123D28]/80 font-bold">»</span>
         </div>
       </div>
     </div>

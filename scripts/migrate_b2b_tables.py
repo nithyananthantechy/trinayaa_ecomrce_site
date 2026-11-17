@@ -47,3 +47,4 @@ for row in c.execute("SELECT name FROM sqlite_master WHERE type='table'"):
     print("-", row[0])
 
 conn.close()
+

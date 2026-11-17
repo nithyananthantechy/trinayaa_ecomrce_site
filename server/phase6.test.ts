@@ -122,6 +122,8 @@ describe("TRINAYAA Phase 6 — Telegram Admin Bot & Advanced Workflows Suite", (
         dbInst.prepare("DELETE FROM products WHERE id = ?").run(prod.id);
       }
     }
+    // Clean up test admins so only real admins remain in allowlist
+    dbInst.prepare("DELETE FROM telegram_allowed_admins WHERE telegramId IN ('8899001122', '9988776655')").run();
   });
 
   beforeEach(() => {
@@ -725,6 +727,48 @@ describe("TRINAYAA Phase 6 — Telegram Admin Bot & Advanced Workflows Suite", (
       };
       const res = await handleTelegramUpdate(update);
       expect(res.ok).toBe(true);
+    });
+
+    it("8.5: Handles 1-tap client navigation callback queries (cmd_stats, cmd_products, cmd_offers, cmd_customers)", async () => {
+      for (const action of ["cmd_stats", "cmd_products", "cmd_offers", "cmd_customers", "cmd_full_help"]) {
+        const update = {
+          callback_query: {
+            id: `cb_nav_${action}_${Date.now()}`,
+            from: { id: authorizedId, username: "admin" },
+            message: { chat: { id: testChatId } },
+            data: action,
+          },
+        };
+        const res = await handleTelegramUpdate(update);
+        expect(res.ok).toBe(true);
+      }
+    });
+
+    it("8.6: Recognizes natural language words and custom reply keyboard buttons without slash", async () => {
+      const inputs = [
+        "📊 Store Dashboard",
+        "📦 Recent Orders",
+        "🌿 Products & Stock",
+        "🎉 Active Offers",
+        "👥 Customers",
+        "❓ Help & Menu",
+        "dashboard",
+        "orders",
+        "products",
+        "offers",
+        "வணக்கம்",
+      ];
+      for (const text of inputs) {
+        const update = {
+          message: {
+            chat: { id: testChatId },
+            from: { id: authorizedId, username: "admin" },
+            text,
+          },
+        };
+        const res = await handleTelegramUpdate(update);
+        expect(res.ok).toBe(true);
+      }
     });
   });
 

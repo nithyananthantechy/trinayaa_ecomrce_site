@@ -1,0 +1,163 @@
+sku,name_en,name_ta,category,product_type,botanical_name,plant_family,product_form,search_query,image_filename,is_batch1_or_batch2
+TRN-1001,Licorice Root,அதிமதுரம்,Health Care,Herb,Glycyrrhiza glabra,Fabaceae,Dried roots,Glycyrrhiza glabra root,TRN-1001.webp,YES
+TRN-1002,Ashwagandha - 1,அமுக்கரா,Health Care,Whole ingredient,Withania somnifera,Solanaceae,Dried roots,Withania somnifera root,TRN-1002.webp,YES
+TRN-1003,Peepal Seeds,அரச விதை,Health Care,Seed,Ficus religiosa,Moraceae,Whole seeds,Ficus religiosa seed,TRN-1003.webp,YES
+TRN-1004,Ashwagandha - 2,அஸ்வகந்தா,Health Care,Whole ingredient,Withania somnifera,Solanaceae,Whole roots,Withania somnifera tuberous root,TRN-1004.webp,YES
+TRN-1005,Inknut/Myrobalan,கடுக்காய்,Health Care,Whole ingredient,Terminalia chebula,Combretaceae,Dried fruit,Terminalia chebula dried fruit,TRN-1005.webp,YES
+TRN-1006,Indian Aloe Gum,கரியபவளம்,Health Care,Whole ingredient,Aloe ferox / Aloe barbadensis resin,Asphodelaceae,Herbal resin or gum,Aloe resin dried gum,TRN-1006.webp,YES
+TRN-1007,Fever Nut,கழற்சிக்காய்,Health Care,Whole ingredient,Caesalpinia bonduc,Fabaceae,Dried seeds,Caesalpinia bonduc seeds,TRN-1007.webp,YES
+TRN-1008,Babchi Seeds,கார்போக அரிசி,Health Care,Seed,Psoralea corylifolia,Fabaceae,Whole seeds,Psoralea corylifolia babchi seeds,TRN-1008.webp,YES
+TRN-1009,Malabar Tamarind,குடம்புளி,Health Care,Whole ingredient,Garcinia gummi-gutta,Clusiaceae,Dried fruit,Garcinia gummi-gutta dried rind,TRN-1009.webp,YES
+TRN-1010,Lesser Galangal,சித்தரத்தை,Health Care,Whole ingredient,Alpinia officinarum / Alpinia calcarata,Zingiberaceae,Dried rhizome roots,Alpinia officinarum rhizome,TRN-1010.webp,YES
+TRN-1011,Sweet basil,சீனித்துளசி,Health Care,Whole ingredient,Ocimum basilicum,Lamiaceae,Dried leaves,Ocimum basilicum dried leaves,TRN-1011.webp,YES
+TRN-1012,Lotus Flower,தாமரை பூ,Health Care,Herb,Nelumbo nucifera,Nelumbonaceae,Dried flowers,Nelumbo nucifera lotus petals,TRN-1012.webp,YES
+TRN-1013,Lotus Seeds,தாமரை விதை,Health Care,Seed,Nelumbo nucifera,Nelumbonaceae,Whole seeds,Nelumbo nucifera seeds,TRN-1013.webp,YES
+TRN-1014,Indian Silver Fir,தாளிசபத்திரி,Health Care,Whole ingredient,Abies webbiana,Pinaceae,Dried leaves,Abies webbiana leaves,TRN-1014.webp,YES
+TRN-1015,Long pepper,திப்பிலி (அரிசி),Health Care,Whole ingredient,Piper longum,Piperaceae,Dried fruit,Piper longum fruit spike,TRN-1015.webp,YES
+TRN-1016,Big Pepper,திப்பிலி (யானை),Health Care,Whole ingredient,Piper retrofractum,Piperaceae,Dried fruit,Piper retrofractum fruit,TRN-1016.webp,YES
+TRN-1017,Round Pepper,திப்பிலி (உருண்டை),Health Care,Whole ingredient,Piper nigrum,Piperaceae,Dried fruit,Piper nigrum black peppercorns,TRN-1017.webp,YES
+TRN-1018,Indian Mallow Seeds,துத்தி விதை,Health Care,Seed,Abutilon indicum,Malvaceae,Whole seeds,Abutilon indicum seeds,TRN-1018.webp,YES
+TRN-1019,Indian Sarasparilla,நன்னாரி,Health Care,Whole ingredient,Hemidesmus indicus,Apocynaceae,Dried roots,Hemidesmus indicus nannari root,TRN-1019.webp,NO
+TRN-1020,Black Plum Seeds/Jamun Seeds,நாவல் கொட்டை,Health Care,Seed,Syzygium cumini,Myrtaceae,Whole seeds,Syzygium cumini jamun seeds,TRN-1020.webp,NO
+TRN-1021,Black Plum Bark/Jamun Bark,நாவல் பட்டை,Health Care,Herb,Syzygium cumini,Myrtaceae,Botanical bark,Syzygium cumini bark,TRN-1021.webp,YES
+TRN-1022,King of bitter,நிலவேம்பு,Health Care,Whole ingredient,Andrographis paniculata,Acanthaceae,Dried leaves,Andrographis paniculata dried leaves,TRN-1022.webp,YES
+TRN-1023,Caltrops Large,நெருஞ்சில் முள் (பெ),Health Care,Whole ingredient,Pedalium murex,Pedaliaceae,Dried fruit,Pedalium murex fruit,TRN-1023.webp,YES
+TRN-1024,Caltrops Small,நெருஞ்சில் முள் (சி),Health Care,Whole ingredient,Tribulus terrestris,Zygophyllaceae,Dried fruit,Tribulus terrestris fruit,TRN-1024.webp,YES
+TRN-1025,Indian Goosberry,நெல்லி வத்தல்,Health Care,Whole ingredient,Phyllanthus emblica,Phyllanthaceae,Dried fruit,Phyllanthus emblica dried amla,TRN-1025.webp,YES
+TRN-1026,Sappan Wood,பதிமுகம்,Health Care,Whole ingredient,Caesalpinia sappan,Fabaceae,Botanical bark,Caesalpinia sappan heartwood,TRN-1026.webp,YES
+TRN-1027,Indian Cotton Seeds,பருத்தி விதை,Health Care,Seed,Gossypium herbaceum,Malvaceae,Whole seeds,Gossypium herbaceum seeds,TRN-1027.webp,YES
+TRN-1028,Almond Gum,பாதாம்பிசின்,Health Care,Whole ingredient,Prunus dulcis gum,Rosaceae,Herbal resin or gum,Prunus dulcis almond gum badam pisin,TRN-1028.webp,YES
+TRN-1029,Veldt Grape,பிரண்டை,Health Care,Whole ingredient,Cissus quadrangularis,Vitaceae,Dried stems,Cissus quadrangularis dried stem,TRN-1029.webp,NO
+TRN-1030,Menthol Crystal,புதினா உப்பு,Health Care,Whole ingredient,Mentha arvensis crystal,Lamiaceae,Herbal crystal,Menthol crystal Mentha,TRN-1030.webp,NO
+TRN-1031,Greater Galangal,பேரரத்தை,Health Care,Whole ingredient,Alpinia galanga,Zingiberaceae,Dried rhizome,Alpinia galanga rhizome,TRN-1031.webp,NO
+TRN-1032,Arjun bark,மருதம்பட்டை,Health Care,Herb,Terminalia arjuna,Combretaceae,Botanical bark,Terminalia arjuna bark,TRN-1032.webp,NO
+TRN-1033,Blue Jack,மாசிக்காய்,Health Care,Whole ingredient,Quercus infectoria,Fagaceae,Dried gall fruit,Quercus infectoria gall,TRN-1033.webp,NO
+TRN-1034,Pomegranate Skin,மாதுளை தோல்,Health Care,Whole ingredient,Punica granatum,Lythraceae,Dried fruit peel,Punica granatum dried rind,TRN-1034.webp,NO
+TRN-1035,Pomegranate Seeds,மாதுளை விதை,Health Care,Seed,Punica granatum,Lythraceae,Whole seeds,Punica granatum dried seeds,TRN-1035.webp,NO
+TRN-1036,Mango Kernel,மாம்பருப்பு,Health Care,Whole ingredient,Mangifera indica,Anacardiaceae,Dried seed kernel,Mangifera indica mango seed kernel,TRN-1036.webp,NO
+TRN-1037,Goat Leg Tuber,முடவாட்டுக்கால் கிழங்கு,Health Care,Whole ingredient,Drynaria quercifolia,Polypodiaceae,Dried rhizome,Drynaria quercifolia rhizome,TRN-1037.webp,NO
+TRN-1038,Drumstick Seeds,முருங்கை விதை,Health Care,Seed,Moringa oleifera,Moringaceae,Whole seeds,Moringa oleifera seeds,TRN-1038.webp,NO
+TRN-1039,Drumstick Gum,முருங்கை பிசின்,Health Care,Whole ingredient,Moringa oleifera gum,Moringaceae,Herbal resin or gum,Moringa oleifera gum,TRN-1039.webp,NO
+TRN-1040,Drumstick Flower,முருங்கை பூ,Health Care,Herb,Moringa oleifera,Moringaceae,Dried flowers,Moringa oleifera dried flowers,TRN-1040.webp,NO
+TRN-1041,Indian Screw Tree,வலம்புரி - இடம்புரி,Health Care,Whole ingredient,Moringa oleifera,Moringaceae,Dried leaves,Moringa oleifera dried leaves,TRN-1041.webp,NO
+TRN-1042,Tailed pepper,வால்மிளகு,Health Care,Whole ingredient,Piper cubeba,Piperaceae,Dried berries,Piper cubeba berries,TRN-1042.webp,NO
+TRN-1043,Nutmeg,ஜாதிக்காய்,Health Care,Whole ingredient,Myristica fragrans,Myristicaceae,Whole dried seed,Myristica fragrans nutmeg,TRN-1043.webp,NO
+TRN-1044,Sweet Flag,வசம்பு,Health Care,Whole ingredient,Acorus calamus,Acoraceae,Dried rhizome,Acorus calamus rhizome,TRN-1044.webp,NO
+TRN-1045,Rosemary,ரோஸ்மேரி,Hair Care,Whole ingredient,Linum usitatissimum,Linaceae,Whole seeds,Linum usitatissimum flax seeds,TRN-1045.webp,NO
+TRN-1046,Henna,மருதாணி,Hair Care,Whole ingredient,Salvia rosmarinus,Lamiaceae,Dried leaves,Salvia rosmarinus dried rosemary,TRN-1046.webp,NO
+TRN-1047,Marjoram,மரிக்கொழுந்து,Hair Care,Whole ingredient,Nigella sativa,Ranunculaceae,Whole seeds,Nigella sativa kalonji black seed,TRN-1047.webp,NO
+TRN-1048,Country Senna Leaf,நிலாவரை,Hair Care,Herb,Senna auriculata,Fabaceae,Dried flowers,Senna auriculata aavaram poo flowers,TRN-1048.webp,NO
+TRN-1049,Hibiscus Leaf,செம்பருத்தி இலை,Hair Care,Herb,Ventilago madraspatana,Rhamnaceae,Botanical bark,Ventilago madraspatana bark,TRN-1049.webp,NO
+TRN-1050,Hibiscus Flower,செம்பருத்தி பூ,Hair Care,Herb,Chrysopogon zizanioides,Poaceae,Dried fibrous roots,Chrysopogon zizanioides vetiver roots,TRN-1050.webp,NO
+TRN-1051,Soap pod Special,சீயக்காய் - 1,Hair Care,Whole ingredient,Chrysopogon zizanioides,Poaceae,Dried fibrous roots,Chrysopogon zizanioides vetiver roots cut,TRN-1051.webp,NO
+TRN-1052,Soap pod,சீயக்காய் - 2,Hair Care,Whole ingredient,Aegle marmelos,Rutaceae,Dried leaves,Aegle marmelos leaves,TRN-1052.webp,NO
+TRN-1053,Dil Seeds,சதக்குப்பை,Hair Care,Seed,Aegle marmelos,Rutaceae,Dried fruit shell/pulp,Aegle marmelos dried bael fruit,TRN-1053.webp,NO
+TRN-1054,Nutgrass,கோரைக்கிழங்கு,Hair Care,Whole ingredient,Terminalia bellirica,Combretaceae,Dried fruit,Terminalia bellirica bibhitaki fruit,TRN-1054.webp,NO
+TRN-1055,Red Fruit Creeper,கருடக்கிழங்கு,Hair Care,Whole ingredient,Phyllanthus emblica,Phyllanthaceae,Whole dried fruit,Phyllanthus emblica amla fruit,TRN-1055.webp,NO
+TRN-1056,Indian Indigo,அவுரி விதை,Hair Care,Whole ingredient,Acacia concinna,Fabaceae,Dried fruit pods,Acacia concinna shikakai pods,TRN-1056.webp,NO
+TRN-1057,Black Cumin,கருஞ்சீரகம்,Hair Care,Whole ingredient,Sapindus mukorossi / Sapindus trifoliatus,Sapindaceae,Dried berries,Sapindus mukorossi soap nuts,TRN-1057.webp,NO
+TRN-1058,Soap Pod Powder,சீயக்காய் மிக்ஸ் பொடி,Hair Care,Powder,Acacia concinna herbal blend,Fabaceae,Herbal blend powder,Shikakai herbal hair wash powder,TRN-1058.webp,NO
+TRN-1059,Alkanet Roots,வேம்பாளம் பட்டை,Skin Care,Herb,Eclipta prostrata,Asteraceae,Dried leaves,Eclipta prostrata bhringraj leaves,TRN-1059.webp,NO
+TRN-1060,Camel Grass,வெட்டிவேர்,Skin Care,Whole ingredient,Centella asiatica,Apiaceae,Dried leaves,Centella asiatica gotu kola brahmi,TRN-1060.webp,NO
+TRN-1061,Turmeric,விரலிமஞ்சள்,Skin Care,Whole ingredient,Curcuma longa,Zingiberaceae,Dried rhizome fingers,Curcuma longa turmeric fingers,TRN-1061.webp,NO
+TRN-1062,Bilva Fruit Dry,வில்வ ஓடு,Skin Care,Whole ingredient,Aegle marmelos,Rutaceae,Dried fruit rind,Aegle marmelos bilva fruit shell,TRN-1062.webp,NO
+TRN-1063,Indian Rose,ரோஜாபூ,Skin Care,Whole ingredient,Rosa damascena,Rosaceae,Dried flower petals,Rosa damascena dried rose petals,TRN-1063.webp,NO
+TRN-1064,Fuller Earth,முல்தானி மட்டி,Skin Care,Whole ingredient,Solum fullonum,Clay mineral,Natural clay chunks,Multani mitti clay,TRN-1064.webp,NO
+TRN-1065,Indian madder,மஞ்சிஷ்டா,Skin Care,Whole ingredient,Rubia cordifolia,Rubiaceae,Dried root sticks,Rubia cordifolia manjistha roots,TRN-1065.webp,NO
+TRN-1066,Indian Rennet,பன்னீர் பூ,Skin Care,Whole ingredient,Withania coagulans,Solanaceae,Dried berries/flowers,Withania coagulans paneer doda,TRN-1066.webp,NO
+TRN-1067,Alam Stone,படிகாரம்,Skin Care,Whole ingredient,Potassium alum,Mineral,Natural mineral crystal,Potassium alum crystal,TRN-1067.webp,NO
+TRN-1068,Rough Chaff,நாயுருவி அரிசி,Skin Care,Whole ingredient,Achyranthes aspera,Amaranthaceae,Whole seeds,Achyranthes aspera seeds,TRN-1068.webp,NO
+TRN-1069,Sweet Basil,திருநீற்று பச்சிலை,Skin Care,Whole ingredient,Ocimum basilicum seeds,Lamiaceae,Whole seeds,Ocimum basilicum sabja seeds,TRN-1069.webp,NO
+TRN-1070,Wild Turmeric,கஸ்தூரி மஞ்சள்,Skin Care,Whole ingredient,Curcuma aromatica,Zingiberaceae,Dried rhizome,Curcuma aromatica kasthuri manjal,TRN-1070.webp,NO
+TRN-1071,Lemon Peel,எலுமிச்சை தோல்,Skin Care,Whole ingredient,Ocimum tenuiflorum,Lamiaceae,Dried leaves,Ocimum tenuiflorum tulsi holy basil,TRN-1071.webp,NO
+TRN-1072,Senna Flowers,ஆவாரம்பூ,Skin Care,Herb,Clitoria ternatea,Fabaceae,Dried flowers,Clitoria ternatea butterfly pea blue flower,TRN-1072.webp,NO
+TRN-1073,Benzoin Resin - 1,சாம்பிராணி 1,Aromatherapy & Incense,Whole ingredient,Hibiscus rosa-sinensis,Malvaceae,Dried flowers,Hibiscus rosa-sinensis dried hibiscus flowers,TRN-1073.webp,NO
+TRN-1074,Benzoin Resin - 2,சாம்பிராணி 2,Aromatherapy & Incense,Whole ingredient,Lawsonia inermis,Lythraceae,Dried leaves,Lawsonia inermis dried henna leaves,TRN-1074.webp,NO
+TRN-1075,Benzoin Resin - 3,சாம்பிராணி 3,Aromatherapy & Incense,Whole ingredient,Indigofera tinctoria,Fabaceae,Dried leaves,Indigofera tinctoria dried leaves,TRN-1075.webp,NO
+TRN-1076,Black Dammer,குங்கிலியம் (க),Aromatherapy & Incense,Whole ingredient,Cassia fistula,Fabaceae,Dried pods,Cassia fistula golden shower pod,TRN-1076.webp,NO
+TRN-1077,White Dammer,குங்கிலியம் (வெ),Aromatherapy & Incense,Whole ingredient,Mucuna pruriens,Fabaceae,Whole seeds,Mucuna pruriens velvet bean seeds,TRN-1077.webp,NO
+TRN-1078,Magic ginger,மேஜிக் இஞ்சி,Welness Drinks,Whole ingredient,Tribulus terrestris,Zygophyllaceae,Dried fruit thorns,Tribulus terrestris gokshura fruit,TRN-1078.webp,NO
+TRN-1079,Amla Tea,நெல்லி டி,Welness Drinks,Whole ingredient,Astercantha longifolia,Acanthaceae,Whole seeds,Hygrophila auriculata kokilaksha seeds,TRN-1079.webp,NO
+TRN-1080,Ginger Soup,இஞ்சி சூப்,Welness Drinks,Whole ingredient,Coriandrum sativum,Apiaceae,Whole seeds,Coriandrum sativum coriander seeds,TRN-1080.webp,NO
+TRN-1081,Pumpkin Seeds,பூசணி விதை,Welness Drinks,Seed,Cuminum cyminum,Apiaceae,Whole seeds,Cuminum cyminum cumin seeds,TRN-1081.webp,NO
+TRN-1082,Cucumber Seeds,வெள்ளரி விதை,Welness Drinks,Seed,Foeniculum vulgare,Apiaceae,Whole seeds,Foeniculum vulgare fennel seeds,TRN-1082.webp,NO
+TRN-1083,Sunflower Seeds,சூரியகாந்தி விதை,Welness Drinks,Seed,Trigonella foenum-graecum,Fabaceae,Whole seeds,Trigonella foenum-graecum fenugreek seeds,TRN-1083.webp,NO
+TRN-1084,Chia Seeds,சியா விதை,Welness Drinks,Seed,Elettaria cardamomum,Zingiberaceae,Dried green pods,Elettaria cardamomum green cardamom pods,TRN-1084.webp,NO
+TRN-1085,Flax Sseeds,ஆளி விதை,Welness Drinks,Seed,Syzygium aromaticum,Myrtaceae,Dried flower buds,Syzygium aromaticum cloves,TRN-1085.webp,NO
+TRN-1086,Basil Seeds,சப்ஜா விதை,Welness Drinks,Seed,Cinnamomum verum,Lauraceae,Dried inner bark quills,Cinnamomum verum ceylon cinnamon quills,TRN-1086.webp,NO
+TRN-1087,Spogel Seeds,இசப்புகல் விதை,Welness Drinks,Seed,Illicium verum,Schisandraceae,Dried star fruit,Illicium verum star anise,TRN-1087.webp,NO
+TRN-1088,fenugreek Seeds,வெந்தய விதைகள்,Welness Drinks,Seed,Myristica fragrans aril,Myristicaceae,Dried mace aril blades,Myristica fragrans mace aril,TRN-1088.webp,NO
+TRN-1089,Cinnamon,இலவங்கம்,Spices & Culinary,Whole ingredient,Commiphora mukul,Burseraceae,Herbal resin or gum,Commiphora mukul guggul resin,TRN-1089.webp,NO
+TRN-1090,Cardamom,ஏலரிசி,Spices & Culinary,Whole ingredient,Boswellia serrata,Burseraceae,Herbal resin tears,Boswellia serrata frankincense resin,TRN-1090.webp,NO
+TRN-1091,Bishop Weed,ஓமம்,Spices & Culinary,Whole ingredient,Trachyspermum ammi,Apiaceae,Whole seeds,Trachyspermum ammi ajwain seeds,TRN-1091.webp,NO
+TRN-1092,Dry Ginger,சுக்கு,Spices & Culinary,Whole ingredient,Zingiber officinale,Zingiberaceae,Dried rhizome,Zingiber officinale dried ginger root,TRN-1092.webp,NO
+TRN-1093,Garlic,பூண்டு - புகை,Spices & Culinary,Whole ingredient,Allium sativum,Amaryllidaceae,Dried smoked cloves,Allium sativum garlic bulbs,TRN-1093.webp,NO
+TRN-1094,Licorice Root Powder,அதிமதுரம் பொடி,Health Care,Powder,Licorice Root (Siddha/Ayurvedic ground herbal formulation),Herbal Powder,Herbal powder,Licorice Root herbal powder,TRN-1094.webp,NO
+TRN-1095,Ashwagandha Powder,அமுக்கரா பொடி,Health Care,Powder,Ashwagandha (Siddha/Ayurvedic ground herbal formulation),Herbal Powder,Herbal powder,Ashwagandha herbal powder,TRN-1095.webp,NO
+TRN-1096,Peepal Seeds Powder,அரச விதை பொடி,Health Care,Seed,Peepal Seeds (Siddha/Ayurvedic ground herbal formulation),Herbal Powder,Herbal powder,Peepal Seeds herbal powder,TRN-1096.webp,NO
+TRN-1097,Inknut/Myrobalan  Powder,கடுக்காய் பொடி,Health Care,Powder,Inknut/Myrobalan (Siddha/Ayurvedic ground herbal formulation),Herbal Powder,Herbal powder,Inknut/Myrobalan herbal powder,TRN-1097.webp,NO
+TRN-1098,Indian Aloevera  Powder,கற்றாழை பொடி,Health Care,Powder,Indian Aloevera (Siddha/Ayurvedic ground herbal formulation),Herbal Powder,Herbal powder,Indian Aloevera herbal powder,TRN-1098.webp,NO
+TRN-1099,Fever Nut  Powder,கழற்சிக்காய் பொடி,Health Care,Powder,Fever Nut (Siddha/Ayurvedic ground herbal formulation),Herbal Powder,Herbal powder,Fever Nut herbal powder,TRN-1099.webp,NO
+TRN-1100,Babchi Seeds  Powder,கார்போக அரிசி பொடி,Health Care,Seed,Psoralea corylifolia,Fabaceae,Herbal powder,Psoralea corylifolia powder,TRN-1100.webp,NO
+TRN-1101,Lesser Galangal  Powder,சித்தரத்தை பொடி,Health Care,Powder,Lesser Galangal (Siddha/Ayurvedic ground herbal formulation),Herbal Powder,Herbal powder,Lesser Galangal herbal powder,TRN-1101.webp,NO
+TRN-1102,Sweet basil  Powder,சீனி துளசி பொடி,Health Care,Powder,Sweet basil (Siddha/Ayurvedic ground herbal formulation),Herbal Powder,Herbal powder,Sweet basil herbal powder,TRN-1102.webp,NO
+TRN-1103,Indian Silver Fir  Powder,தாளிச்சபத்திரி பொடி,Health Care,Powder,Indian Silver Fir (Siddha/Ayurvedic ground herbal formulation),Herbal Powder,Herbal powder,Indian Silver Fir herbal powder,TRN-1103.webp,NO
+TRN-1104,Long pepper  Powder,திப்பிலி பொடி,Health Care,Powder,Long pepper (Siddha/Ayurvedic ground herbal formulation),Herbal Powder,Herbal powder,Long pepper herbal powder,TRN-1104.webp,NO
+TRN-1105,Indian Mallow Seeds  Powder,துத்தி பொடி,Health Care,Seed,Indian Mallow Seeds (Siddha/Ayurvedic ground herbal formulation),Herbal Powder,Herbal powder,Indian Mallow Seeds herbal powder,TRN-1105.webp,NO
+TRN-1106,Indian Sarasparilla  Powder,நன்னாரி பொடி,Health Care,Powder,Indian Sarasparilla (Siddha/Ayurvedic ground herbal formulation),Herbal Powder,Herbal powder,Indian Sarasparilla herbal powder,TRN-1106.webp,NO
+TRN-1107,Black Plum Seeds/Jamun Seeds  Powder,நாவல்கொட்டை பொடி,Health Care,Seed,Black Plum Seeds/Jamun Seeds (Siddha/Ayurvedic ground herbal formulation),Herbal Powder,Herbal powder,Black Plum Seeds/Jamun Seeds herbal powder,TRN-1107.webp,NO
+TRN-1108,Black Plum Bark/Jamun Bark  Powder,நாவல் பட்டை பொடி,Health Care,Powder,Black Plum Bark/Jamun Bark (Siddha/Ayurvedic ground herbal formulation),Herbal Powder,Herbal powder,Black Plum Bark/Jamun Bark herbal powder,TRN-1108.webp,NO
+TRN-1109,King of bitter  Powder,நிலவேம்பு பொடி,Health Care,Powder,King of bitter (Siddha/Ayurvedic ground herbal formulation),Herbal Powder,Herbal powder,King of bitter herbal powder,TRN-1109.webp,NO
+TRN-1110,Caltrops Large  Powder,நெருஞ்சில் (பெ) பொடி,Health Care,Powder,Caltrops Large (Siddha/Ayurvedic ground herbal formulation),Herbal Powder,Herbal powder,Caltrops Large herbal powder,TRN-1110.webp,NO
+TRN-1111,Caltrops Small  Powder,நெருஞ்சில் (சி) பொடி,Health Care,Powder,Caltrops Small (Siddha/Ayurvedic ground herbal formulation),Herbal Powder,Herbal powder,Caltrops Small herbal powder,TRN-1111.webp,NO
+TRN-1112,Indian Goosberry  Powder - 1,நெல்லிக்காய் பொடி-1,Health Care,Powder,Indian Goosberry   - 1 (Siddha/Ayurvedic ground herbal formulation),Herbal Powder,Herbal powder,Indian Goosberry   - 1 herbal powder,TRN-1112.webp,NO
+TRN-1113,Indian Goosberry  Powder - 2,நெல்லிக்காய் பொடி-2,Health Care,Powder,Indian Goosberry   - 2 (Siddha/Ayurvedic ground herbal formulation),Herbal Powder,Herbal powder,Indian Goosberry   - 2 herbal powder,TRN-1113.webp,NO
+TRN-1114,Sappan Wood  Powder,பதிமுகம் பொடி,Health Care,Powder,Sappan Wood (Siddha/Ayurvedic ground herbal formulation),Herbal Powder,Herbal powder,Sappan Wood herbal powder,TRN-1114.webp,NO
+TRN-1115,Veldt Grape  Powder,பிரண்டை பொடி,Health Care,Powder,Veldt Grape (Siddha/Ayurvedic ground herbal formulation),Herbal Powder,Herbal powder,Veldt Grape herbal powder,TRN-1115.webp,NO
+TRN-1116,Menthol Crystal  Powder,புதினா பொடி,Health Care,Powder,Mentha arvensis crystal,Lamiaceae,Herbal powder,Mentha arvensis crystal powder,TRN-1116.webp,NO
+TRN-1117,Greater Galangal  Powder,பேரரத்தை பொடி,Health Care,Powder,Greater Galangal (Siddha/Ayurvedic ground herbal formulation),Herbal Powder,Herbal powder,Greater Galangal herbal powder,TRN-1117.webp,NO
+TRN-1118,Arjun bark  Powder,மருதம்பட்டை பொடி,Health Care,Powder,Arjun bark (Siddha/Ayurvedic ground herbal formulation),Herbal Powder,Herbal powder,Arjun bark herbal powder,TRN-1118.webp,NO
+TRN-1119,Blue Jack  Powder,மாசிக்காய் பொடி,Health Care,Powder,Blue Jack (Siddha/Ayurvedic ground herbal formulation),Herbal Powder,Herbal powder,Blue Jack herbal powder,TRN-1119.webp,NO
+TRN-1120,Pomegranate Skin  Powder,மாதுளை தோல் பொடி,Health Care,Powder,Pomegranate Skin (Siddha/Ayurvedic ground herbal formulation),Herbal Powder,Herbal powder,Pomegranate Skin herbal powder,TRN-1120.webp,NO
+TRN-1121,Mango Kernel  Powder,மாம்பருப்பு பொடி,Health Care,Powder,Mango Kernel (Siddha/Ayurvedic ground herbal formulation),Herbal Powder,Herbal powder,Mango Kernel herbal powder,TRN-1121.webp,NO
+TRN-1122,Goat Leg Tuber  Powder,முடவாட்டுக் கால் பொடி,Health Care,Powder,Goat Leg Tuber (Siddha/Ayurvedic ground herbal formulation),Herbal Powder,Herbal powder,Goat Leg Tuber herbal powder,TRN-1122.webp,NO
+TRN-1123,Drumstick Seeds  Powder,முருங்கை விதை பொடி,Health Care,Seed,Drumstick Seeds (Siddha/Ayurvedic ground herbal formulation),Herbal Powder,Herbal powder,Drumstick Seeds herbal powder,TRN-1123.webp,NO
+TRN-1124,Drumstick Gum  Powder,முருங்கை பிசின் பொடி,Health Care,Powder,Drumstick Gum (Siddha/Ayurvedic ground herbal formulation),Herbal Powder,Herbal powder,Drumstick Gum herbal powder,TRN-1124.webp,NO
+TRN-1125,Drumstick Leaves  Powder,முருங்கை இலை பொடி,Health Care,Powder,Drumstick Leaves (Siddha/Ayurvedic ground herbal formulation),Herbal Powder,Herbal powder,Drumstick Leaves herbal powder,TRN-1125.webp,NO
+TRN-1126,Tailed pepper  Powder,வால்மிளகு பொடி,Health Care,Powder,Tailed pepper (Siddha/Ayurvedic ground herbal formulation),Herbal Powder,Herbal powder,Tailed pepper herbal powder,TRN-1126.webp,NO
+TRN-1127,Nutmeg  Powder,ஜாதிக்காய் பொடி,Health Care,Powder,Myristica fragrans,Myristicaceae,Herbal powder,Myristica fragrans powder,TRN-1127.webp,NO
+TRN-1128,Sweet Flag  Powder,வசம்பு பொடி,Health Care,Powder,Sweet Flag (Siddha/Ayurvedic ground herbal formulation),Herbal Powder,Herbal powder,Sweet Flag herbal powder,TRN-1128.webp,NO
+TRN-1129,Flax seeds  Powder,ஆளிவிதை பொடி,Health Care,Seed,Linum usitatissimum,Linaceae,Herbal powder,Linum usitatissimum powder,TRN-1129.webp,NO
+TRN-1130,Rosemary  Powder,ரோஸ்மேரி பொடி,Hair Care,Powder,Salvia rosmarinus,Lamiaceae,Herbal powder,Salvia rosmarinus powder,TRN-1130.webp,NO
+TRN-1131,Henna Leaves  Powder,மருதாணி இலை பொடி,Hair Care,Powder,Lawsonia inermis,Lythraceae,Herbal powder,Lawsonia inermis powder,TRN-1131.webp,NO
+TRN-1132,Marjoram  Powder,மரிக்கொழுந்து பொடி,Hair Care,Powder,Marjoram (Siddha/Ayurvedic ground herbal formulation),Herbal Powder,Herbal powder,Marjoram herbal powder,TRN-1132.webp,NO
+TRN-1133,Country Senna Leaf  Powder,நிலாவரை பொடி,Hair Care,Powder,Country Senna Leaf (Siddha/Ayurvedic ground herbal formulation),Herbal Powder,Herbal powder,Country Senna Leaf herbal powder,TRN-1133.webp,NO
+TRN-1134,Hibiscus Leaf  Powder,செம்பருத்தி இலை பொடி,Hair Care,Powder,Hibiscus Leaf (Siddha/Ayurvedic ground herbal formulation),Herbal Powder,Herbal powder,Hibiscus Leaf herbal powder,TRN-1134.webp,NO
+TRN-1135,Hibiscus Flower  Powder,செம்பருத்தி பூ பொடி,Hair Care,Powder,Hibiscus rosa-sinensis,Malvaceae,Herbal powder,Hibiscus rosa-sinensis powder,TRN-1135.webp,NO
+TRN-1136,Soap pod  Powder,சீயக்காய் பொடி,Hair Care,Powder,Soap pod (Siddha/Ayurvedic ground herbal formulation),Herbal Powder,Herbal powder,Soap pod herbal powder,TRN-1136.webp,NO
+TRN-1137,Dil Seeds  Powder,சதக்குப்பை பொடி,Hair Care,Seed,Dil Seeds (Siddha/Ayurvedic ground herbal formulation),Herbal Powder,Herbal powder,Dil Seeds herbal powder,TRN-1137.webp,NO
+TRN-1138,Nutgrass  Powder,கோரைக்கிழங்கு பொடி,Hair Care,Powder,Nutgrass (Siddha/Ayurvedic ground herbal formulation),Herbal Powder,Herbal powder,Nutgrass herbal powder,TRN-1138.webp,NO
+TRN-1139,Black Cumin  Powder,கருஞ்சீரகம் பொடி,Hair Care,Powder,Black Cumin (Siddha/Ayurvedic ground herbal formulation),Herbal Powder,Herbal powder,Black Cumin herbal powder,TRN-1139.webp,NO
+TRN-1140,Red Fruit Creeper  Powder,கருடக்கிழங்கு பொடி,Hair Care,Powder,Red Fruit Creeper (Siddha/Ayurvedic ground herbal formulation),Herbal Powder,Herbal powder,Red Fruit Creeper herbal powder,TRN-1140.webp,NO
+TRN-1141,Senna Flowers Powder,ஆவாரம்பூ பொடி,Skin Care,Powder,Senna Flowers (Siddha/Ayurvedic ground herbal formulation),Herbal Powder,Herbal powder,Senna Flowers herbal powder,TRN-1141.webp,NO
+TRN-1142,Alkanet Roots  Powder,வேம்பாலம்பட்டை பொடி,Skin Care,Powder,Alkanet Roots (Siddha/Ayurvedic ground herbal formulation),Herbal Powder,Herbal powder,Alkanet Roots herbal powder,TRN-1142.webp,NO
+TRN-1143,Camel Grass  Powder - 1,வெட்டிவேர் பொடி -1,Skin Care,Powder,Camel Grass   - 1 (Siddha/Ayurvedic ground herbal formulation),Herbal Powder,Herbal powder,Camel Grass   - 1 herbal powder,TRN-1143.webp,NO
+TRN-1144,Camel Grass  Powder - 2,வெட்டிவேர் பொடி -2,Skin Care,Powder,Camel Grass   - 2 (Siddha/Ayurvedic ground herbal formulation),Herbal Powder,Herbal powder,Camel Grass   - 2 herbal powder,TRN-1144.webp,NO
+TRN-1145,Bilva Leaves  Powder,வில்வ இலை பொடி,Skin Care,Powder,Bilva Leaves (Siddha/Ayurvedic ground herbal formulation),Herbal Powder,Herbal powder,Bilva Leaves herbal powder,TRN-1145.webp,NO
+TRN-1146,Bilva Fruit  Powder,வில்வ பழம் பொடி,Skin Care,Powder,Aegle marmelos,Rutaceae,Herbal powder,Aegle marmelos powder,TRN-1146.webp,NO
+TRN-1147,Indian Rose  Powder - 1,ரோஸ் பொடி -1,Skin Care,Powder,Indian Rose   - 1 (Siddha/Ayurvedic ground herbal formulation),Herbal Powder,Herbal powder,Indian Rose   - 1 herbal powder,TRN-1147.webp,NO
+TRN-1148,Indian Rose  Powder - 2,ரோஸ் பொடி -2,Skin Care,Powder,Indian Rose   - 2 (Siddha/Ayurvedic ground herbal formulation),Herbal Powder,Herbal powder,Indian Rose   - 2 herbal powder,TRN-1148.webp,NO
+TRN-1149,Fuller Earth  Powder,முல்தானி மட்டி பொடி,Skin Care,Powder,Fuller Earth (Siddha/Ayurvedic ground herbal formulation),Herbal Powder,Herbal powder,Fuller Earth herbal powder,TRN-1149.webp,NO
+TRN-1150,Indian madder  Powder,மஞ்சிஷ்டா பொடி,Skin Care,Powder,Indian madder (Siddha/Ayurvedic ground herbal formulation),Herbal Powder,Herbal powder,Indian madder herbal powder,TRN-1150.webp,NO
+TRN-1151,Indian Rennet  Powder,பன்னீர் பூ பொடி,Skin Care,Powder,Indian Rennet (Siddha/Ayurvedic ground herbal formulation),Herbal Powder,Herbal powder,Indian Rennet herbal powder,TRN-1151.webp,NO
+TRN-1152,Alam Stone  Powder,படிகாரம் பொடி,Skin Care,Powder,Alam Stone (Siddha/Ayurvedic ground herbal formulation),Herbal Powder,Herbal powder,Alam Stone herbal powder,TRN-1152.webp,NO
+TRN-1153,Rough Chaff  Powder,நாயுருவி அரிசி பொடி,Skin Care,Powder,Rough Chaff (Siddha/Ayurvedic ground herbal formulation),Herbal Powder,Herbal powder,Rough Chaff herbal powder,TRN-1153.webp,NO
+TRN-1154,Sweet Basil  Powder,திருநீற்று பச்சிலை பொடி,Skin Care,Powder,Sweet Basil (Siddha/Ayurvedic ground herbal formulation),Herbal Powder,Herbal powder,Sweet Basil herbal powder,TRN-1154.webp,NO
+TRN-1155,Wild Turmeric  Powder,கஸ்தூரி மஞ்சள் பொடி,Skin Care,Powder,Wild Turmeric (Siddha/Ayurvedic ground herbal formulation),Herbal Powder,Herbal powder,Wild Turmeric herbal powder,TRN-1155.webp,NO
+TRN-1156,Lemon Peel  Powder,எலுமிச்சை தோல் பொடி,Skin Care,Powder,Lemon Peel (Siddha/Ayurvedic ground herbal formulation),Herbal Powder,Herbal powder,Lemon Peel herbal powder,TRN-1156.webp,NO
+TRN-1157,White Dammer  Powder,குங்கிலியம் பொடி,Aromatherapy & Incense,Powder,White Dammer (Siddha/Ayurvedic ground herbal formulation),Herbal Powder,Herbal powder,White Dammer herbal powder,TRN-1157.webp,NO
+TRN-1158,Turmeric  Powder,விரலி மஞ்சள் பொடி,Spices & Culinary,Powder,Curcuma longa,Zingiberaceae,Herbal powder,Curcuma longa powder,TRN-1158.webp,NO
+TRN-1159,Garlic  Powder,பூண்டு பொடி,Spices & Culinary,Powder,Allium sativum,Amaryllidaceae,Herbal powder,Allium sativum powder,TRN-1159.webp,NO
+TRN-1160,Cinnamon  Powder,இலவங்கம் பொடி,Spices & Culinary,Powder,Cinnamomum verum,Lauraceae,Herbal powder,Cinnamomum verum powder,TRN-1160.webp,NO
+TRN-1161,Bishop Weed  Powder,ஓமம் பொடி,Spices & Culinary,Powder,Bishop Weed (Siddha/Ayurvedic ground herbal formulation),Herbal Powder,Herbal powder,Bishop Weed herbal powder,TRN-1161.webp,NO
+TRN-1162,Dry Ginger Powder,சுக்கு பொடி,Spices & Culinary,Powder,Dry Ginger (Siddha/Ayurvedic ground herbal formulation),Herbal Powder,Herbal powder,Dry Ginger herbal powder,TRN-1162.webp,NO

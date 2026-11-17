@@ -14,7 +14,7 @@ import { publicPlatformScript } from "./publicConfig";
 import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
-import { handleTelegramUpdate, initTelegramNotifications } from "../telegram";
+import { handleTelegramUpdate, initTelegramNotifications, startTelegramPolling } from "../telegram";
 import * as db from "../db";
 import path from "node:path";
 import fs from "node:fs";
@@ -51,6 +51,7 @@ function createRateLimiter(maxRequests: number, windowMs = 60000) {
 
 async function startServer() {
   initTelegramNotifications();
+  startTelegramPolling();
   const app = express();
   const server = createServer(app);
 

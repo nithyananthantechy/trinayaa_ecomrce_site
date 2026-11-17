@@ -1,0 +1,3980 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TRINAYAA — 162 Individual Product Image Delivery & Client Review</title>
+  <style>
+    :root {
+      --bg: #F8F6F2;
+      --card-bg: #FFFFFF;
+      --forest: #123D28;
+      --gold: #BA9655;
+      --text: #262B27;
+      --muted: #666E64;
+      --border: #E5DFD4;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Georgia, serif;
+      background: var(--bg);
+      color: var(--text);
+      padding: 24px 32px;
+    }
+    header {
+      background: #FFFFFF;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 24px 30px;
+      margin-bottom: 24px;
+      box-shadow: 0 4px 16px rgba(18,61,40,0.03);
+    }
+    h1 {
+      font-family: Georgia, serif;
+      color: var(--forest);
+      font-size: 26px;
+      margin-bottom: 6px;
+    }
+    .sub {
+      color: var(--muted);
+      font-size: 14px;
+      margin-bottom: 16px;
+    }
+    .stats-bar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+      padding-top: 14px;
+      border-top: 1px solid var(--border);
+    }
+    .stat-pill {
+      background: #F4EFEA;
+      border: 1px solid #DFD8CC;
+      padding: 8px 16px;
+      border-radius: 8px;
+    }
+    .stat-val {
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--forest);
+    }
+    .stat-lbl {
+      font-size: 11px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .tab-bar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 20px;
+    }
+    .page-tab {
+      background: #FFFFFF;
+      border: 1px solid var(--border);
+      color: var(--forest);
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .page-tab:hover {
+      background: #F0ECE4;
+      border-color: var(--gold);
+    }
+    .page-tab.active {
+      background: var(--forest);
+      color: #FFFFFF;
+      border-color: var(--forest);
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+      gap: 20px;
+    }
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 8px 20px rgba(18,61,40,0.08);
+      border-color: var(--gold);
+    }
+    .img-wrap {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 1/1;
+      background: #F2EFE9;
+    }
+    .img-wrap img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    .badge {
+      position: absolute;
+      top: 8px;
+      left: 8px;
+      font-size: 10px;
+      font-weight: 700;
+      padding: 3px 8px;
+      border-radius: 6px;
+      text-transform: uppercase;
+    }
+    .badge-real {
+      background: rgba(18, 61, 40, 0.92);
+      color: #FFFFFF;
+      border: 1px solid #2B6E4A;
+    }
+    .badge-ai {
+      background: rgba(186, 150, 85, 0.95);
+      color: #123D28;
+      border: 1px solid #D6B26F;
+    }
+    .badge-pending {
+      background: rgba(220, 38, 38, 0.9);
+      color: #FFFFFF;
+    }
+    .info {
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+    }
+    .sku-row {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 4px;
+    }
+    .sku {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--gold);
+    }
+    .form-tag {
+      font-size: 10px;
+      background: #F4EFEA;
+      padding: 2px 6px;
+      border-radius: 4px;
+      color: var(--muted);
+    }
+    .name-en {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--forest);
+      line-height: 1.3;
+      margin-bottom: 2px;
+    }
+    .name-ta {
+      font-size: 12px;
+      color: #555E52;
+      margin-bottom: 4px;
+    }
+    .bot-name {
+      font-size: 11px;
+      color: var(--muted);
+      margin-bottom: 10px;
+    }
+    .source-info {
+      font-size: 10px;
+      color: #7A8275;
+      background: #FAF8F5;
+      padding: 6px 8px;
+      border-radius: 6px;
+      border: 1px solid #EFEAE2;
+      margin-top: auto;
+      margin-bottom: 10px;
+      line-height: 1.4;
+    }
+    .btn-check {
+      width: 100%;
+      background: #F4EFEA;
+      border: 1px solid #DFD8CC;
+      color: var(--forest);
+      padding: 6px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .btn-check.checked {
+      background: var(--forest);
+      color: #FFFFFF;
+      border-color: var(--forest);
+    }
+  </style>
+  <script>
+    function switchPage(pageNum) {
+      document.querySelectorAll('.card').forEach(el => el.style.display = 'none');
+      document.querySelectorAll('.page-' + pageNum).forEach(el => el.style.display = 'flex');
+      document.querySelectorAll('.page-tab').forEach((el, idx) => {
+        if (idx === pageNum) el.classList.add('active');
+        else el.classList.remove('active');
+      });
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+    function markChecked(btn, sku) {
+      btn.classList.toggle('checked');
+      btn.innerText = btn.classList.contains('checked') ? '✓ Confirmed by Reviewer' : '✓ Ready for Demo';
+    }
+    window.addEventListener('DOMContentLoaded', () => switchPage(0));
+  </script>
+</head>
+<body>
+  <header>
+    <h1>TRINAYAA — Complete 162-Product Image Review Gallery</h1>
+    <div class="sub">High-Resolution Candidate Image Library for Tomorrow's Client Confirmation Demo</div>
+    <div class="stats-bar">
+      <div class="stat-pill"><span class="stat-val">162</span> <span class="stat-lbl">Total Catalog SKUs</span></div>
+      <div class="stat-pill"><span class="stat-val" style="color:#123D28;">135</span> <span class="stat-lbl">Real Photographs Sourced</span></div>
+      <div class="stat-pill"><span class="stat-val" style="color:#BA9655;">27</span> <span class="stat-lbl">AI Studio Verified</span></div>
+      <div class="stat-pill"><span class="stat-val" style="color:#DC2626;">0</span> <span class="stat-lbl">Needs Confirmation</span></div>
+    </div>
+  </header>
+
+  <div class="tab-bar">
+    <button class="page-tab active" onclick="switchPage(0)">Part 1 (TRN-1001–TRN-1024)</button><button class="page-tab " onclick="switchPage(1)">Part 2 (TRN-1025–TRN-1048)</button><button class="page-tab " onclick="switchPage(2)">Part 3 (TRN-1049–TRN-1072)</button><button class="page-tab " onclick="switchPage(3)">Part 4 (TRN-1073–TRN-1096)</button><button class="page-tab " onclick="switchPage(4)">Part 5 (TRN-1097–TRN-1120)</button><button class="page-tab " onclick="switchPage(5)">Part 6 (TRN-1121–TRN-1144)</button><button class="page-tab " onclick="switchPage(6)">Part 7 (TRN-1145–TRN-1162)</button>
+  </div>
+
+  <div class="grid">
+    
+    <div class="card page-0 status-AI_GENERATED_CANDIDATE">
+      <div class="img-wrap">
+        <img src="../demo-approved-candidates/TRN-1001.webp" alt="Licorice Root" loading="lazy" />
+        <span class="badge badge-ai">AI GENERATED CANDIDATE</span>
+      </div>
+      <div class="info">
+        <div class="sku-row">
+          <span class="sku">TRN-1001</span>
+          <span class="form-tag">Dried roots</span>
+        </div>
+        <div class="name-en">Licorice Root</div>
+        <div class="name-ta">அதிமதுரம்</div>
+        <div class="bot-name"><em>Glycyrrhiza glabra</em></div>
+        <div class="source-info">
+          <div class="src-line"><strong>Source:</strong> AI Botanical Studio (Approved Direc</div>
+          <div class="lic-line"><strong>License:</strong> TRINAYAA Commercial Asset</div>
+        </div>
+        <div class="action-row">
+          <button class="btn-check" onclick="markChecked(this, 'TRN-1001')">✓ Ready for Demo</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card page-0 status-AI_GENERATED_CANDIDATE">
+      <div class="img-wrap">
+        <img src="../demo-approved-candidates/TRN-1002.webp" alt="Ashwagandha - 1" loading="lazy" />
+        <span class="badge badge-ai">AI GENERATED CANDIDATE</span>
+      </div>
+      <div class="info">
+        <div class="sku-row">
+          <span class="sku">TRN-1002</span>
+          <span class="form-tag">Dried roots</span>
+        </div>
+        <div class="name-en">Ashwagandha - 1</div>
+        <div class="name-ta">அமுக்கரா</div>
+        <div class="bot-name"><em>Withania somnifera</em></div>
+        <div class="source-info">
+          <div class="src-line"><strong>Source:</strong> AI Botanical Studio (Approved Direc</div>
+          <div class="lic-line"><strong>License:</strong> TRINAYAA Commercial Asset</div>
+        </div>
+        <div class="action-row">
+          <button class="btn-check" onclick="markChecked(this, 'TRN-1002')">✓ Ready for Demo</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card page-0 status-AI_GENERATED_CANDIDATE">
+      <div class="img-wrap">
+        <img src="../demo-approved-candidates/TRN-1003.webp" alt="Peepal Seeds" loading="lazy" />
+        <span class="badge badge-ai">AI GENERATED CANDIDATE</span>
+      </div>
+      <div class="info">
+        <div class="sku-row">
+          <span class="sku">TRN-1003</span>
+          <span class="form-tag">Whole seeds</span>
+        </div>
+        <div class="name-en">Peepal Seeds</div>
+        <div class="name-ta">அரச விதை</div>
+        <div class="bot-name"><em>Ficus religiosa</em></div>
+        <div class="source-info">
+          <div class="src-line"><strong>Source:</strong> AI Botanical Studio (Approved Direc</div>
+          <div class="lic-line"><strong>License:</strong> TRINAYAA Commercial Asset</div>
+        </div>
+        <div class="action-row">
+          <button class="btn-check" onclick="markChecked(this, 'TRN-1003')">✓ Ready for Demo</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card page-0 status-AI_GENERATED_CANDIDATE">
+      <div class="img-wrap">
+        <img src="../demo-approved-candidates/TRN-1004.webp" alt="Ashwagandha - 2" loading="lazy" />
+        <span class="badge badge-ai">AI GENERATED CANDIDATE</span>
+      </div>
+      <div class="info">
+        <div class="sku-row">
+          <span class="sku">TRN-1004</span>
+          <span class="form-tag">Whole roots</span>
+        </div>
+        <div class="name-en">Ashwagandha - 2</div>
+        <div class="name-ta">அஸ்வகந்தா</div>
+        <div class="bot-name"><em>Withania somnifera</em></div>
+        <div class="source-info">
+          <div class="src-line"><strong>Source:</strong> AI Botanical Studio (Approved Direc</div>
+          <div class="lic-line"><strong>License:</strong> TRINAYAA Commercial Asset</div>
+        </div>
+        <div class="action-row">
+          <button class="btn-check" onclick="markChecked(this, 'TRN-1004')">✓ Ready for Demo</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card page-0 status-AI_GENERATED_CANDIDATE">
+      <div class="img-wrap">
+        <img src="../demo-approved-candidates/TRN-1005.webp" alt="Inknut/Myrobalan" loading="lazy" />
+        <span class="badge badge-ai">AI GENERATED CANDIDATE</span>
+      </div>
+      <div class="info">
+        <div class="sku-row">
+          <span class="sku">TRN-1005</span>
+          <span class="form-tag">Dried fruit</span>
+        </div>
+        <div class="name-en">Inknut/Myrobalan</div>
+        <div class="name-ta">கடுக்காய்</div>
+        <div class="bot-name"><em>Terminalia chebula</em></div>
+        <div class="source-info">
+          <div class="src-line"><strong>Source:</strong> AI Botanical Studio (Approved Direc</div>
+          <div class="lic-line"><strong>License:</strong> TRINAYAA Commercial Asset</div>
+        </div>
+        <div class="action-row">
+          <button class="btn-check" onclick="markChecked(this, 'TRN-1005')">✓ Ready for Demo</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card page-0 status-AI_GENERATED_CANDIDATE">
+      <div class="img-wrap">
+        <img src="../demo-approved-candidates/TRN-1006.webp" alt="Indian Aloe Gum" loading="lazy" />
+        <span class="badge badge-ai">AI GENERATED CANDIDATE</span>
+      </div>
+      <div class="info">
+        <div class="sku-row">
+          <span class="sku">TRN-1006</span>
+          <span class="form-tag">Herbal resin or gum</span>
+        </div>
+        <div class="name-en">Indian Aloe Gum</div>
+        <div class="name-ta">கரியபவளம்</div>
+        <div class="bot-name"><em>Aloe ferox / Aloe barbadensis resin</em></div>
+        <div class="source-info">
+          <div class="src-line"><strong>Source:</strong> AI Botanical Studio (Approved Direc</div>
+          <div class="lic-line"><strong>License:</strong> TRINAYAA Commercial Asset</div>
+        </div>
+        <div class="action-row">
+          <button class="btn-check" onclick="markChecked(this, 'TRN-1006')">✓ Ready for Demo</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card page-0 status-AI_GENERATED_CANDIDATE">
+      <div class="img-wrap">
+        <img src="../demo-approved-candidates/TRN-1007.webp" alt="Fever Nut" loading="lazy" />
+        <span class="badge badge-ai">AI GENERATED CANDIDATE</span>
+      </div>
+      <div class="info">
+        <div class="sku-row">
+          <span class="sku">TRN-1007</span>
+          <span class="form-tag">Dried seeds</span>
+        </div>
+        <div class="name-en">Fever Nut</div>
+        <div class="name-ta">கழற்சிக்காய்</div>
+        <div class="bot-name"><em>Caesalpinia bonduc</em></div>
+        <div class="source-info">
+          <div class="src-line"><strong>Source:</strong> AI Botanical Studio (Approved Direc</div>
+          <div class="lic-line"><strong>License:</strong> TRINAYAA Commercial Asset</div>
+        </div>
+        <div class="action-row">
+          <button class="btn-check" onclick="markChecked(this, 'TRN-1007')">✓ Ready for Demo</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card page-0 status-AI_GENERATED_CANDIDATE">
+      <div class="img-wrap">
+        <img src="../demo-approved-candidates/TRN-1008.webp" alt="Babchi Seeds" loading="lazy" />
+        <span class="badge badge-ai">AI GENERATED CANDIDATE</span>
+      </div>
+      <div class="info">
+        <div class="sku-row">
+          <span class="sku">TRN-1008</span>
+          <span class="form-tag">Whole seeds</span>
+        </div>
+        <div class="name-en">Babchi Seeds</div>
+        <div class="name-ta">கார்போக அரிசி</div>
+        <div class="bot-name"><em>Psoralea corylifolia</em></div>
+        <div class="source-info">
+          <div class="src-line"><strong>Source:</strong> AI Botanical Studio (Approved Direc</div>
+          <div class="lic-line"><strong>License:</strong> TRINAYAA Commercial Asset</div>
+        </div>
+        <div class="action-row">
+          <button class="btn-check" onclick="markChecked(this, 'TRN-1008')">✓ Ready for Demo</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card page-0 status-AI_GENERATED_CANDIDATE">
+      <div class="img-wrap">
+        <img src="../demo-approved-candidates/TRN-1009.webp" alt="Malabar Tamarind" loading="lazy" />
+        <span class="badge badge-ai">AI GENERATED CANDIDATE</span>
+      </div>
+      <div class="info">
+        <div class="sku-row">
+          <span class="sku">TRN-1009</span>
+          <span class="form-tag">Dried fruit</span>
+        </div>
+        <div class="name-en">Malabar Tamarind</div>
+        <div class="name-ta">குடம்புளி</div>
+        <div class="bot-name"><em>Garcinia gummi-gutta</em></div>
+        <div class="source-info">
+          <div class="src-line"><strong>Source:</strong> AI Botanical Studio (Approved Direc</div>
+          <div class="lic-line"><strong>License:</strong> TRINAYAA Commercial Asset</div>
+        </div>
+        <div class="action-row">
+          <button class="btn-check" onclick="markChecked(this, 'TRN-1009')">✓ Ready for Demo</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card page-0 status-AI_GENERATED_CANDIDATE">
+      <div class="img-wrap">
+        <img src="../demo-approved-candidates/TRN-1010.webp" alt="Lesser Galangal" loading="lazy" />
+        <span class="badge badge-ai">AI GENERATED CANDIDATE</span>
+      </div>
+      <div class="info">
+        <div class="sku-row">
+          <span class="sku">TRN-1010</span>
+          <span class="form-tag">Dried rhizome roots</span>
+        </div>
+        <div class="name-en">Lesser Galangal</div>
+        <div class="name-ta">சித்தரத்தை</div>
+        <div class="bot-name"><em>Alpinia officinarum / Alpinia calcarata</em></div>
+        <div class="source-info">
+          <div class="src-line"><strong>Source:</strong> AI Botanical Studio (Approved Direc</div>
+          <div class="lic-line"><strong>License:</strong> TRINAYAA Commercial Asset</div>
+        </div>
+        <div class="action-row">
+          <button class="btn-check" onclick="markChecked(this, 'TRN-1010')">✓ Ready for Demo</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card page-0 status-AI_GENERATED_CANDIDATE">
+      <div class="img-wrap">
+        <img src="../demo-approved-candidates/TRN-1011.webp" alt="Sweet basil" loading="lazy" />
+        <span class="badge badge-ai">AI GENERATED CANDIDATE</span>
+      </div>
+      <div class="info">
+        <div class="sku-row">
+          <span class="sku">TRN-1011</span>
+          <span class="form-tag">Dried leaves</span>
+        </div>
+        <div class="name-en">Sweet basil</div>
+        <div class="name-ta">சீனித்துளசி</div>
+        <div class="bot-name"><em>Ocimum basilicum</em></div>
+        <div class="source-info">
+          <div class="src-line"><strong>Source:</strong> AI Botanical Studio (Approved Direc</div>
+          <div class="lic-line"><strong>License:</strong> TRINAYAA Commercial Asset</div>
+        </div>
+        <div class="action-row">
+          <button class="btn-check" onclick="markChecked(this, 'TRN-1011')">✓ Ready for Demo</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card page-0 status-AI_GENERATED_CANDIDATE">
+      <div class="img-wrap">
+        <img src="../demo-approved-candidates/TRN-1012.webp" alt="Lotus Flower" loading="lazy" />
+        <span class="badge badge-ai">AI GENERATED CANDIDATE</span>
+      </div>
+      <div class="info">
+        <div class="sku-row">
+          <span class="sku">TRN-1012</span>
+          <span class="form-tag">Dried flowers</span>
+        </div>
+        <div class="name-en">Lotus Flower</div>
+        <div class="name-ta">தாமரை பூ</div>
+        <div class="bot-name"><em>Nelumbo nucifera</em></div>
+        <div class="source-info">
+          <div class="src-line"><strong>Source:</strong> AI Botanical Studio (Approved Direc</div>
+          <div class="lic-line"><strong>License:</strong> TRINAYAA Commercial Asset</div>
+        </div>
+        <div class="action-row">
+          <button class="btn-check" onclick="markChecked(this, 'TRN-1012')">✓ Ready for Demo</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card page-0 status-AI_GENERATED_CANDIDATE">
+      <div class="img-wrap">
+        <img src="../demo-approved-candidates/TRN-1013.webp" alt="Lotus Seeds" loading="lazy" />
+        <span class="badge badge-ai">AI GENERATED CANDIDATE</span>
+      </div>
+      <div class="info">
+        <div class="sku-row">
+          <span class="sku">TRN-1013</span>
+          <span class="form-tag">Whole seeds</span>
+        </div>
+        <div class="name-en">Lotus Seeds</div>
+        <div class="name-ta">தாமரை விதை</div>
+        <div class="bot-name"><em>Nelumbo nucifera</em></div>
+        <div class="source-info">
+          <div class="src-line"><strong>Source:</strong> AI Botanical Studio (Approved Direc</div>
+          <div class="lic-line"><strong>License:</strong> TRINAYAA Commercial Asset</div>
+        </div>
+        <div class="action-row">
+          <button class="btn-check" onclick="markChecked(this, 'TRN-1013')">✓ Ready for Demo</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card page-0 status-AI_GENERATED_CANDIDATE">
+      <div class="img-wrap">
+        <img src="../demo-approved-candidates/TRN-1014.webp" alt="Indian Silver Fir" loading="lazy" />
+        <span class="badge badge-ai">AI GENERATED CANDIDATE</span>
+      </div>
+      <div class="info">
+        <div class="sku-row">
+          <span class="sku">TRN-1014</span>
+          <span class="form-tag">Dried leaves</span>
+        </div>
+        <div class="name-en">Indian Silver Fir</div>
+        <div class="name-ta">தாளிசபத்திரி</div>
+        <div class="bot-name"><em>Abies webbiana</em></div>
+        <div class="source-info">
+          <div class="src-line"><strong>Source:</strong> AI Botanical Studio (Approved Direc</div>
+          <div class="lic-line"><strong>License:</strong> TRINAYAA Commercial Asset</div>
+        </div>
+        <div class="action-row">
+          <button class="btn-check" onclick="markChecked(this, 'TRN-1014')">✓ Ready for Demo</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card page-0 status-AI_GENERATED_CANDIDATE">
+      <div class="img-wrap">
+        <img src="../demo-approved-candidates/TRN-1015.webp" alt="Long pepper" loading="lazy" />
+        <span class="badge badge-ai">AI GENERATED CANDIDATE</span>
+      </div>
+      <div class="info">
+        <div class="sku-row">
+          <span class="sku">TRN-1015</span>
+          <span class="form-tag">Dried fruit</span>
+        </div>
+        <div class="name-en">Long pepper</div>
+        <div class="name-ta">திப்பிலி (அரிசி)</div>
+        <div class="bot-name"><em>Piper longum</em></div>
+        <div class="source-info">
+          <div class="src-line"><strong>Source:</strong> AI Botanical Studio (Approved Direc</div>
+          <div class="lic-line"><strong>License:</strong> TRINAYAA Commercial Asset</div>
+        </div>
+        <div class="action-row">
+          <button class="btn-check" onclick="markChecked(this, 'TRN-1015')">✓ Ready for Demo</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card page-0 status-AI_GENERATED_CANDIDATE">
+      <div class="img-wrap">
+        <img src="../demo-approved-candidates/TRN-1016.webp" alt="Big Pepper" loading="lazy" />
+        <span class="badge badge-ai">AI GENERATED CANDIDATE</span>
+      </div>
+      <div class="info">
+        <div class="sku-row">
+          <span class="sku">TRN-1016</span>
+          <span class="form-tag">Dried fruit</span>
+        </div>
+        <div class="name-en">Big Pepper</div>
+        <div class="name-ta">திப்பிலி (யானை)</div>
+        <div class="bot-name"><em>Piper retrofractum</em></div>
+        <div class="source-info">
+          <div class="src-line"><strong>Source:</strong> AI Botanical Studio (Approved Direc</div>
+          <div class="lic-line"><strong>License:</strong> TRINAYAA Commercial Asset</div>
+        </div>
+        <div class="action-row">
+          <button class="btn-check" onclick="markChecked(this, 'TRN-1016')">✓ Ready for Demo</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card page-0 status-AI_GENERATED_CANDIDATE">
+      <div class="img-wrap">
+        <img src="../demo-approved-candidates/TRN-1017.webp" alt="Round Pepper" loading="lazy" />
+        <span class="badge badge-ai">AI GENERATED CANDIDATE</span>
+      </div>
+      <div class="info">
+        <div class="sku-row">
+          <span class="sku">TRN-1017</span>
+          <span class="form-tag">Dried fruit</span>
+        </div>
+        <div class="name-en">Round Pepper</div>
+        <div class="name-ta">திப்பிலி (உருண்டை)</div>
+        <div class="bot-name"><em>Piper nigrum</em></div>
+        <div class="source-info">
+          <div class="src-line"><strong>Source:</strong> AI Botanical Studio (Approved Direc</div>
+          <div class="lic-line"><strong>License:</strong> TRINAYAA Commercial Asset</div>
+        </div>
+        <div class="action-row">
+          <button class="btn-check" onclick="markChecked(this, 'TRN-1017')">✓ Ready for Demo</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card page-0 status-AI_GENERATED_CANDIDATE">
+      <div class="img-wrap">
+        <img src="../demo-approved-candidates/TRN-1018.webp" alt="Indian Mallow Seeds" loading="lazy" />
+        <span class="badge badge-ai">AI GENERATED CANDIDATE</span>
+      </div>
+      <div class="info">
+        <div class="sku-row">
+          <span class="sku">TRN-1018</span>
+          <span class="form-tag">Whole seeds</span>
+        </div>
+        <div class="name-en">Indian Mallow Seeds</div>
+        <div class="name-ta">துத்தி விதை</div>
+        <div class="bot-name"><em>Abutilon indicum</em></div>
+        <div class="source-info">
+          <div class="src-line"><strong>Source:</strong> AI Botanical Studio (Approved Direc</div>
+          <div class="lic-line"><strong>License:</strong> TRINAYAA Commercial Asset</div>
+        </div>
+        <div class="action-row">
+          <button class="btn-check" onclick="markChecked(this, 'TRN-1018')">✓ Ready for Demo</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card page-0 status-REAL_PHOTO_CANDIDATE">
+      <div class="img-wrap">
+        <img src="../demo-approved-candidates/TRN-1019.webp" alt="Indian Sarasparilla" loading="lazy" />
+        <span class="badge badge-real">REAL PHOTO CANDIDATE</span>
+      </div>
+      <div class="info">
+        <div class="sku-row">
+          <span class="sku">TRN-1019</span>
+          <span class="form-tag">Dried roots</span>
+        </div>
+        <div class="name-en">Indian Sarasparilla</div>
+        <div class="name-ta">நன்னாரி</div>
+        <div class="bot-name"><em>Hemidesmus indicus</em></div>
+        <div class="source-info">
+          <div class="src-line"><strong>Source:</strong> Wikimedia Commons / Authentic Field</div>
+          <div class="lic-line"><strong>License:</strong> CC BY-SA 3.0</div>
+        </div>
+        <div class="action-row">
+          <button class="btn-check" onclick="markChecked(this, 'TRN-1019')">✓ Ready for Demo</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card page-0 status-REAL_PHOTO_CANDIDATE">
+      <div class="img-wrap">
+        <img src="../demo-approved-candidates/TRN-1020.webp" alt="Black Plum Seeds/Jamun Seeds" loading="lazy" />
+        <span class="badge badge-real">REAL PHOTO CANDIDATE</span>
+      </div>
+      <div class="info">
+        <div class="sku-row">
+          <span class="sku">TRN-1020</span>
+          <span class="form-tag">Whole seeds</span>
+        </div>
+        <div class="name-en">Black Plum Seeds/Jamun Seeds</div>
+        <div class="name-ta">நாவல் கொட்டை</div>
+        <div class="bot-name"><em>Syzygium cumini</em></div>
+        <div class="source-info">
+          <div class="src-line"><strong>Source:</strong> Wikimedia Commons / Authentic Field</div>
+          <div class="lic-line"><strong>License:</strong> CC BY-SA 4.0</div>
+        </div>
+        <div class="action-row">
+          <button class="btn-check" onclick="markChecked(this, 'TRN-1020')">✓ Ready for Demo</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card page-0 status-AI_GENERATED_CANDIDATE">
+      <div class="img-wrap">
+        <img src="../demo-approved-candidates/TRN-1021.webp" alt="Black Plum Bark/Jamun Bark" loading="lazy" />
+        <span class="badge badge-ai">AI GENERATED CANDIDATE</span>
+      </div>
+      <div class="info">
+        <div class="sku-row">
+          <span class="sku">TRN-1021</span>
+          <span class="form-tag">Botanical bark</span>
+        </div>
+        <div class="name-en">Black Plum Bark/Jamun Bark</div>
+        <div class="name-ta">நாவல் பட்டை</div>
+        <div class="bot-name"><em>Syzygium cumini</em></div>
+        <div class="source-info">
+          <div class="src-line"><strong>Source:</strong> AI Botanical Studio (Approved Direc</div>
+          <div class="lic-line"><strong>License:</strong> TRINAYAA Commercial Asset</div>
+        </div>
+        <div class="action-row">
+          <button class="btn-check" onclick="markChecked(this, 'TRN-1021')">✓ Ready for Demo</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card page-0 status-AI_GENERATED_CANDIDATE">
+      <div class="img-wrap">
+        <img src="../demo-approved-candidates/TRN-1022.webp" alt="King of bitter" loading="lazy" />
+        <span class="badge badge-ai">AI GENERATED CANDIDATE</span>
+      </div>
+      <div class="info">
+        <div class="sku-row">
+          <span class="sku">TRN-1022</span>
+          <span class="form-tag">Dried leaves</span>
+        </div>
+        <div class="name-en">King of bitter</div>
+        <div class="name-ta">நிலவேம்பு</div>
+        <div class="bot-name"><em>Andrographis paniculata</em></div>
+        <div class="source-info">
+          <div class="src-line"><strong>Source:</strong> AI Botanical Studio (Approved Direc</div>
+          <div class="lic-line"><strong>License:</strong> TRINAYAA Commercial Asset</div>
+        </div>
+        <div class="action-row">
+          <button class="btn-check" onclick="markChecked(this, 'TRN-1022')">✓ Ready for Demo</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card page-0 status-AI_GENERATED_CANDIDATE">
+      <div class="img-wrap">
+        <img src="../demo-approved-candidates/TRN-1023.webp" alt="Caltrops Large" loading="lazy" />
+        <span class="badge badge-ai">AI GENERATED CANDIDATE</span>
+      </div>
+      <div class="info">
+        <div class="sku-row">
+          <span class="sku">TRN-1023</span>
+          <span class="form-tag">Dried fruit</span>
+        </div>
+        <div class="name-en">Caltrops Large</div>
+        <div class="name-ta">நெருஞ்சில் முள் (பெ)</div>
+        <div class="bot-name"><em>Pedalium murex</em></div>
+        <div class="source-info">
+          <div class="src-line"><strong>Source:</strong> AI Botanical Studio (Approved Direc</div>
+          <div class="lic-line"><strong>License:</strong> TRINAYAA Commercial Asset</div>
+        </div>
+        <div class="action-row">
+          <button class="btn-check" onclick="markChecked(this, 'TRN-1023')">✓ Ready for Demo</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card page-0 status-AI_GENERATED_CANDIDATE">
+      <div class="img-wrap">
+        <img src="../demo-approved-candidates/TRN-1024.webp" alt="Caltrops Small" loading="lazy" />
+        <span class="badge badge-ai">AI GENERATED CANDIDATE</span>
+      </div>
+      <div class="info">
+        <div class="sku-row">
+          <span class="sku">TRN-1024</span>
+          <span class="form-tag">Dried fruit</span>
+        </div>
+        <div class="name-en">Caltrops Small</div>
+        <div class="name-ta">நெருஞ்சில் முள் (சி)</div>
+        <div class="bot-name"><em>Tribulus terrestris</em></div>
+        <div class="source-info">
+          <div class="src-line"><strong>Source:</strong> AI Botanical Studio (Approved Direc</div>
+          <div class="lic-line"><strong>License:</strong> TRINAYAA Commercial Asset</div>
+        </div>
+        <div class="action-row">
+          <button class="btn-check" onclick="markChecked(this, 'TRN-1024')">✓ Ready for Demo</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card page-1 status-AI_GENERATED_CANDIDATE">
+      <div class="img-wrap">
+        <img src="../demo-approved-candidates/TRN-1025.webp" alt="Indian Goosberry" loading="lazy" />
+        <span class="badge badge-ai">AI GENERATED CANDIDATE</span>
+      </div>
+      <div class="info">
+        <div class="sku-row">
+          <span class="sku">TRN-1025</span>
+          <span class="form-tag">Dried fruit</span>
+        </div>
+        <div class="name-en">Indian Goosberry</div>
+        <div class="name-ta">நெல்லி வத்தல்</div>
+        <div class="bot-name"><em>Phyllanthus emblica</em></div>
+        <div class="source-info">
+          <div class="src-line"><strong>Source:</strong> AI Botanical Studio (Approved Direc</div>
+          <div class="lic-line"><strong>License:</strong> TRINAYAA Commercial Asset</div>
+        </div>
+        <div class="action-row">
+          <button class="btn-check" onclick="markChecked(this, 'TRN-1025')">✓ Ready for Demo</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card page-1 status-AI_GENERATED_CANDIDATE">
+      <div class="img-wrap">
+        <img src="../demo-approved-candidates/TRN-1026.webp" alt="Sappan Wood" loading="lazy" />
+        <span class="badge badge-ai">AI GENERATED CANDIDATE</span>
+      </div>
+      <div class="info">
+        <div class="sku-row">
+          <span class="sku">TRN-1026</span>
+          <span class="form-tag">Botanical bark</span>
+        </div>
+        <div class="name-en">Sappan Wood</div>
+        <div class="name-ta">பதிமுகம்</div>
+        <div class="bot-name"><em>Caesalpinia sappan</em></div>
+        <div class="source-info">
+          <div class="src-line"><strong>Source:</strong> AI Botanical Studio (Approved Direc</div>
+          <div class="lic-line"><strong>License:</strong> TRINAYAA Commercial Asset</div>
+        </div>
+        <div class="action-row">
+          <button class="btn-check" onclick="markChecked(this, 'TRN-1026')">✓ Ready for Demo</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card page-1 status-AI_GENERATED_CANDIDATE">
+      <div class="img-wrap">
+        <img src="../demo-approved-candidates/TRN-1027.webp" alt="Indian Cotton Seeds" loading="lazy" />
+        <span class="badge badge-ai">AI GENERATED CANDIDATE</span>
+      </div>
+      <div class="info">
+        <div class="sku-row">
+          <span class="sku">TRN-1027</span>
+          <span class="form-tag">Whole seeds</span>
+        </div>
+        <div class="name-en">Indian Cotton Seeds</div>
+        <div class="name-ta">பருத்தி விதை</div>
+        <div class="bot-name"><em>Gossypium herbaceum</em></div>
+        <div class="source-info">
+          <div class="src-line"><strong>Source:</strong> AI Botanical Studio (Approved Direc</div>
+          <div class="lic-line"><strong>License:</strong> TRINAYAA Commercial Asset</div>
+        </div>
+        <div class="action-row">
+          <button class="btn-check" onclick="markChecked(this, 'TRN-1027')">✓ Ready for Demo</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card page-1 status-AI_GENERATED_CANDIDATE">
+      <div class="img-wrap">
+        <img src="../demo-approved-candidates/TRN-1028.webp" alt="Almond Gum" loading="lazy" />
+        <span class="badge badge-ai">AI GENERATED CANDIDATE</span>
+      </div>
+      <div class="info">
+        <div class="sku-row">
+          <span class="sku">TRN-1028</span>
+          <span class="form-tag">Herbal resin or gum</span>
+        </div>
+        <div class="name-en">Almond Gum</div>
+        <div class="name-ta">பாதாம்பிசின்</div>
+        <div class="bot-name"><em>Prunus dulcis gum</em></div>
+        <div class="source-info">
+          <div class="src-line"><strong>Source:</strong> AI Botanical Studio (Approved Direc</div>
+          <div class="lic-line"><strong>License:</strong> TRINAYAA Commercial Asset</div>
+        </div>
+        <div class="action-row">
+          <button class="btn-check" onclick="markChecked(this, 'TRN-1028')">✓ Ready for Demo</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card page-1 status-REAL_PHOTO_CANDIDATE">
+      <div class="img-wrap">
+        <img src="../demo-approved-candidates/TRN-1029.webp" alt="Veldt Grape" loading="lazy" />
+        <span class="badge badge-real">REAL PHOTO CANDIDATE</span>
+      </div>
+      <div class="info">
+        <div class="sku-row">
+          <span class="sku">TRN-1029</span>
+          <span class="form-tag">Dried stems</span>
+        </div>
+        <div class="name-en">Veldt Grape</div>
+        <div class="name-ta">பிரண்டை</div>
+        <div class="bot-name"><em>Cissus quadrangularis</em></div>
+        <div class="source-info">
+          <div class="src-line"><strong>Source:</strong> Wikimedia Commons / Authentic Field</div>
+          <div class="lic-line"><strong>License:</strong> Public domain</div>
+        </div>
+        <div class="action-row">
+          <button class="btn-check" onclick="markChecked(this, 'TRN-1029')">✓ Ready for Demo</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card page-1 status-REAL_PHOTO_CANDIDATE">
+      <div class="img-wrap">
+        <img src="../demo-approved-candidates/TRN-1030.webp" alt="Menthol Crystal" loading="lazy" />
+        <span class="badge badge-real">REAL PHOTO CANDIDATE</span>
+      </div>
+      <div class="info">
+        <div class="sku-row">
+          <span class="sku">TRN-1030</span>
+          <span class="form-tag">Herbal crystal</span>
+        </div>
+        <div class="name-en">Menthol Crystal</div>
+        <div class="name-ta">புதினா உப்பு</div>
+        <div class="bot-name"><em>Mentha arvensis crystal</em></div>
+        <div class="source-info">
+          <div class="src-line"><strong>Source:</strong> Wikimedia Commons / Authentic Field</div>
+          <div class="lic-line"><strong>License:</strong> No restrictions</div>
+        </div>
+        <div class="action-row">
+          <button class="btn-check" onclick="markChecked(this, 'TRN-1030')">✓ Ready for Demo</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card page-1 status-REAL_PHOTO_CANDIDATE">
+      <div class="img-wrap">
+        <img src="../demo-approved-candidates/TRN-1031.webp" alt="Greater Galangal" loading="lazy" />
+        <span class="badge badge-real">REAL PHOTO CANDIDATE</span>
+      </div>
+      <div class="info">
+        <div class="sku-row">
+          <span class="sku">TRN-1031</span>
+          <span class="form-tag">Dried rhizome</span>
+        </div>
+        <div class="name-en">Greater Galangal</div>
+        <div class="name-ta">பேரரத்தை</div>
+        <div class="bot-name"><em>Alpinia galanga</em></div>
+        <div class="source-info">
+          <div class="src-line"><strong>Source:</strong> Wikimedia Commons / Authentic Field</div>
+          <div class="lic-line"><strong>License:</strong> CC0</div>
+        </div>
+        <div class="action-row">
+          <button class="btn-check" onclick="markChecked(this, 'TRN-1031')">✓ Ready for Demo</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card page-1 status-REAL_PHOTO_CANDIDATE">
+      <div class="img-wrap">
+        <img src="../demo-approved-candidates/TRN-1032.webp" alt="Arjun bark" loading="lazy" />
+        <span class="badge badge-real">REAL PHOTO CANDIDATE</span>
+      </div>
+      <div class="info">
+        <div class="sku-row">
+          <span class="sku">TRN-1032</span>
+          <span class="form-tag">Botanical bark</span>
+        </div>
+        <div class="name-en">Arjun bark</div>
+        <div class="name-ta">மருதம்பட்டை</div>
+        <div class="bot-name"><em>Terminalia arjuna</em></div>
+        <div class="source-info">
+          <div class="src-line"><strong>Source:</strong> Wikimedia Commons / Authentic Field</div>
+          <div class="lic-line"><strong>License:</strong> CC BY 3.0</div>
+        </div>
+        <div class="action-row">
+          <button class="btn-check" onclick="markChecked(this, 'TRN-1032')">✓ Ready for Demo</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card page-1 status-REAL_PHOTO_CANDIDATE">
+      <div class="img-wrap">
+        <img src="../demo-approved-candidates/TRN-1033.webp" alt="Blue Jack" loading="lazy" />
+        <span class="badge badge-real">REAL PHOTO CANDIDATE</span>
+      </div>
+      <div class="info">
+        <div class="sku-row">
+          <span class="sku">TRN-1033</span>
+          <span class="form-tag">Dried gall fruit</span>
+        </div>
+        <div class="name-en">Blue Jack</div>
+        <div class="name-ta">மாசிக்காய்</div>
+        <div class="bot-name"><em>Quercus infectoria</em></div>
+        <div class="source-info">
+          <div class="src-line"><strong>Source:</strong> Wikimedia Commons / Authentic Field</div>
+          <div class="lic-line"><strong>License:</strong> CC BY 3.0</div>
+        </div>
+        <div class="action-row">
+          <button class="btn-check" onclick="markChecked(this, 'TRN-1033')">✓ Ready for Demo</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card page-1 status-REAL_PHOTO_CANDIDATE">
+      <div class="img-wrap">
+        <img src="../demo-approved-candidates/TRN-1034.webp" alt="Pomegranate Skin" loading="lazy" />
+        <span class="badge badge-real">REAL PHOTO CANDIDATE</span>
+      </div>
+      <div class="info">
+        <div class="sku-row">
+          <span class="sku">TRN-1034</span>
+          <span class="form-tag">Dried fruit peel</span>
+        </div>
+        <div class="name-en">Pomegranate Skin</div>
+        <div class="name-ta">மாதுளை தோல்</div>
+        <div class="bot-name"><em>Punica granatum</em></div>
+        <div class="source-info">
+          <div class="src-line"><strong>Source:</strong> Wikimedia Commons / Authentic Field</div>
+          <div class="lic-line"><strong>License:</strong> CC BY-SA 4.0</div>
+        </div>
+        <div class="action-row">
+          <button class="btn-check" onclick="markChecked(this, 'TRN-1034')">✓ Ready for Demo</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card page-1 status-REAL_PHOTO_CANDIDATE">
+      <div class="img-wrap">
+        <img src="../demo-approved-candidates/TRN-1035.webp" alt="Pomegranate Seeds" loading="lazy" />
+        <span class="badge badge-real">REAL PHOTO CANDIDATE</span>
+      </div>
+      <div class="info">
+        <div class="sku-row">
+          <span class="sku">TRN-1035</span>
+          <span class="form-tag">Whole seeds</span>
+        </div>
+        <div class="name-en">Pomegranate Seeds</div>
+        <div class="name-ta">மாதுளை விதை</div>
+        <div class="bot-name"><em>Punica granatum</em></div>
+        <div class="source-info">
+          <div class="src-line"><strong>Source:</strong> Wikimedia Commons / Authentic Field</div>
+          <div class="lic-line"><strong>License:</strong> CC BY-SA 4.0</div>
+        </div>
+        <div class="action-row">
+          <button class="btn-check" onclick="markChecked(this, 'TRN-1035')">✓ Ready for Demo</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card page-1 status-REAL_PHOTO_CANDIDATE">
+      <div class="img-wrap">
+        <img src="../demo-approved-candidates/TRN-1036.webp" alt="Mango Kernel" loading="lazy" />
+        <span class="badge badge-real">REAL PHOTO CANDIDATE</span>
+      </div>
+      <div class="info">
+        <div class="sku-row">
+          <span class="sku">TRN-1036</span>
+          <span class="form-tag">Dried seed kernel</span>
+        </div>
+        <div class="name-en">Mango Kernel</div>
+        <div class="name-ta">மாம்பருப்பு</div>
+        <div class="bot-name"><em>Mangifera indica</em></div>
+        <div class="source-info">
+          <div class="src-line"><strong>Source:</strong> Wikimedia Commons / Authentic Field</div>
+          <div class="lic-line"><strong>License:</strong> CC BY-SA 3.0</div>
+        </div>
+        <div class="action-row">
+          <button class="btn-check" onclick="markChecked(this, 'TRN-1036')">✓ Ready for Demo</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card page-1 status-REAL_PHOTO_CANDIDATE">
+      <div class="img-wrap">
+        <img src="../demo-approved-candidates/TRN-1037.webp" alt="Goat Leg Tuber" loading="lazy" />
+        <span class="badge badge-real">REAL PHOTO CANDIDATE</span>
+      </div>
+      <div class="info">
+        <div class="sku-row">
+          <span class="sku">TRN-1037</span>
+          <span class="form-tag">Dried rhizome</span>
+        </div>
+        <div class="name-en">Goat Leg Tuber</div>
+        <div class="name-ta">முடவாட்டுக்கால் கிழங்கு</div>
+        <div class="bot-name"><em>Drynaria quercifolia</em></div>
+        <div class="source-info">
+          <div class="src-line"><strong>Source:</strong> Wikimedia Commons / Authentic Field</div>
+          <div class="lic-line"><strong>License:</strong> CC BY-SA 4.0</div>
+        </div>
+        <div class="action-row">
+          <button class="btn-check" onclick="markChecked(this, 'TRN-1037')">✓ Ready for Demo</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card page-1 status-REAL_PHOTO_CANDIDATE">
+      <div class="img-wrap">
+        <img src="../demo-approved-candidates/TRN-1038.webp" alt="Drumstick Seeds" loading="lazy" />
+        <span class="badge badge-real">REAL PHOTO CANDIDATE</span>
+      </div>
+      <div class="info">
+        <div class="sku-row">
+          <span class="sku">TRN-1038</span>
+          <span class="form-tag">Whole seeds</span>
+        </div>
+        <div class="name-en">Drumstick Seeds</div>
+        <div class="name-ta">முருங்கை விதை</div>
+        <div class="bot-name"><em>Moringa oleifera</em></div>
+        <div class="source-info">
+          <div class="src-line"><strong>Source:</strong> Wikimedia Commons / Authentic Field</div>
+          <div class="lic-line"><strong>License:</strong> CC BY-SA 4.0</div>
+        </div>
+        <div class="action-row">
+          <button class="btn-check" onclick="markChecked(this, 'TRN-1038')">✓ Ready for Demo</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card page-1 status-AI_GENERATED_CANDIDATE">
+      <div class="img-wrap">
+        <img src="../demo-approved-candidates/TRN-1039.webp" alt="Drumstick Gum" loading="lazy" />
+        <span class="badge badge-ai">AI GENERATED CANDIDATE</span>
+      </div>
+      <div class="info">
+        <div class="sku-row">
+          <span class="sku">TRN-1039</span>
+          <span class="form-tag">Herbal resin or gum</span>
+        </div>
+        <div class="name-en">Drumstick Gum</div>
+        <div class="name-ta">முருங்கை பிசின்</div>
+        <div class="bot-name"><em>Moringa oleifera gum</em></div>
+        <div class="source-info">
+          <div class="src-line"><strong>Source:</strong> AI Botanical Studio (Approved Direc</div>
+          <div class="lic-line"><strong>License:</strong> TRINAYAA Commercial Asset</div>
+        </div>
+        <div class="action-row">
+          <button class="btn-check" onclick="markChecked(this, 'TRN-1039')">✓ Ready for Demo</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card page-1 status-REAL_PHOTO_CANDIDATE">
+      <div class="img-wrap">
+        <img src="../demo-approved-candidates/TRN-1040.webp" alt="Drumstick Flower" loading="lazy" />
+        <span class="badge badge-real">REAL PHOTO CANDIDATE</span>
+      </div>
+      <div class="info">
+        <div class="sku-row">
+          <span class="sku">TRN-1040</span>
+          <span class="form-tag">Dried flowers</span>
+        </div>
+        <div class="name-en">Drumstick Flower</div>
+        <div class="name-ta">முருங்கை பூ</div>
+        <div class="bot-name"><em>Moringa oleifera</em></div>
+        <div class="source-info">
+          <div class="src-line"><strong>Source:</strong> Wikimedia Commons / Authentic Field</div>
+          <div class="lic-line"><strong>License:</strong> CC BY-SA 2.0</div>
+        </div>
+        <div class="action-row">
+          <button class="btn-check" onclick="markChecked(this, 'TRN-1040')">✓ Ready for Demo</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card page-1 status-REAL_PHOTO_CANDIDATE">
+      <div class="img-wrap">
+        <img src="../demo-approved-candidates/TRN-1041.webp" alt="Indian Screw Tree" loading="lazy" />
+        <span class="badge badge-real">REAL PHOTO CANDIDATE</span>
+      </div>
+      <div class="info">
+        <div class="sku-row">
+          <span class="sku">TRN-1041</span>
+          <span class="form-tag">Dried leaves</span>
+        </div>
+        <div class="name-en">Indian Screw Tree</div>
+        <div class="name-ta">வலம்புரி - இடம்புரி</div>
+        <div class="bot-name"><em>Moringa oleifera</em></div>
+        <div class="source-info">
+          <div class="src-line"><strong>Source:</strong> Wikimedia Commons / Authentic Field</div>
+          <div class="lic-line"><strong>License:</strong> CC BY-SA 2.0</div>
+        </div>
+        <div class="action-row">
+          <button class="btn-check" onclick="markChecked(this, 'TRN-1041')">✓ Ready for Demo</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card page-1 status-REAL_PHOTO_CANDIDATE">
+      <div class="img-wrap">
+        <img src="../demo-approved-candidates/TRN-1042.webp" alt="Tailed pepper" loading="lazy" />
+        <span class="badge badge-real">REAL PHOTO CANDIDATE</span>
+      </div>
+      <div class="info">
+        <div class="sku-row">
+          <span class="sku">TRN-1042</span>
+          <span class="form-tag">Dried berries</span>
+        </div>
+        <div class="name-en">Tailed pepper</div>
+        <div class="name-ta">வால்மிளகு</div>
+        <div class="bot-name"><em>Piper cubeba</em></div>
+        <div class="source-info">
+          <div class="src-line"><strong>Source:</strong> Wikimedia Commons / Authentic Field</div>
+          <div class="lic-line"><strong>License:</strong> Public domain</div>
+        </div>
+        <div class="action-row">
+          <button class="btn-check" onclick="markChecked(this, 'TRN-1042')">✓ Ready for Demo</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card page-1 status-REAL_PHOTO_CANDIDATE">
+      <div class="img-wrap">
+        <img src="../demo-approved-candidates/TRN-1043.webp" alt="Nutmeg" loading="lazy" />
+        <span class="badge badge-real">REAL PHOTO CANDIDATE</span>
+      </div>
+      <div class="info">
+        <div class="sku-row">
+          <span class="sku">TRN-1043</span>
+          <span class="form-tag">Whole dried seed</span>
+        </div>
+        <div class="name-en">Nutmeg</div>
+        <div class="name-ta">ஜாதிக்காய்</div>
+        <div class="bot-name"><em>Myristica fragrans</em></div>
+        <div class="source-info">
+          <div class="src-line"><strong>Source:</strong> Wikimedia Commons / Authentic Field</div>
+          <div class="lic-line"><strong>License:</strong> CC BY 4.0</div>
+        </div>
+        <div class="action-row">
+          <button class="btn-check" onclick="markChecked(this, 'TRN-1043')">✓ Ready for Demo</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card page-1 status-REAL_PHOTO_CANDIDATE">
+      <div class="img-wrap">
+        <img src="../demo-approved-candidates/TRN-1044.webp" alt="Sweet Flag" loading="lazy" />
+        <span class="badge badge-real">REAL PHOTO CANDIDATE</span>
+      </div>
+      <div class="info">
+        <div class="sku-row">
+          <span class="sku">TRN-1044</span>
+          <span class="form-tag">Dried rhizome</span>
+        </div>
+        <div class="name-en">Sweet Flag</div>
+        <div class="name-ta">வசம்பு</div>
+        <div class="bot-name"><em>Acorus calamus</em></div>
+        <div class="source-info">
+          <div class="src-line"><strong>Source:</strong> Wikimedia Commons / Authentic Field</div>
+          <div class="lic-line"><strong>License:</strong> CC BY-SA 3.0</div>
+        </div>
+        <div class="action-row">
+          <button class="btn-check" onclick="markChecked(this, 'TRN-1044')">✓ Ready for Demo</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card page-1 status-REAL_PHOTO_CANDIDATE">
+      <div class="img-wrap">
+        <img src="../demo-approved-candidates/TRN-1045.webp" alt="Rosemary" loading="lazy" />
+        <span class="badge badge-real">REAL PHOTO CANDIDATE</span>
+      </div>
+      <div class="info">
+        <div class="sku-row">
+          <span class="sku">TRN-1045</span>
+          <span class="form-tag">Whole seeds</span>
+        </div>
+        <div class="name-en">Rosemary</div>
+        <div class="name-ta">ரோஸ்மேரி</div>
+        <div class="bot-name"><em>Linum usitatissimum</em></div>
+        <div class="source-info">
+          <div class="src-line"><strong>Source:</strong> Wikimedia Commons / Authentic Field</div>
+          <div class="lic-line"><strong>License:</strong> CC BY-SA 3.0</div>
+        </div>
+        <div class="action-row">
+          <button class="btn-check" onclick="markChecked(this, 'TRN-1045')">✓ Ready for Demo</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card page-1 status-REAL_PHOTO_CANDIDATE">
+      <div class="img-wrap">
+        <img src="../demo-approved-candidates/TRN-1046.webp" alt="Henna" loading="lazy" />
+        <span class="badge badge-real">REAL PHOTO CANDIDATE</span>
+      </div>
+      <div class="info">
+        <div class="sku-row">
+          <span class="sku">TRN-1046</span>
+          <span class="form-tag">Dried leaves</span>
+        </div>
+        <div class="name-en">Henna</div>
+        <div class="name-ta">மருதாணி</div>
+        <div class="bot-name"><em>Salvia rosmarinus</em></div>
+        <div class="source-info">
+          <div class="src-line"><strong>Source:</strong> Wikimedia Commons / Authentic Field</div>
+          <div class="lic-line"><strong>License:</strong> CC BY 2.0</div>
+        </div>
+        <div class="action-row">
+          <button class="btn-check" onclick="markChecked(this, 'TRN-1046')">✓ Ready for Demo</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card page-1 status-REAL_PHOTO_CANDIDATE">
+      <div class="img-wrap">
+        <img src="../demo-approved-candidates/TRN-1047.webp" alt="Marjoram" loading="lazy" />
+        <span class="badge badge-real">REAL PHOTO CANDIDATE</span>
+      </div>
+      <div class="info">
+        <div class="sku-row">
+          <span class="sku">TRN-1047</span>
+          <span class="form-tag">Whole seeds</span>
+        </div>
+        <div class="name-en">Marjoram</div>
+        <div class="name-ta">மரிக்கொழுந்து</div>
+        <div class="bot-name"><em>Nigella sativa</em></div>
+        <div class="source-info">
+          <div class="src-line"><strong>Source:</strong> Wikimedia Commons / Authentic Field</div>
+          <div class="lic-line"><strong>License:</strong> CC BY-SA 3.0</div>
+        </div>
+        <div class="action-row">
+          <button class="btn-check" onclick="markChecked(this, 'TRN-1047')">✓ Ready for Demo</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card page-1 status-REAL_PHOTO_CANDIDATE">
+      <div class="img-wrap">
+        <img src="../demo-approved-candidates/TRN-1048.webp" alt="Country Senna Leaf" loading="lazy" />
+        <span class="badge badge-real">REAL PHOTO CANDIDATE</span>
+      </div>
+      <div class="info">
+        <div class="sku-row">
+          <span class="sku">TRN-1048</span>
+          <span class="form-tag">Dried flowers</span>
+        </div>
+        <div class="name-en">Country Senna Leaf</div>
+        <div class="name-ta">நிலாவரை</div>
+        <div class="bot-name"><em>Senna auriculata</em></div>
+        <div class="source-info">
+          <div class="src-line"><strong>Source:</strong> Wikimedia Commons / Authentic Field</div>
+          <div class="lic-line"><strong>License:</strong> Public domain</div>
+        </div>
+        <div class="action-row">
+          <button class="btn-check" onclick="markChecked(this, 'TRN-1048')">✓ Ready for Demo</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card page-2 status-REAL_PHOTO_CANDIDATE">
+      <div class="img-wrap">
+        <img src="../demo-approved-candidates/TRN-1049.webp" alt="Hibiscus Leaf" loading="lazy" />
+        <span class="badge badge-real">REAL PHOTO CANDIDATE</span>
+      </div>
+      <div class="info">
+        <div class="sku-row">
+          <span class="sku">TRN-1049</span>
+          <span class="form-tag">Botanical bark</span>
+        </div>
+        <div class="name-en">Hibiscus Leaf</div>
+        <div class="name-ta">செம்பருத்தி இலை</div>
+        <div class="bot-name"><em>Ventilago madraspatana</em></div>
+        <div class="source-info">
+          <div class="src-line"><strong>Source:</strong> Wikimedia Commons / Authentic Field</div>
+          <div class="lic-line"><strong>License:</strong> CC BY 3.0</div>
+        </div>
+        <div class="action-row">
+          <button class="btn-check" onclick="markChecked(this, 'TRN-1049')">✓ Ready for Demo</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card page-2 status-REAL_PHOTO_CANDIDATE">
+      <div class="img-wrap">
+        <img src="../demo-approved-candidates/TRN-1050.webp" alt="Hibiscus Flower" loading="lazy" />
+        <span class="badge badge-real">REAL PHOTO CANDIDATE</span>
+      </div>
+      <div class="info">
+        <div class="sku-row">
+          <span class="sku">TRN-1050</span>
+          <span class="form-tag">Dried fibrous roots</span>
+        </div>
+        <div class="name-en">Hibiscus Flower</div>
+        <div class="name-ta">செம்பருத்தி பூ</div>
+        <div class="bot-name"><em>Chrysopogon zizanioides</em></div>
+        <div class="source-info">
+          <div class="src-line"><strong>Source:</strong> Wikimedia Commons / Authentic Field</div>
+          <div class="lic-line"><strong>License:</strong> CC BY-SA 3.0</div>
+        </div>
+        <div class="action-row">
+          <button class="btn-check" onclick="markChecked(this, 'TRN-1050')">✓ Ready for Demo</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card page-2 status-REAL_PHOTO_CANDIDATE">
+      <div class="img-wrap">
+        <img src="../demo-approved-candidates/TRN-1051.webp" alt="Soap pod Special" loading="lazy" />
+        <span class="badge badge-real">REAL PHOTO CANDIDATE</span>
+      </div>
+      <div class="info">
+        <div class="sku-row">
+          <span class="sku">TRN-1051</span>
+          <span class="form-tag">Dried fibrous roots</span>
+        </div>
+        <div class="name-en">Soap pod Special</div>
+        <div class="name-ta">சீயக்காய் - 1</div>
+        <div class="bot-name"><em>Chrysopogon zizanioides</em></div>
+        <div class="source-info">
+          <div class="src-line"><strong>Source:</strong> Wikimedia Commons / Authentic Field</div>
+          <div class="lic-line"><strong>License:</strong> CC0</div>
+        </div>
+        <div class="action-row">
+          <button class="btn-check" onclick="markChecked(this, 'TRN-1051')">✓ Ready for Demo</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card page-2 status-REAL_PHOTO_CANDIDATE">
+      <div class="img-wrap">
+        <img src="../demo-approved-candidates/TRN-1052.webp" alt="Soap pod" loading="lazy" />
+        <span class="badge badge-real">REAL PHOTO CANDIDATE</span>
+      </div>
+      <div class="info">
+        <div class="sku-row">
+          <span class="sku">TRN-1052</span>
+          <span class="form-tag">Dried leaves</span>
+        </div>
+        <div class="name-en">Soap pod</div>
+        <div class="name-ta">சீயக்காய் - 2</div>
+        <div class="bot-name"><em>Aegle marmelos</em></div>
+        <div class="source-info">
+          <div class="src-line"><strong>Source:</strong> Wikimedia Commons / Authentic Field</div>
+          <div class="lic-line"><strong>License:</strong> CC BY 2.0</div>
+        </div>
+        <div class="action-row">
+          <button class="btn-check" onclick="markChecked(this, 'TRN-1052')">✓ Ready for Demo</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card page-2 status-REAL_PHOTO_CANDIDATE">
+      <div class="img-wrap">
+        <img src="../demo-approved-candidates/TRN-1053.webp" alt="Dil Seeds" loading="lazy" />
+        <span class="badge badge-real">REAL PHOTO CANDIDATE</span>
+      </div>
+      <div class="info">
+        <div class="sku-row">
+          <span class="sku">TRN-1053</span>
+          <span class="form-tag">Dried fruit shell/pulp</span>
+        </div>
+        <div class="name-en">Dil Seeds</div>
+        <div class="name-ta">சதக்குப்பை</div>
+        <div class="bot-name"><em>Aegle marmelos</em></div>
+        <div class="source-info">
+          <div class="src-line"><strong>Source:</strong> Wikimedia Commons / Authentic Field</div>
+          <div class="lic-line"><strong>License:</strong> CC BY-SA 4.0</div>
+        </div>
+        <div class="action-row">
+          <button class="btn-check" onclick="markChecked(this, 'TRN-1053')">✓ Ready for Demo</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card page-2 status-REAL_PHOTO_CANDIDATE">
+      <div class="img-wrap">
+        <img src="../demo-approved-candidates/TRN-1054.webp" alt="Nutgrass" loading="lazy" />
+        <span class="badge badge-real">REAL PHOTO CANDIDATE</span>
+      </div>
+      <div class="info">
+        <div class="sku-row">
+          <span class="sku">TRN-1054</span>
+          <span class="form-tag">Dried fruit</span>
+        </div>
+        <div class="name-en">Nutgrass</div>
+        <div class="name-ta">கோரைக்கிழங்கு</div>
+        <div class="bot-name"><em>Terminalia bellirica</em></div>
+        <div class="source-info">
+          <div class="src-line"><strong>Source:</strong> Wikimedia Commons / Authentic Field</div>
+          <div class="lic-line"><strong>License:</strong> Public domain</div>
+        </div>
+        <div class="action-row">
+          <button class="btn-check" onclick="markChecked(this, 'TRN-1054')">✓ Ready for Demo</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card page-2 status-REAL_PHOTO_CANDIDATE">
+      <div class="img-wrap">
+        <img src="../demo-approved-candidates/TRN-1055.webp" alt="Red Fruit Creeper" loading="lazy" />
+        <span class="badge badge-real">REAL PHOTO CANDIDATE</span>
+      </div>
+      <div class="info">
+        <div class="sku-row">
+          <span class="sku">TRN-1055</span>
+          <span class="form-tag">Whole dried fruit</span>
+        </div>
+        <div class="name-en">Red Fruit Creeper</div>
+        <div class="name-ta">கருடக்கிழங்கு</div>
+        <div class="bot-name"><em>Phyllanthus emblica</em></div>
+        <div class="source-info">
+          <div class="src-line"><strong>Source:</strong> Wikimedia Commons / Authentic Field</div>
+          <div class="lic-line"><strong>License:</strong> CC BY 2.0</div>
+        </div>
+        <div class="action-row">
+          <button class="btn-check" onclick="markChecked(this, 'TRN-1055')">✓ Ready for Demo</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card page-2 status-REAL_PHOTO_CANDIDATE">
+      <div class="img-wrap">
+        <img src="../demo-approved-candidates/TRN-1056.webp" alt="Indian Indigo" loading="lazy" />
+        <span class="badge badge-real">REAL PHOTO CANDIDATE</span>
+      </div>
+      <div class="info">
+        <div class="sku-row">
+          <span class="sku">TRN-1056</span>
+          <span class="form-tag">Dried fruit pods</span>
+        </div>
+        <div class="name-en">Indian Indigo</div>
+        <div class="name-ta">அவுரி விதை</div>
+        <div class="bot-name"><em>Acacia concinna</em></div>
+        <div class="source-info">
+          <div class="src-line"><strong>Source:</strong> Wikimedia Commons / Authentic Field</div>
+          <div class="lic-line"><strong>License:</strong> CC BY-SA 2.0</div>
+        </div>
+        <div class="action-row">
+          <button class="btn-check" onclick="markChecked(this, 'TRN-1056')">✓ Ready for Demo</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card page-2 status-REAL_PHOTO_CANDIDATE">
+      <div class="img-wrap">
+        <img src="../demo-approved-candidates/TRN-1057.webp" alt="Black Cumin" loading="lazy" />
+        <span class="badge badge-real">REAL PHOTO CANDIDATE</span>
+      </div>
+      <div class="info">
+        <div class="sku-row">
+          <span class="sku">TRN-1057</span>
+          <span class="form-tag">Dried berries</span>
+        </div>
+        <div class="name-en">Black Cumin</div>
+        <div class="name-ta">கருஞ்சீரகம்</div>
+        <div class="bot-name"><em>Sapindus mukorossi / Sapindus trifoliatus</em></div>
+        <div class="source-info">
+          <div class="src-line"><strong>Source:</strong> Wikimedia Commons / Authentic Field</div>
+          <div class="lic-line"><strong>License:</strong> CC0</div>
+        </div>
+        <div class="action-row">
+          <button class="btn-check" onclick="markChecked(this, 'TRN-1057')">✓ Ready for Demo</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card page-2 status-REAL_PHOTO_CANDIDATE">
+      <div class="img-wrap">
+        <img src="../demo-approved-candidates/TRN-1058.webp" alt="Soap Pod Powder" loading="lazy" />
+        <span class="badge badge-real">REAL PHOTO CANDIDATE</span>
+      </div>
+      <div class="info">
+        <div class="sku-row">
+          <span class="sku">TRN-1058</span>
+          <span class="form-tag">Herbal blend powder</span>
+        </div>
+        <div class="name-en">Soap Pod Powder</div>
+        <div class="name-ta">சீயக்காய் மிக்ஸ் பொடி</div>
+        <div class="bot-name"><em>Acacia concinna herbal blend</em></div>
+        <div class="source-info">
+          <div class="src-line"><strong>Source:</strong> Wikimedia Commons / Authentic Field</div>
+          <div class="lic-line"><strong>License:</strong> No restrictions</div>
+        </div>
+        <div class="action-row">
+          <button class="btn-check" onclick="markChecked(this, 'TRN-1058')">✓ Ready for Demo</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card page-2 status-REAL_PHOTO_CANDIDATE">
+      <div class="img-wrap">
+        <img src="../demo-approved-candidates/TRN-1059.webp" alt="Alkanet Roots" loading="lazy" />
+        <span class="badge badge-real">REAL PHOTO CANDIDATE</span>
+      </div>
+      <div class="info">
+        <div class="sku-row">
+          <span class="sku">TRN-1059</span>
+          <span class="form-tag">Dried leaves</span>
+        </div>
+        <div class="name-en">Alkanet Roots</div>
+        <div class="name-ta">வேம்பாளம் பட்டை</div>
+        <div class="bot-name"><em>Eclipta prostrata</em></div>
+        <div class="source-info">
+          <div class="src-line"><strong>Source:</strong> Wikimedia Commons / Authentic Field</div>
+          <div class="lic-line"><strong>License:</strong> CC BY-SA 2.0</div>
+        </div>
+        <div class="action-row">
+          <button class="btn-check" onclick="markChecked(this, 'TRN-1059')">✓ Ready for Demo</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card page-2 status-REAL_PHOTO_CANDIDATE">
+      <div class="img-wrap">
+        <img src="../demo-approved-candidates/TRN-1060.webp" alt="Camel Grass" loading="lazy" />
+        <span class="badge badge-real">REAL PHOTO CANDIDATE</span>
+      </div>
+      <div class="info">
+        <div class="sku-row">
+          <span class="sku">TRN-1060</span>
+          <span class="form-tag">Dried leaves</span>
+        </div>
+        <div class="name-en">Camel Grass</div>
+        <div class="name-ta">வெட்டிவேர்</div>
+        <div class="bot-name"><em>Centella asiatica</em></div>
+        <div class="source-info">
+          <div class="src-line"><strong>Source:</strong> Wikimedia Commons / Authentic Field</div>
+          <div class="lic-line"><strong>License:</strong> CC BY-SA 4.0</div>
+        </div>
+        <div class="action-row">
+          <button class="btn-check" onclick="markChecked(this, 'TRN-1060')">✓ Ready for Demo</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card page-2 status-REAL_PHOTO_CANDIDATE">
+      <div class="img-wrap">
+        <img src="../demo-approved-candidates/TRN-1061.webp" alt="Turmeric" loading="lazy" />
+        <span class="badge badge-real">REAL PHOTO CANDIDATE</span>
+      </div>
+      <div class="info">
+        <div class="sku-row">
+          <span class="sku">TRN-1061</span>
+          <span class="form-tag">Dried rhizome fingers</span>
+        </div>
+        <div class="name-en">Turmeric</div>
+        <div class="name-ta">விரலிமஞ்சள்</div>
+        <div class="bot-name"><em>Curcuma longa</em></div>
+        <div class="source-info">
+          <div class="src-line"><strong>Source:</strong> Wikimedia Commons / Authentic Field</div>
+          <div class="lic-line"><strong>License:</strong> CC0</div>
+        </div>
+        <div class="action-row">
+          <button class="btn-check" onclick="markChecked(this, 'TRN-1061')">✓ Ready for Demo</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card page-2 status-REAL_PHOTO_CANDIDATE">
+      <div class="img-wrap">
+        <img src="../demo-approved-candidates/TRN-1062.webp" alt="Bilva Fruit Dry" loading="lazy" />
+        <span class="badge badge-real">REAL PHOTO CANDIDATE</span>
+      </div>
+      <div class="info">
+        <div class="sku-row">
+          <span class="sku">TRN-1062</span>
+          <span class="form-tag">Dried fruit rind</span>
+        </div>
+        <div class="name-en">Bilva Fruit Dry</div>
+        <div class="name-ta">வில்வ ஓடு</div>
+        <div class="bot-name"><em>Aegle marmelos</em></div>
+        <div class="source-info">
+          <div class="src-line"><strong>Source:</strong> Wikimedia Commons / Authentic Field</div>
+          <div class="lic-line"><strong>License:</strong> CC BY 4.0</div>
+        </div>
+        <div class="action-row">
+          <button class="btn-check" onclick="markChecked(this, 'TRN-1062')">✓ Ready for Demo</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card page-2 status-REAL_PHOTO_CANDIDATE">
+      <div class="img-wrap">
+        <img src="../demo-approved-candidates/TRN-1063.webp" alt="Indian Rose" loading="lazy" />
+        <span class="badge badge-real">REAL PHOTO CANDIDATE</span>
+      </div>
+      <div class="info">
+        <div class="sku-row">
+          <span class="sku">TRN-1063</span>
+          <span class="form-tag">Dried flower petals</span>
+        </div>
+        <div class="name-en">Indian Rose</div>
+        <div class="name-ta">ரோஜாபூ</div>
+        <div class="bot-name"><em>Rosa damascena</em></div>
+        <div class="source-info">
+          <div class="src-line"><strong>Source:</strong> Wikimedia Commons / Authentic Field</div>
+          <div class="lic-line"><strong>License:</strong> CC BY 3.0</div>
+        </div>
+        <div class="action-row">
+          <button class="btn-check" onclick="markChecked(this, 'TRN-1063')">✓ Ready for Demo</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card page-2 status-REAL_PHOTO_CANDIDATE">
+      <div class="img-wrap">
+        <img src="../demo-approved-candidates/TRN-1064.webp" alt="Fuller Earth" loading="lazy" />
+        <span class="badge badge-real">REAL PHOTO CANDIDATE</span>
+      </div>
+      <div class="info">
+        <div class="sku-row">
+          <span class="sku">TRN-1064</span>
+          <span class="form-tag">Natural clay chunks</span>
+        </div>
+        <div class="name-en">Fuller Earth</div>
+        <div class="name-ta">முல்தானி மட்டி</div>
+        <div class="bot-name"><em>Solum fullonum</em></div>
+        <div class="source-info">
+          <div class="src-line"><strong>Source:</strong> Wikimedia Commons / Authentic Field</div>
+          <div class="lic-line"><strong>License:</strong> CC BY 4.0</div>
+        </div>
+        <div class="action-row">
+          <button class="btn-check" onclick="markChecked(this, 'TRN-1064')">✓ Ready for Demo</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card page-2 status-REAL_PHOTO_CANDIDATE">
+      <div class="img-wrap">
+        <img src="../demo-approved-candidates/TRN-1065.webp" alt="Indian madder" loading="lazy" />
+        <span class="badge badge-real">REAL PHOTO CANDIDATE</span>
+      </div>
+      <div class="info">
+        <div class="sku-row">
+          <span class="sku">TRN-1065</span>
+          <span class="form-tag">Dried root sticks</span>
+        </div>
+        <div class="name-en">Indian madder</div>
+        <div class="name-ta">மஞ்சிஷ்டா</div>
+        <div class="bot-name"><em>Rubia cordifolia</em></div>
+        <div class="source-info">
+          <div class="src-line"><strong>Source:</strong> Wikimedia Commons / Authentic Field</div>
+          <div class="lic-line"><strong>License:</strong> CC BY-SA 3.0</div>
+        </div>
+        <div class="action-row">
+          <button class="btn-check" onclick="markChecked(this, 'TRN-1065')">✓ Ready for Demo</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card page-2 status-REAL_PHOTO_CANDIDATE">
+      <div class="img-wrap">
+        <img src="../demo-approved-candidates/TRN-1066.webp" alt="Indian Rennet" loading="lazy" />
+        <span class="badge badge-real">REAL PHOTO CANDIDATE</span>
+      </div>
+      <div class="info">
+        <div class="sku-row">
+          <span class="sku">TRN-1066</span>
+          <span class="form-tag">Dried berries/flowers</span>
+        </div>
+        <div class="name-en">Indian Rennet</div>
+        <div class="name-ta">பன்னீர் பூ</div>
+        <div class="bot-name"><em>Withania coagulans</em></div>
+        <div class="source-info">
+          <div class="src-line"><strong>Source:</strong> Wikimedia Commons / Authentic Field</div>
+          <div class="lic-line"><strong>License:</strong> CC BY-SA 4.0</div>
+        </div>
+        <div class="action-row">
+          <button class="btn-check" onclick="markChecked(this, 'TRN-1066')">✓ Ready for Demo</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card page-2 status-REAL_PHOTO_CANDIDATE">
+      <div class="img-wrap">
+        <img src="../demo-approved-candidates/TRN-1067.webp" alt="Alam Stone" loading="lazy" />
+        <span class="badge badge-real">REAL PHOTO CANDIDATE</span>
+      </div>
+      <div class="info">
+        <div class="sku-row">
+          <span class="sku">TRN-1067</span>
+          <span class="form-tag">Natural mineral crystal</span>
+        </div>
+        <div class="name-en">Alam Stone</div>
+        <div class="name-ta">படிகாரம்</div>
+        <div class="bot-name"><em>Potassium alum</em></div>
+        <div class="source-info">
+          <div class="src-line"><strong>Source:</strong> Wikimedia Commons / Authentic Field</div>
+          <div class="lic-line"><strong>License:</strong> Public domain</div>
+        </div>
+        <div class="action-row">
+          <button class="btn-check" onclick="markChecked(this, 'TRN-1067')">✓ Ready for Demo</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card page-2 status-REAL_PHOTO_CANDIDATE">
+      <div class="img-wrap">
+        <img src="../demo-approved-candidates/TRN-1068.webp" alt="Rough Chaff" loading="lazy" />
+        <span class="badge badge-real">REAL PHOTO CANDIDATE</span>
+      </div>
+      <div class="info">
+        <div class="sku-row">
+          <span class="sku">TRN-1068</span>
+          <span class="form-tag">Whole seeds</span>
+        </div>
+        <div class="name-en">Rough Chaff</div>
+        <div class="name-ta">நாயுருவி அரிசி</div>
+        <div class="bot-name"><em>Achyranthes aspera</em></div>
+        <div class="source-info">
+          <div class="src-line"><strong>Source:</strong> Wikimedia Commons / Authentic Field</div>
+          <div class="lic-line"><strong>License:</strong> CC BY 3.0 us</div>
+        </div>
+        <div class="action-row">
+          <button class="btn-check" onclick="markChecked(this, 'TRN-1068')">✓ Ready for Demo</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card page-2 status-REAL_PHOTO_CANDIDATE">
+      <div class="img-wrap">
+        <img src="../demo-approved-candidates/TRN-1069.webp" alt="Sweet Basil" loading="lazy" />
+        <span class="badge badge-real">REAL PHOTO CANDIDATE</span>
+      </div>
+      <div class="info">
+        <div class="sku-row">
+          <span class="sku">TRN-1069</span>
+          <span class="form-tag">Whole seeds</span>
+        </div>
+        <div class="name-en">Sweet Basil</div>
+        <div class="name-ta">திருநீற்று பச்சிலை</div>
+        <div class="bot-name"><em>Ocimum basilicum seeds</em></div>
+        <div class="source-info">
+          <div class="src-line"><strong>Source:</strong> Wikimedia Commons / Authentic Field</div>
+          <div class="lic-line"><strong>License:</strong> CC BY 3.0</div>
+        </div>
+        <div class="action-row">
+          <button class="btn-check" onclick="markChecked(this, 'TRN-1069')">✓ Ready for Demo</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card page-2 status-REAL_PHOTO_CANDIDATE">
+      <div class="img-wrap">
+        <img src="../demo-approved-candidates/TRN-1070.webp" alt="Wild Turmeric" loading="lazy" />
+        <span class="badge badge-real">REAL PHOTO CANDIDATE</span>
+      </div>
+      <div class="info">
+        <div class="sku-row">
+          <span class="sku">TRN-1070</span>
+          <span class="form-tag">Dried rhizome</span>
+        </div>
+        <div class="name-en">Wild Turmeric</div>
+        <div class="name-ta">கஸ்தூரி மஞ்சள்</div>
+        <div class="bot-name"><em>Curcuma aromatica</em></div>
+        <div class="source-info">
+          <div class="src-line"><strong>Source:</strong> Wikimedia Commons / Authentic Field</div>
+          <div class="lic-line"><strong>License:</strong> CC BY-SA 3.0</div>
+        </div>
+        <div class="action-row">
+          <button class="btn-check" onclick="markChecked(this, 'TRN-1070')">✓ Ready for Demo</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card page-2 status-REAL_PHOTO_CANDIDATE">
+      <div class="img-wrap">
+        <img src="../demo-approved-candidates/TRN-1071.webp" alt="Lemon Peel" loading="lazy" />
+        <span class="badge badge-real">REAL PHOTO CANDIDATE</span>
+      </div>
+      <div class="info">
+        <div class="sku-row">
+          <span class="sku">TRN-1071</span>
+          <span class="form-tag">Dried leaves</span>
+        </div>
+        <div class="name-en">Lemon Peel</div>
+        <div class="name-ta">எலுமிச்சை தோல்</div>
+        <div class="bot-name"><em>Ocimum tenuiflorum</em></div>
+        <div class="source-info">
+          <div class="src-line"><strong>Source:</strong> Wikimedia Commons / Authentic Field</div>
+          <div class="lic-line"><strong>License:</strong> CC BY-SA 2.5</div>
+        </div>
+        <div class="action-row">
+          <button class="btn-check" onclick="markChecked(this, 'TRN-1071')">✓ Ready for Demo</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card page-2 status-REAL_PHOTO_CANDIDATE">
+      <div class="img-wrap">
+        <img src="../demo-approved-candidates/TRN-1072.webp" alt="Senna Flowers" loading="lazy" />
+        <span class="badge badge-real">REAL PHOTO CANDIDATE</span>
+      </div>
+      <div class="info">
+        <div class="sku-row">
+          <span class="sku">TRN-1072</span>
+          <span class="form-tag">Dried flowers</span>
+        </div>
+        <div class="name-en">Senna Flowers</div>
+        <div class="name-ta">ஆவாரம்பூ</div>
+        <div class="bot-name"><em>Clitoria ternatea</em></div>
+        <div class="source-info">
+          <div class="src-line"><strong>Source:</strong> Wikimedia Commons / Authentic Field</div>
+          <div class="lic-line"><strong>License:</strong> CC BY-SA 4.0</div>
+        </div>
+        <div class="action-row">
+          <button class="btn-check" onclick="markChecked(this, 'TRN-1072')">✓ Ready for Demo</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card page-3 status-REAL_PHOTO_CANDIDATE">
+      <div class="img-wrap">
+        <img src="../demo-approved-candidates/TRN-1073.webp" alt="Benzoin Resin - 1" loading="lazy" />
+        <span class="badge badge-real">REAL PHOTO CANDIDATE</span>
+      </div>
+      <div class="info">
+        <div class="sku-row">
+          <span class="sku">TRN-1073</span>
+          <span class="form-tag">Dried flowers</span>
+        </div>
+        <div class="name-en">Benzoin Resin - 1</div>
+        <div class="name-ta">சாம்பிராணி 1</div>
+        <div class="bot-name"><em>Hibiscus rosa-sinensis</em></div>
+        <div class="source-info">
+          <div class="src-line"><strong>Source:</strong> Wikimedia Commons / Authentic Field</div>
+          <div class="lic-line"><strong>License:</strong> CC BY-SA 2.0</div>
+        </div>
+        <div class="action-row">
+          <button class="btn-check" onclick="markChecked(this, 'TRN-1073')">✓ Ready for Demo</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card page-3 status-REAL_PHOTO_CANDIDATE">
+      <div class="img-wrap">
+        <img src="../demo-approved-candidates/TRN-1074.webp" alt="Benzoin Resin - 2" loading="lazy" />
+        <span class="badge badge-real">REAL PHOTO CANDIDATE</span>
+      </div>
+      <div class="info">
+        <div class="sku-row">
+          <span class="sku">TRN-1074</span>
+          <span class="form-tag">Dried leaves</span>
+        </div>
+        <div class="name-en">Benzoin Resin - 2</div>
+        <div class="name-ta">சாம்பிராணி 2</div>
+        <div class="bot-name"><em>Lawsonia inermis</em></div>
+        <div class="source-info">
+          <div class="src-line"><strong>Source:</strong> Wikimedia Commons / Authentic Field</div>
+          <div class="lic-line"><strong>License:</strong> CC BY-SA 4.0</div>
+        </div>
+        <div class="action-row">
+          <button class="btn-check" onclick="markChecked(this, 'TRN-1074')">✓ Ready for Demo</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card page-3 status-REAL_PHOTO_CANDIDATE">
+      <div class="img-wrap">
+        <img src="../demo-approved-candidates/TRN-1075.webp" alt="Benzoin Resin - 3" loading="lazy" />
+        <span class="badge badge-real">REAL PHOTO CANDIDATE</span>
+      </div>
+      <div class="info">
+        <div class="sku-row">
+          <span class="sku">TRN-1075</span>
+          <span class="form-tag">Dried leaves</span>
+        </div>
+        <div class="name-en">Benzoin Resin - 3</div>
+        <div class="name-ta">சாம்பிராணி 3</div>
+        <div class="bot-name"><em>Indigofera tinctoria</em></div>
+        <div class="source-info">
+          <div class="src-line"><strong>Source:</strong> Wikimedia Commons / Authentic Field</div>
+          <div class="lic-line"><strong>License:</strong> No restrictions</div>
+        </div>
+        <div class="action-row">
+          <button class="btn-check" onclick="markChecked(this, 'TRN-1075')">✓ Ready for Demo</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card page-3 status-REAL_PHOTO_CANDIDATE">
+      <div class="img-wrap">
+        <img src="../demo-approved-candidates/TRN-1076.webp" alt="Black Dammer" loading="lazy" />
+        <span class="badge badge-real">REAL PHOTO CANDIDATE</span>
+      </div>
+      <div class="info">
+        <div class="sku-row">
+          <span class="sku">TRN-1076</span>
+          <span class="form-tag">Dried pods</span>
+        </div>
+        <div class="name-en">Black Dammer</div>
+        <div class="name-ta">குங்கிலியம் (க)</div>
+        <div class="bot-name"><em>Cassia fistula</em></div>
+        <div class="source-info">
+          <div class="src-line"><strong>Source:</strong> Wikimedia Commons / Authentic Field</div>
+          <div class="lic-line"><strong>License:</strong> CC BY 3.0</div>
+        </div>
+        <div class="action-row">
+          <button class="btn-check" onclick="markChecked(this, 'TRN-1076')">✓ Ready for Demo</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card page-3 status-REAL_PHOTO_CANDIDATE">
+      <div class="img-wrap">
+        <img src="../demo-approved-candidates/TRN-1077.webp" alt="White Dammer" loading="lazy" />
+        <span class="badge badge-real">REAL PHOTO CANDIDATE</span>
+      </div>
+      <div class="info">
+        <div class="sku-row">
+          <span class="sku">TRN-1077</span>
+          <span class="form-tag">Whole seeds</span>
+        </div>
+        <div class="name-en">White Dammer</div>
+        <div class="name-ta">குங்கிலியம் (வெ)</div>
+        <div class="bot-name"><em>Mucuna pruriens</em></div>
+        <div class="source-info">
+          <div class="src-line"><strong>Source:</strong> Wikimedia Commons / Authentic Field</div>
+          <div class="lic-line"><strong>License:</strong> CC BY-SA 2.0</div>
+        </div>
+        <div class="action-row">
+          <button class="btn-check" onclick="markChecked(this, 'TRN-1077')">✓ Ready for Demo</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card page-3 status-REAL_PHOTO_CANDIDATE">
+      <div class="img-wrap">
+        <img src="../demo-approved-candidates/TRN-1078.webp" alt="Magic ginger" loading="lazy" />
+        <span class="badge badge-real">REAL PHOTO CANDIDATE</span>
+      </div>
+      <div class="info">
+        <div class="sku-row">
+          <span class="sku">TRN-1078</span>
+          <span class="form-tag">Dried fruit thorns</span>
+        </div>
+        <div class="name-en">Magic ginger</div>
+        <div class="name-ta">மேஜிக் இஞ்சி</div>
+        <div class="bot-name"><em>Tribulus terrestris</em></div>
+        <div class="source-info">
+          <div class="src-line"><strong>Source:</strong> Wikimedia Commons / Authentic Field</div>
+          <div class="lic-line"><strong>License:</strong> CC BY-SA 2.0</div>
+        </div>
+        <div class="action-row">
+          <button class="btn-check" onclick="markChecked(this, 'TRN-1078')">✓ Ready for Demo</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card page-3 status-REAL_PHOTO_CANDIDATE">
+      <div class="img-wrap">
+        <img src="../demo-approved-candidates/TRN-1079.webp" alt="Amla Tea" loading="lazy" />
+        <span class="badge badge-real">REAL PHOTO CANDIDATE</span>
+      </div>
+      <div class="info">
+        <div class="sku-row">
+          <span class="sku">TRN-1079</span>
+          <span class="form-tag">Whole seeds</span>
+        </div>
+        <div class="name-en">Amla Tea</div>
+        <div class="name-ta">நெல்லி டி</div>
+        <div class="bot-name"><em>Astercantha longifolia</em></div>
+        <div class="source-info">
+          <div class="src-line"><strong>Source:</strong> Wikimedia Commons / Authentic Field</div>
+          <div class="lic-line"><strong>License:</strong> CC BY-SA 4.0</div>
+        </div>
+        <div class="action-row">
+          <button class="btn-check" onclick="markChecked(this, 'TRN-1079')">✓ Ready for Demo</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card page-3 status-REAL_PHOTO_CANDIDATE">
+      <div class="img-wrap">
+        <img src="../demo-approved-candidates/TRN-1080.webp" alt="Ginger Soup" loading="lazy" />
+        <span class="badge badge-real">REAL PHOTO CANDIDATE</span>
+      </div>
+      <div class="info">
+        <div class="sku-row">
+          <span class="sku">TRN-1080</span>
+          <span class="form-tag">Whole seeds</span>
+        </div>
+        <div class="name-en">Ginger Soup</div>
+        <div class="name-ta">இஞ்சி சூப்</div>
+        <div class="bot-name"><em>Coriandrum sativum</em></div>
+        <div class="source-info">
+          <div class="src-line"><strong>Source:</strong> Wikimedia Commons / Authentic Field</div>
+          <div class="lic-line"><strong>License:</strong> CC BY-SA 4.0</div>
+        </div>
+        <div class="action-row">
+          <button class="btn-check" onclick="markChecked(this, 'TRN-1080')">✓ Ready for Demo</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card page-3 status-REAL_PHOTO_CANDIDATE">
+      <div class="img-wrap">
+        <img src="../demo-approved-candidates/TRN-1081.webp" alt="Pumpkin Seeds" loading="lazy" />
+        <span class="badge badge-real">REAL PHOTO CANDIDATE</span>
+      </div>
+      <div class="info">
+        <div class="sku-row">
+          <span class="sku">TRN-1081</span>
+          <span class="form-tag">Whole seeds</span>
+        </div>
+        <div class="name-en">Pumpkin Seeds</div>
+        <div class="name-ta">பூசணி விதை</div>
+        <div class="bot-name"><em>Cuminum cyminum</em></div>
+        <div class="source-info">
+          <div class="src-line"><strong>Source:</strong> Wikimedia Commons / Authentic Field</div>
+          <div class="lic-line"><strong>License:</strong> CC BY-SA 3.0</div>
+        </div>
+        <div class="action-row">
+          <button class="btn-check" onclick="markChecked(this, 'TRN-1081')">✓ Ready for Demo</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card page-3 status-REAL_PHOTO_CANDIDATE">
+      <div class="img-wrap">
+        <img src="../demo-approved-candidates/TRN-1082.webp" alt="Cucumber Seeds" loading="lazy" />
+        <span class="badge badge-real">REAL PHOTO CANDIDATE</span>
+      </div>
+      <div class="info">
+        <div class="sku-row">
+          <span class="sku">TRN-1082</span>
+          <span class="form-tag">Whole seeds</span>
+        </div>
+        <div class="name-en">Cucumber Seeds</div>
+        <div class="name-ta">வெள்ளரி விதை</div>
+        <div class="bot-name"><em>Foeniculum vulgare</em></div>
+        <div class="source-info">
+          <div class="src-line"><strong>Source:</strong> Wikimedia Commons / Authentic Field</div>
+          <div class="lic-line"><strong>License:</strong> CC BY-SA 3.0</div>
+        </div>
+        <div class="action-row">
+          <button class="btn-check" onclick="markChecked(this, 'TRN-1082')">✓ Ready for Demo</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card page-3 status-REAL_PHOTO_CANDIDATE">
+      <div class="img-wrap">
+        <img src="../demo-approved-candidates/TRN-1083.webp" alt="Sunflower Seeds" loading="lazy" />
+        <span class="badge badge-real">REAL PHOTO CANDIDATE</span>
+      </div>
+      <div class="info">
+        <div class="sku-row">
+          <span class="sku">TRN-1083</span>
+          <span class="form-tag">Whole seeds</span>
+        </div>
+        <div class="name-en">Sunflower Seeds</div>
+        <div class="name-ta">சூரியகாந்தி விதை</div>
+        <div class="bot-name"><em>Trigonella foenum-graecum</em></div>
+        <div class="source-info">
+          <div class="src-line"><strong>Source:</strong> Wikimedia Commons / Authentic Field</div>
+          <div class="lic-line"><strong>License:</strong> Public domain</div>
+        </div>
+        <div class="action-row">
+          <button class="btn-check" onclick="markChecked(this, 'TRN-1083')">✓ Ready for Demo</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card page-3 status-REAL_PHOTO_CANDIDATE">
+      <div class="img-wrap">
+        <img src="../demo-approved-candidates/TRN-1084.webp" alt="Chia Seeds" loading="lazy" />
+        <span class="badge badge-real">REAL PHOTO CANDIDATE</span>
+      </div>
+      <div class="info">
+        <div class="sku-row">
+          <span class="sku">TRN-1084</span>
+          <span class="form-tag">Dried green pods</span>
+        </div>
+        <div class="name-en">Chia Seeds</div>
+        <div class="name-ta">சியா விதை</div>
+        <div class="bot-name"><em>Elettaria cardamomum</em></div>
+        <div class="source-info">
+          <div class="src-line"><strong>Source:</strong> Wikimedia Commons / Authentic Field</div>
+          <div class="lic-line"><strong>License:</strong> CC BY-SA 3.0</div>
+        </div>
+        <div class="action-row">
+          <button class="btn-check" onclick="markChecked(this, 'TRN-1084')">✓ Ready for Demo</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card page-3 status-REAL_PHOTO_CANDIDATE">
+      <div class="img-wrap">
+        <img src="../demo-approved-candidates/TRN-1085.webp" alt="Flax Sseeds" loading="lazy" />
+        <span class="badge badge-real">REAL PHOTO CANDIDATE</span>
+      </div>
+      <div class="info">
+        <div class="sku-row">
+          <span class="sku">TRN-1085</span>
+          <span class="form-tag">Dried flower buds</span>
+        </div>
+        <div class="name-en">Flax Sseeds</div>
+        <div class="name-ta">ஆளி விதை</div>
+        <div class="bot-name"><em>Syzygium aromaticum</em></div>
+        <div class="source-info">
+          <div class="src-line"><strong>Source:</strong> Wikimedia Commons / Authentic Field</div>
+          <div class="lic-line"><strong>License:</strong> CC BY-SA 4.0</div>
+        </div>
+        <div class="action-row">
+          <button class="btn-check" onclick="markChecked(this, 'TRN-1085')">✓ Ready for Demo</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card page-3 status-REAL_PHOTO_CANDIDATE">
+      <div class="img-wrap">
+        <img src="../demo-approved-candidates/TRN-1086.webp" alt="Basil Seeds" loading="lazy" />
+        <span class="badge badge-real">REAL PHOTO CANDIDATE</span>
+      </div>
+      <div class="info">
+        <div class="sku-row">
+          <span class="sku">TRN-1086</span>
+          <span class="form-tag">Dried inner bark quills</span>
+        </div>
+        <div class="name-en">Basil Seeds</div>
+        <div class="name-ta">சப்ஜா விதை</div>
+        <div class="bot-name"><em>Cinnamomum verum</em></div>
+        <div class="source-info">
+          <div class="src-line"><strong>Source:</strong> Wikimedia Commons / Authentic Field</div>
+          <div class="lic-line"><strong>License:</strong> CC BY-SA 1.0 fi</div>
+        </div>
+        <div class="action-row">
+          <button class="btn-check" onclick="markChecked(this, 'TRN-1086')">✓ Ready for Demo</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card page-3 status-REAL_PHOTO_CANDIDATE">
+      <div class="img-wrap">
+        <img src="../demo-approved-candidates/TRN-1087.webp" alt="Spogel Seeds" loading="lazy" />
+        <span class="badge badge-real">REAL PHOTO CANDIDATE</span>
+      </div>
+      <div class="info">
+        <div class="sku-row">
+          <span class="sku">TRN-1087</span>
+          <span class="form-tag">Dried star fruit</span>
+        </div>
+        <div class="name-en">Spogel Seeds</div>
+        <div class="name-ta">இசப்புகல் விதை</div>
+        <div class="bot-name"><em>Illicium verum</em></div>
+        <div class="source-info">
+          <div class="src-line"><strong>Source:</strong> Wikimedia Commons / Authentic Field</div>
+          <div class="lic-line"><strong>License:</strong> CC BY-SA 4.0</div>
+        </div>
+        <div class="action-row">
+          <button class="btn-check" onclick="markChecked(this, 'TRN-1087')">✓ Ready for Demo</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card page-3 status-REAL_PHOTO_CANDIDATE">
+      <div class="img-wrap">
+        <img src="../demo-approved-candidates/TRN-1088.webp" alt="fenugreek Seeds" loading="lazy" />
+        <span class="badge badge-real">REAL PHOTO CANDIDATE</span>
+      </div>
+      <div class="info">
+        <div class="sku-row">
+          <span class="sku">TRN-1088</span>
+          <span class="form-tag">Dried mace aril blades</span>
+        </div>
+        <div class="name-en">fenugreek Seeds</div>
+        <div class="name-ta">வெந்தய விதைகள்</div>
+        <div class="bot-name"><em>Myristica fragrans aril</em></div>
+        <div class="source-info">
+          <div class="src-line"><strong>Source:</strong> Wikimedia Commons / Authentic Field</div>
+          <div class="lic-line"><strong>License:</strong> CC BY-SA 2.0</div>
+        </div>
+        <div class="action-row">
+          <button class="btn-check" onclick="markChecked(this, 'TRN-1088')">✓ Ready for Demo</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card page-3 status-REAL_PHOTO_CANDIDATE">
+      <div class="img-wrap">
+        <img src="../demo-approved-candidates/TRN-1089.webp" alt="Cinnamon" loading="lazy" />
+        <span class="badge badge-real">REAL PHOTO CANDIDATE</span>
+      </div>
+      <div class="info">
+        <div class="sku-row">
+          <span class="sku">TRN-1089</span>
+          <span class="form-tag">Herbal resin or gum</span>
+        </div>
+        <div class="name-en">Cinnamon</div>
+        <div class="name-ta">இலவங்கம்</div>
+        <div class="bot-name"><em>Commiphora mukul</em></div>
+        <div class="source-info">
+          <div class="src-line"><strong>Source:</strong> Wikimedia Commons / Authentic Field</div>
+          <div class="lic-line"><strong>License:</strong> CC BY 4.0</div>
+        </div>
+        <div class="action-row">
+          <button class="btn-check" onclick="markChecked(this, 'TRN-1089')">✓ Ready for Demo</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card page-3 status-REAL_PHOTO_CANDIDATE">
+      <div class="img-wrap">
+        <img src="../demo-approved-candidates/TRN-1090.webp" alt="Cardamom" loading="lazy" />
+        <span class="badge badge-real">REAL PHOTO CANDIDATE</span>
+      </div>
+      <div class="info">
+        <div class="sku-row">
+          <span class="sku">TRN-1090</span>
+          <span class="form-tag">Herbal resin tears</span>
+        </div>
+        <div class="name-en">Cardamom</div>
+        <div class="name-ta">ஏலரிசி</div>
+        <div class="bot-name"><em>Boswellia serrata</em></div>
+        <div class="source-info">
+          <div class="src-line"><strong>Source:</strong> Wikimedia Commons / Authentic Field</div>
+          <div class="lic-line"><strong>License:</strong> CC BY-SA 2.0</div>
+        </div>
+        <div class="action-row">
+          <button class="btn-check" onclick="markChecked(this, 'TRN-1090')">✓ Ready for Demo</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card page-3 status-REAL_PHOTO_CANDIDATE">
+      <div class="img-wrap">
+        <img src="../demo-approved-candidates/TRN-1091.webp" alt="Bishop Weed" loading="lazy" />
+        <span class="badge badge-real">REAL PHOTO CANDIDATE</span>
+      </div>
+      <div class="info">
+        <div class="sku-row">
+          <span class="sku">TRN-1091</span>
+          <span class="form-tag">Whole seeds</span>
+        </div>
+        <div class="name-en">Bishop Weed</div>
+        <div class="name-ta">ஓமம்</div>
+        <div class="bot-name"><em>Trachyspermum ammi</em></div>
+        <div class="source-info">
+          <div class="src-line"><strong>Source:</strong> Wikimedia Commons / Authentic Field</div>
+          <div class="lic-line"><strong>License:</strong> CC BY-SA 4.0</div>
+        </div>
+        <div class="action-row">
+          <button class="btn-check" onclick="markChecked(this, 'TRN-1091')">✓ Ready for Demo</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card page-3 status-REAL_PHOTO_CANDIDATE">
+      <div class="img-wrap">
+        <img src="../demo-approved-candidates/TRN-1092.webp" alt="Dry Ginger" loading="lazy" />
+        <span class="badge badge-real">REAL PHOTO CANDIDATE</span>
+      </div>
+      <div class="info">
+        <div class="sku-row">
+          <span class="sku">TRN-1092</span>
+          <span class="form-tag">Dried rhizome</span>
+        </div>
+        <div class="name-en">Dry Ginger</div>
+        <div class="name-ta">சுக்கு</div>
+        <div class="bot-name"><em>Zingiber officinale</em></div>
+        <div class="source-info">
+          <div class="src-line"><strong>Source:</strong> Wikimedia Commons / Authentic Field</div>
+          <div class="lic-line"><strong>License:</strong> CC BY-SA 4.0</div>
+        </div>
+        <div class="action-row">
+          <button class="btn-check" onclick="markChecked(this, 'TRN-1092')">✓ Ready for Demo</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card page-3 status-REAL_PHOTO_CANDIDATE">
+      <div class="img-wrap">
+        <img src="../demo-approved-candidates/TRN-1093.webp" alt="Garlic" loading="lazy" />
+        <span class="badge badge-real">REAL PHOTO CANDIDATE</span>
+      </div>
+      <div class="info">
+        <div class="sku-row">
+          <span class="sku">TRN-1093</span>
+          <span class="form-tag">Dried smoked cloves</span>
+        </div>
+        <div class="name-en">Garlic</div>
+        <div class="name-ta">பூண்டு - புகை</div>
+        <div class="bot-name"><em>Allium sativum</em></div>
+        <div class="source-info">
+          <div class="src-line"><strong>Source:</strong> Wikimedia Commons / Authentic Field</div>
+          <div class="lic-line"><strong>License:</strong> CC BY 3.0</div>
+        </div>
+        <div class="action-row">
+          <button class="btn-check" onclick="markChecked(this, 'TRN-1093')">✓ Ready for Demo</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card page-3 status-REAL_PHOTO_CANDIDATE">
+      <div class="img-wrap">
+        <img src="../demo-approved-candidates/TRN-1094.webp" alt="Licorice Root Powder" loading="lazy" />
+        <span class="badge badge-real">REAL PHOTO CANDIDATE</span>
+      </div>
+      <div class="info">
+        <div class="sku-row">
+          <span class="sku">TRN-1094</span>
+          <span class="form-tag">Herbal powder</span>
+        </div>
+        <div class="name-en">Licorice Root Powder</div>
+        <div class="name-ta">அதிமதுரம் பொடி</div>
+        <div class="bot-name"><em>Licorice Root (Siddha/Ayurvedic ground herbal formulation)</em></div>
+        <div class="source-info">
+          <div class="src-line"><strong>Source:</strong> Wikimedia Commons / Authentic Field</div>
+          <div class="lic-line"><strong>License:</strong> No restrictions</div>
+        </div>
+        <div class="action-row">
+          <button class="btn-check" onclick="markChecked(this, 'TRN-1094')">✓ Ready for Demo</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card page-3 status-REAL_PHOTO_CANDIDATE">
+      <div class="img-wrap">
+        <img src="../demo-approved-candidates/TRN-1095.webp" alt="Ashwagandha Powder" loading="lazy" />
+        <span class="badge badge-real">REAL PHOTO CANDIDATE</span>
+      </div>
+      <div class="info">
+        <div class="sku-row">
+          <span class="sku">TRN-1095</span>
+          <span class="form-tag">Herbal powder</span>
+        </div>
+        <div class="name-en">Ashwagandha Powder</div>
+        <div class="name-ta">அமுக்கரா பொடி</div>
+        <div class="bot-name"><em>Ashwagandha (Siddha/Ayurvedic ground herbal formulation)</em></div>
+        <div class="source-info">
+          <div class="src-line"><strong>Source:</strong> Wikimedia Commons / Authentic Field</div>
+          <div class="lic-line"><strong>License:</strong> CC BY-SA 3.0</div>
+        </div>
+        <div class="action-row">
+          <button class="btn-check" onclick="markChecked(this, 'TRN-1095')">✓ Ready for Demo</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card page-3 status-REAL_PHOTO_CANDIDATE">
+      <div class="img-wrap">
+        <img src="../demo-approved-candidates/TRN-1096.webp" alt="Peepal Seeds Powder" loading="lazy" />
+        <span class="badge badge-real">REAL PHOTO CANDIDATE</span>
+      </div>
+      <div class="info">
+        <div class="sku-row">
+          <span class="sku">TRN-1096</span>
+          <span class="form-tag">Herbal powder</span>
+        </div>
+        <div class="name-en">Peepal Seeds Powder</div>
+        <div class="name-ta">அரச விதை பொடி</div>
+        <div class="bot-name"><em>Peepal Seeds (Siddha/Ayurvedic ground herbal formulation)</em></div>
+        <div class="source-info">
+          <div class="src-line"><strong>Source:</strong> Wikimedia Commons / Authentic Field</div>
+          <div class="lic-line"><strong>License:</strong> No restrictions</div>
+        </div>
+        <div class="action-row">
+          <button class="btn-check" onclick="markChecked(this, 'TRN-1096')">✓ Ready for Demo</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card page-4 status-REAL_PHOTO_CANDIDATE">
+      <div class="img-wrap">
+        <img src="../demo-approved-candidates/TRN-1097.webp" alt="Inknut/Myrobalan  Powder" loading="lazy" />
+        <span class="badge badge-real">REAL PHOTO CANDIDATE</span>
+      </div>
+      <div class="info">
+        <div class="sku-row">
+          <span class="sku">TRN-1097</span>
+          <span class="form-tag">Herbal powder</span>
+        </div>
+        <div class="name-en">Inknut/Myrobalan  Powder</div>
+        <div class="name-ta">கடுக்காய் பொடி</div>
+        <div class="bot-name"><em>Inknut/Myrobalan (Siddha/Ayurvedic ground herbal formulation)</em></div>
+        <div class="source-info">
+          <div class="src-line"><strong>Source:</strong> Wikimedia Commons / Authentic Field</div>
+          <div class="lic-line"><strong>License:</strong> CC BY-SA 4.0</div>
+        </div>
+        <div class="action-row">
+          <button class="btn-check" onclick="markChecked(this, 'TRN-1097')">✓ Ready for Demo</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card page-4 status-REAL_PHOTO_CANDIDATE">
+      <div class="img-wrap">
+        <img src="../demo-approved-candidates/TRN-1098.webp" alt="Indian Aloevera  Powder" loading="lazy" />
+        <span class="badge badge-real">REAL PHOTO CANDIDATE</span>
+      </div>
+      <div class="info">
+        <div class="sku-row">
+          <span class="sku">TRN-1098</span>
+          <span class="form-tag">Herbal powder</span>
+        </div>
+        <div class="name-en">Indian Aloevera  Powder</div>
+        <div class="name-ta">கற்றாழை பொடி</div>
+        <div class="bot-name"><em>Indian Aloevera (Siddha/Ayurvedic ground herbal formulation)</em></div>
+        <div class="source-info">
+          <div class="src-line"><strong>Source:</strong> Wikimedia Commons / Authentic Field</div>
+          <div class="lic-line"><strong>License:</strong> CC BY-SA 3.0</div>
+        </div>
+        <div class="action-row">
+          <button class="btn-check" onclick="markChecked(this, 'TRN-1098')">✓ Ready for Demo</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card page-4 status-REAL_PHOTO_CANDIDATE">
+      <div class="img-wrap">
+        <img src="../demo-approved-candidates/TRN-1099.webp" alt="Fever Nut  Powder" loading="lazy" />
+        <span class="badge badge-real">REAL PHOTO CANDIDATE</span>
+      </div>
+      <div class="info">
+        <div class="sku-row">
+          <span class="sku">TRN-1099</span>
+          <span class="form-tag">Herbal powder</span>
+        </div>
+        <div class="name-en">Fever Nut  Powder</div>
+        <div class="name-ta">கழற்சிக்காய் பொடி</div>
+        <div class="bot-name"><em>Fever Nut (Siddha/Ayurvedic ground herbal formulation)</em></div>
+        <div class="source-info">
+          <div class="src-line"><strong>Source:</strong> Wikimedia Commons / Authentic Field</div>
+          <div class="lic-line"><strong>License:</strong> Public domain</div>
+        </div>
+        <div class="action-row">
+          <button class="btn-check" onclick="markChecked(this, 'TRN-1099')">✓ Ready for Demo</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card page-4 status-REAL_PHOTO_CANDIDATE">
+      <div class="img-wrap">
+        <img src="../demo-approved-candidates/TRN-1100.webp" alt="Babchi Seeds  Powder" loading="lazy" />
+        <span class="badge badge-real">REAL PHOTO CANDIDATE</span>
+      </div>
+      <div class="info">
+        <div class="sku-row">
+          <span class="sku">TRN-1100</span>
+          <span class="form-tag">Herbal powder</span>
+        </div>
+        <div class="name-en">Babchi Seeds  Powder</div>
+        <div class="name-ta">கார்போக அரிசி பொடி</div>
+        <div class="bot-name"><em>Psoralea corylifolia</em></div>
+        <div class="source-info">
+          <div class="src-line"><strong>Source:</strong> Wikimedia Commons / Authentic Field</div>
+          <div class="lic-line"><strong>License:</strong> CC BY-SA 4.0</div>
+        </div>
+        <div class="action-row">
+          <button class="btn-check" onclick="markChecked(this, 'TRN-1100')">✓ Ready for Demo</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card page-4 status-REAL_PHOTO_CANDIDATE">
+      <div class="img-wrap">
+        <img src="../demo-approved-candidates/TRN-1101.webp" alt="Lesser Galangal  Powder" loading="lazy" />
+        <span class="badge badge-real">REAL PHOTO CANDIDATE</span>
+      </div>
+      <div class="info">
+        <div class="sku-row">
+          <span class="sku">TRN-1101</span>
+          <span class="form-tag">Herbal powder</span>
+        </div>
+        <div class="name-en">Lesser Galangal  Powder</div>
+        <div class="name-ta">சித்தரத்தை பொடி</div>
+        <div class="bot-name"><em>Lesser Galangal (Siddha/Ayurvedic ground herbal formulation)</em></div>
+        <div class="source-info">
+          <div class="src-line"><strong>Source:</strong> Wikimedia Commons / Authentic Field</div>
+          <div class="lic-line"><strong>License:</strong> CC BY-SA 4.0</div>
+        </div>
+        <div class="action-row">
+          <button class="btn-check" onclick="markChecked(this, 'TRN-1101')">✓ Ready for Demo</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card page-4 status-REAL_PHOTO_CANDIDATE">
+      <div class="img-wrap">
+        <img src="../demo-approved-candidates/TRN-1102.webp" alt="Sweet basil  Powder" loading="lazy" />
+        <span class="badge badge-real">REAL PHOTO CANDIDATE</span>
+      </div>
+      <div class="info">
+        <div class="sku-row">
+          <span class="sku">TRN-1102</span>
+          <span class="form-tag">Herbal powder</span>
+        </div>
+        <div class="name-en">Sweet basil  Powder</div>
+        <div class="name-ta">சீனி துளசி பொடி</div>
+        <div class="bot-name"><em>Sweet basil (Siddha/Ayurvedic ground herbal formulation)</em></div>
+        <div class="source-info">
+          <div class="src-line"><strong>Source:</strong> Wikimedia Commons / Authentic Field</div>
+          <div class="lic-line"><strong>License:</strong> CC BY 2.0</div>
+        </div>
+        <div class="action-row">
+          <button class="btn-check" onclick="markChecked(this, 'TRN-1102')">✓ Ready for Demo</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card page-4 status-REAL_PHOTO_CANDIDATE">
+      <div class="img-wrap">
+        <img src="../demo-approved-candidates/TRN-1103.webp" alt="Indian Silver Fir  Powder" loading="lazy" />
+        <span class="badge badge-real">REAL PHOTO CANDIDATE</span>
+      </div>
+      <div class="info">
+        <div class="sku-row">
+          <span class="sku">TRN-1103</span>
+          <span class="form-tag">Herbal powder</span>
+        </div>
+        <div class="name-en">Indian Silver Fir  Powder</div>
+        <div class="name-ta">தாளிச்சபத்திரி பொடி</div>
+        <div class="bot-name"><em>Indian Silver Fir (Siddha/Ayurvedic ground herbal formulation)</em></div>
+        <div class="source-info">
+          <div class="src-line"><strong>Source:</strong> Wikimedia Commons / Authentic Field</div>
+          <div class="lic-line"><strong>License:</strong> No restrictions</div>
+        </div>
+        <div class="action-row">
+          <button class="btn-check" onclick="markChecked(this, 'TRN-1103')">✓ Ready for Demo</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card page-4 status-REAL_PHOTO_CANDIDATE">
+      <div class="img-wrap">
+        <img src="../demo-approved-candidates/TRN-1104.webp" alt="Long pepper  Powder" loading="lazy" />
+        <span class="badge badge-real">REAL PHOTO CANDIDATE</span>
+      </div>
+      <div class="info">
+        <div class="sku-row">
+          <span class="sku">TRN-1104</span>
+          <span class="form-tag">Herbal powder</span>
+        </div>
+        <div class="name-en">Long pepper  Powder</div>
+        <div class="name-ta">திப்பிலி பொடி</div>
+        <div class="bot-name"><em>Long pepper (Siddha/Ayurvedic ground herbal formulation)</em></div>
+        <div class="source-info">
+          <div class="src-line"><strong>Source:</strong> Wikimedia Commons / Authentic Field</div>
+          <div class="lic-line"><strong>License:</strong> No restrictions</div>
+        </div>
+        <div class="action-row">
+          <button class="btn-check" onclick="markChecked(this, 'TRN-1104')">✓ Ready for Demo</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card page-4 status-REAL_PHOTO_CANDIDATE">
+      <div class="img-wrap">
+        <img src="../demo-approved-candidates/TRN-1105.webp" alt="Indian Mallow Seeds  Powder" loading="lazy" />
+        <span class="badge badge-real">REAL PHOTO CANDIDATE</span>
+      </div>
+      <div class="info">
+        <div class="sku-row">
+          <span class="sku">TRN-1105</span>
+          <span class="form-tag">Herbal powder</span>
+        </div>
+        <div class="name-en">Indian Mallow Seeds  Powder</div>
+        <div class="name-ta">துத்தி பொடி</div>
+        <div class="bot-name"><em>Indian Mallow Seeds (Siddha/Ayurvedic ground herbal formulation)</em></div>
+        <div class="source-info">
+          <div class="src-line"><strong>Source:</strong> Wikimedia Commons / Authentic Field</div>
+          <div class="lic-line"><strong>License:</strong> No restrictions</div>
+        </div>
+        <div class="action-row">
+          <button class="btn-check" onclick="markChecked(this, 'TRN-1105')">✓ Ready for Demo</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card page-4 status-REAL_PHOTO_CANDIDATE">
+      <div class="img-wrap">
+        <img src="../demo-approved-candidates/TRN-1106.webp" alt="Indian Sarasparilla  Powder" loading="lazy" />
+        <span class="badge badge-real">REAL PHOTO CANDIDATE</span>
+      </div>
+      <div class="info">
+        <div class="sku-row">
+          <span class="sku">TRN-1106</span>
+          <span class="form-tag">Herbal powder</span>
+        </div>
+        <div class="name-en">Indian Sarasparilla  Powder</div>
+        <div class="name-ta">நன்னாரி பொடி</div>
+        <div class="bot-name"><em>Indian Sarasparilla (Siddha/Ayurvedic ground herbal formulation)</em></div>
+        <div class="source-info">
+          <div class="src-line"><strong>Source:</strong> Wikimedia Commons / Authentic Field</div>
+          <div class="lic-line"><strong>License:</strong> CC BY-SA 4.0</div>
+        </div>
+        <div class="action-row">
+          <button class="btn-check" onclick="markChecked(this, 'TRN-1106')">✓ Ready for Demo</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card page-4 status-REAL_PHOTO_CANDIDATE">
+      <div class="img-wrap">
+        <img src="../demo-approved-candidates/TRN-1107.webp" alt="Black Plum Seeds/Jamun Seeds  Powder" loading="lazy" />
+        <span class="badge badge-real">REAL PHOTO CANDIDATE</span>
+      </div>
+      <div class="info">
+        <div class="sku-row">
+          <span class="sku">TRN-1107</span>
+          <span class="form-tag">Herbal powder</span>
+        </div>
+        <div class="name-en">Black Plum Seeds/Jamun Seeds  Powder</div>
+        <div class="name-ta">நாவல்கொட்டை பொடி</div>
+        <div class="bot-name"><em>Black Plum Seeds/Jamun Seeds (Siddha/Ayurvedic ground herbal formulation)</em></div>
+        <div class="source-info">
+          <div class="src-line"><strong>Source:</strong> Wikimedia Commons / Authentic Field</div>
+          <div class="lic-line"><strong>License:</strong> No restrictions</div>
+        </div>
+        <div class="action-row">
+          <button class="btn-check" onclick="markChecked(this, 'TRN-1107')">✓ Ready for Demo</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card page-4 status-REAL_PHOTO_CANDIDATE">
+      <div class="img-wrap">
+        <img src="../demo-approved-candidates/TRN-1108.webp" alt="Black Plum Bark/Jamun Bark  Powder" loading="lazy" />
+        <span class="badge badge-real">REAL PHOTO CANDIDATE</span>
+      </div>
+      <div class="info">
+        <div class="sku-row">
+          <span class="sku">TRN-1108</span>
+          <span class="form-tag">Herbal powder</span>
+        </div>
+        <div class="name-en">Black Plum Bark/Jamun Bark  Powder</div>
+        <div class="name-ta">நாவல் பட்டை பொடி</div>
+        <div class="bot-name"><em>Black Plum Bark/Jamun Bark (Siddha/Ayurvedic ground herbal formulation)</em></div>
+        <div class="source-info">
+          <div class="src-line"><strong>Source:</strong> Wikimedia Commons / Authentic Field</div>
+          <div class="lic-line"><strong>License:</strong> No restrictions</div>
+        </div>
+        <div class="action-row">
+          <button class="btn-check" onclick="markChecked(this, 'TRN-1108')">✓ Ready for Demo</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card page-4 status-REAL_PHOTO_CANDIDATE">
+      <div class="img-wrap">
+        <img src="../demo-approved-candidates/TRN-1109.webp" alt="King of bitter  Powder" loading="lazy" />
+        <span class="badge badge-real">REAL PHOTO CANDIDATE</span>
+      </div>
+      <div class="info">
+        <div class="sku-row">
+          <span class="sku">TRN-1109</span>
+          <span class="form-tag">Herbal powder</span>
+        </div>
+        <div class="name-en">King of bitter  Powder</div>
+        <div class="name-ta">நிலவேம்பு பொடி</div>
+        <div class="bot-name"><em>King of bitter (Siddha/Ayurvedic ground herbal formulation)</em></div>
+        <div class="source-info">
+          <div class="src-line"><strong>Source:</strong> Wikimedia Commons / Authentic Field</div>
+          <div class="lic-line"><strong>License:</strong> CC BY 4.0</div>
+        </div>
+        <div class="action-row">
+          <button class="btn-check" onclick="markChecked(this, 'TRN-1109')">✓ Ready for Demo</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card page-4 status-REAL_PHOTO_CANDIDATE">
+      <div class="img-wrap">
+        <img src="../demo-approved-candidates/TRN-1110.webp" alt="Caltrops Large  Powder" loading="lazy" />
+        <span class="badge badge-real">REAL PHOTO CANDIDATE</span>
+      </div>
+      <div class="info">
+        <div class="sku-row">
+          <span class="sku">TRN-1110</span>
+          <span class="form-tag">Herbal powder</span>
+        </div>
+        <div class="name-en">Caltrops Large  Powder</div>
+        <div class="name-ta">நெருஞ்சில் (பெ) பொடி</div>
+        <div class="bot-name"><em>Caltrops Large (Siddha/Ayurvedic ground herbal formulation)</em></div>
+        <div class="source-info">
+          <div class="src-line"><strong>Source:</strong> Wikimedia Commons / Authentic Field</div>
+          <div class="lic-line"><strong>License:</strong> No restrictions</div>
+        </div>
+        <div class="action-row">
+          <button class="btn-check" onclick="markChecked(this, 'TRN-1110')">✓ Ready for Demo</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card page-4 status-REAL_PHOTO_CANDIDATE">
+      <div class="img-wrap">
+        <img src="../demo-approved-candidates/TRN-1111.webp" alt="Caltrops Small  Powder" loading="lazy" />
+        <span class="badge badge-real">REAL PHOTO CANDIDATE</span>
+      </div>
+      <div class="info">
+        <div class="sku-row">
+          <span class="sku">TRN-1111</span>
+          <span class="form-tag">Herbal powder</span>
+        </div>
+        <div class="name-en">Caltrops Small  Powder</div>
+        <div class="name-ta">நெருஞ்சில் (சி) பொடி</div>
+        <div class="bot-name"><em>Caltrops Small (Siddha/Ayurvedic ground herbal formulation)</em></div>
+        <div class="source-info">
+          <div class="src-line"><strong>Source:</strong> Wikimedia Commons / Authentic Field</div>
+          <div class="lic-line"><strong>License:</strong> No restrictions</div>
+        </div>
+        <div class="action-row">
+          <button class="btn-check" onclick="markChecked(this, 'TRN-1111')">✓ Ready for Demo</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card page-4 status-REAL_PHOTO_CANDIDATE">
+      <div class="img-wrap">
+        <img src="../demo-approved-candidates/TRN-1112.webp" alt="Indian Goosberry  Powder - 1" loading="lazy" />
+        <span class="badge badge-real">REAL PHOTO CANDIDATE</span>
+      </div>
+      <div class="info">
+        <div class="sku-row">
+          <span class="sku">TRN-1112</span>
+          <span class="form-tag">Herbal powder</span>
+        </div>
+        <div class="name-en">Indian Goosberry  Powder - 1</div>
+        <div class="name-ta">நெல்லிக்காய் பொடி-1</div>
+        <div class="bot-name"><em>Indian Goosberry   - 1 (Siddha/Ayurvedic ground herbal formulation)</em></div>
+        <div class="source-info">
+          <div class="src-line"><strong>Source:</strong> Wikimedia Commons / Authentic Field</div>
+          <div class="lic-line"><strong>License:</strong> CC BY-SA 3.0</div>
+        </div>
+        <div class="action-row">
+          <button class="btn-check" onclick="markChecked(this, 'TRN-1112')">✓ Ready for Demo</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card page-4 status-REAL_PHOTO_CANDIDATE">
+      <div class="img-wrap">
+        <img src="../demo-approved-candidates/TRN-1113.webp" alt="Indian Goosberry  Powder - 2" loading="lazy" />
+        <span class="badge badge-real">REAL PHOTO CANDIDATE</span>
+      </div>
+      <div class="info">
+        <div class="sku-row">
+          <span class="sku">TRN-1113</span>
+          <span class="form-tag">Herbal powder</span>
+        </div>
+        <div class="name-en">Indian Goosberry  Powder - 2</div>
+        <div class="name-ta">நெல்லிக்காய் பொடி-2</div>
+        <div class="bot-name"><em>Indian Goosberry   - 2 (Siddha/Ayurvedic ground herbal formulation)</em></div>
+        <div class="source-info">
+          <div class="src-line"><strong>Source:</strong> Wikimedia Commons / Authentic Field</div>
+          <div class="lic-line"><strong>License:</strong> CC BY-SA 4.0</div>
+        </div>
+        <div class="action-row">
+          <button class="btn-check" onclick="markChecked(this, 'TRN-1113')">✓ Ready for Demo</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card page-4 status-REAL_PHOTO_CANDIDATE">
+      <div class="img-wrap">
+        <img src="../demo-approved-candidates/TRN-1114.webp" alt="Sappan Wood  Powder" loading="lazy" />
+        <span class="badge badge-real">REAL PHOTO CANDIDATE</span>
+      </div>
+      <div class="info">
+        <div class="sku-row">
+          <span class="sku">TRN-1114</span>
+          <span class="form-tag">Herbal powder</span>
+        </div>
+        <div class="name-en">Sappan Wood  Powder</div>
+        <div class="name-ta">பதிமுகம் பொடி</div>
+        <div class="bot-name"><em>Sappan Wood (Siddha/Ayurvedic ground herbal formulation)</em></div>
+        <div class="source-info">
+          <div class="src-line"><strong>Source:</strong> Wikimedia Commons / Authentic Field</div>
+          <div class="lic-line"><strong>License:</strong> CC BY 4.0</div>
+        </div>
+        <div class="action-row">
+          <button class="btn-check" onclick="markChecked(this, 'TRN-1114')">✓ Ready for Demo</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card page-4 status-REAL_PHOTO_CANDIDATE">
+      <div class="img-wrap">
+        <img src="../demo-approved-candidates/TRN-1115.webp" alt="Veldt Grape  Powder" loading="lazy" />
+        <span class="badge badge-real">REAL PHOTO CANDIDATE</span>
+      </div>
+      <div class="info">
+        <div class="sku-row">
+          <span class="sku">TRN-1115</span>
+          <span class="form-tag">Herbal powder</span>
+        </div>
+        <div class="name-en">Veldt Grape  Powder</div>
+        <div class="name-ta">பிரண்டை பொடி</div>
+        <div class="bot-name"><em>Veldt Grape (Siddha/Ayurvedic ground herbal formulation)</em></div>
+        <div class="source-info">
+          <div class="src-line"><strong>Source:</strong> Wikimedia Commons / Authentic Field</div>
+          <div class="lic-line"><strong>License:</strong> CC BY-SA 2.0</div>
+        </div>
+        <div class="action-row">
+          <button class="btn-check" onclick="markChecked(this, 'TRN-1115')">✓ Ready for Demo</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card page-4 status-REAL_PHOTO_CANDIDATE">
+      <div class="img-wrap">
+        <img src="../demo-approved-candidates/TRN-1116.webp" alt="Menthol Crystal  Powder" loading="lazy" />
+        <span class="badge badge-real">REAL PHOTO CANDIDATE</span>
+      </div>
+      <div class="info">
+        <div class="sku-row">
+          <span class="sku">TRN-1116</span>
+          <span class="form-tag">Herbal powder</span>
+        </div>
+        <div class="name-en">Menthol Crystal  Powder</div>
+        <div class="name-ta">புதினா பொடி</div>
+        <div class="bot-name"><em>Mentha arvensis crystal</em></div>
+        <div class="source-info">
+          <div class="src-line"><strong>Source:</strong> Wikimedia Commons / Authentic Field</div>
+          <div class="lic-line"><strong>License:</strong> No restrictions</div>
+        </div>
+        <div class="action-row">
+          <button class="btn-check" onclick="markChecked(this, 'TRN-1116')">✓ Ready for Demo</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card page-4 status-REAL_PHOTO_CANDIDATE">
+      <div class="img-wrap">
+        <img src="../demo-approved-candidates/TRN-1117.webp" alt="Greater Galangal  Powder" loading="lazy" />
+        <span class="badge badge-real">REAL PHOTO CANDIDATE</span>
+      </div>
+      <div class="info">
+        <div class="sku-row">
+          <span class="sku">TRN-1117</span>
+          <span class="form-tag">Herbal powder</span>
+        </div>
+        <div class="name-en">Greater Galangal  Powder</div>
+        <div class="name-ta">பேரரத்தை பொடி</div>
+        <div class="bot-name"><em>Greater Galangal (Siddha/Ayurvedic ground herbal formulation)</em></div>
+        <div class="source-info">
+          <div class="src-line"><strong>Source:</strong> Wikimedia Commons / Authentic Field</div>
+          <div class="lic-line"><strong>License:</strong> CC BY-SA 3.0</div>
+        </div>
+        <div class="action-row">
+          <button class="btn-check" onclick="markChecked(this, 'TRN-1117')">✓ Ready for Demo</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card page-4 status-REAL_PHOTO_CANDIDATE">
+      <div class="img-wrap">
+        <img src="../demo-approved-candidates/TRN-1118.webp" alt="Arjun bark  Powder" loading="lazy" />
+        <span class="badge badge-real">REAL PHOTO CANDIDATE</span>
+      </div>
+      <div class="info">
+        <div class="sku-row">
+          <span class="sku">TRN-1118</span>
+          <span class="form-tag">Herbal powder</span>
+        </div>
+        <div class="name-en">Arjun bark  Powder</div>
+        <div class="name-ta">மருதம்பட்டை பொடி</div>
+        <div class="bot-name"><em>Arjun bark (Siddha/Ayurvedic ground herbal formulation)</em></div>
+        <div class="source-info">
+          <div class="src-line"><strong>Source:</strong> Wikimedia Commons / Authentic Field</div>
+          <div class="lic-line"><strong>License:</strong> CC BY-SA 4.0</div>
+        </div>
+        <div class="action-row">
+          <button class="btn-check" onclick="markChecked(this, 'TRN-1118')">✓ Ready for Demo</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card page-4 status-REAL_PHOTO_CANDIDATE">
+      <div class="img-wrap">
+        <img src="../demo-approved-candidates/TRN-1119.webp" alt="Blue Jack  Powder" loading="lazy" />
+        <span class="badge badge-real">REAL PHOTO CANDIDATE</span>
+      </div>
+      <div class="info">
+        <div class="sku-row">
+          <span class="sku">TRN-1119</span>
+          <span class="form-tag">Herbal powder</span>
+        </div>
+        <div class="name-en">Blue Jack  Powder</div>
+        <div class="name-ta">மாசிக்காய் பொடி</div>
+        <div class="bot-name"><em>Blue Jack (Siddha/Ayurvedic ground herbal formulation)</em></div>
+        <div class="source-info">
+          <div class="src-line"><strong>Source:</strong> Wikimedia Commons / Authentic Field</div>
+          <div class="lic-line"><strong>License:</strong> CC BY 2.0</div>
+        </div>
+        <div class="action-row">
+          <button class="btn-check" onclick="markChecked(this, 'TRN-1119')">✓ Ready for Demo</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card page-4 status-REAL_PHOTO_CANDIDATE">
+      <div class="img-wrap">
+        <img src="../demo-approved-candidates/TRN-1120.webp" alt="Pomegranate Skin  Powder" loading="lazy" />
+        <span class="badge badge-real">REAL PHOTO CANDIDATE</span>
+      </div>
+      <div class="info">
+        <div class="sku-row">
+          <span class="sku">TRN-1120</span>
+          <span class="form-tag">Herbal powder</span>
+        </div>
+        <div class="name-en">Pomegranate Skin  Powder</div>
+        <div class="name-ta">மாதுளை தோல் பொடி</div>
+        <div class="bot-name"><em>Pomegranate Skin (Siddha/Ayurvedic ground herbal formulation)</em></div>
+        <div class="source-info">
+          <div class="src-line"><strong>Source:</strong> Wikimedia Commons / Authentic Field</div>
+          <div class="lic-line"><strong>License:</strong> Public domain</div>
+        </div>
+        <div class="action-row">
+          <button class="btn-check" onclick="markChecked(this, 'TRN-1120')">✓ Ready for Demo</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card page-5 status-REAL_PHOTO_CANDIDATE">
+      <div class="img-wrap">
+        <img src="../demo-approved-candidates/TRN-1121.webp" alt="Mango Kernel  Powder" loading="lazy" />
+        <span class="badge badge-real">REAL PHOTO CANDIDATE</span>
+      </div>
+      <div class="info">
+        <div class="sku-row">
+          <span class="sku">TRN-1121</span>
+          <span class="form-tag">Herbal powder</span>
+        </div>
+        <div class="name-en">Mango Kernel  Powder</div>
+        <div class="name-ta">மாம்பருப்பு பொடி</div>
+        <div class="bot-name"><em>Mango Kernel (Siddha/Ayurvedic ground herbal formulation)</em></div>
+        <div class="source-info">
+          <div class="src-line"><strong>Source:</strong> Wikimedia Commons / Authentic Field</div>
+          <div class="lic-line"><strong>License:</strong> CC BY-SA 4.0</div>
+        </div>
+        <div class="action-row">
+          <button class="btn-check" onclick="markChecked(this, 'TRN-1121')">✓ Ready for Demo</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card page-5 status-REAL_PHOTO_CANDIDATE">
+      <div class="img-wrap">
+        <img src="../demo-approved-candidates/TRN-1122.webp" alt="Goat Leg Tuber  Powder" loading="lazy" />
+        <span class="badge badge-real">REAL PHOTO CANDIDATE</span>
+      </div>
+      <div class="info">
+        <div class="sku-row">
+          <span class="sku">TRN-1122</span>
+          <span class="form-tag">Herbal powder</span>
+        </div>
+        <div class="name-en">Goat Leg Tuber  Powder</div>
+        <div class="name-ta">முடவாட்டுக் கால் பொடி</div>
+        <div class="bot-name"><em>Goat Leg Tuber (Siddha/Ayurvedic ground herbal formulation)</em></div>
+        <div class="source-info">
+          <div class="src-line"><strong>Source:</strong> Wikimedia Commons / Authentic Field</div>
+          <div class="lic-line"><strong>License:</strong> CC BY-SA 3.0</div>
+        </div>
+        <div class="action-row">
+          <button class="btn-check" onclick="markChecked(this, 'TRN-1122')">✓ Ready for Demo</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card page-5 status-REAL_PHOTO_CANDIDATE">
+      <div class="img-wrap">
+        <img src="../demo-approved-candidates/TRN-1123.webp" alt="Drumstick Seeds  Powder" loading="lazy" />
+        <span class="badge badge-real">REAL PHOTO CANDIDATE</span>
+      </div>
+      <div class="info">
+        <div class="sku-row">
+          <span class="sku">TRN-1123</span>
+          <span class="form-tag">Herbal powder</span>
+        </div>
+        <div class="name-en">Drumstick Seeds  Powder</div>
+        <div class="name-ta">முருங்கை விதை பொடி</div>
+        <div class="bot-name"><em>Drumstick Seeds (Siddha/Ayurvedic ground herbal formulation)</em></div>
+        <div class="source-info">
+          <div class="src-line"><strong>Source:</strong> Wikimedia Commons / Authentic Field</div>
+          <div class="lic-line"><strong>License:</strong> CC BY-SA 4.0</div>
+        </div>
+        <div class="action-row">
+          <button class="btn-check" onclick="markChecked(this, 'TRN-1123')">✓ Ready for Demo</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card page-5 status-REAL_PHOTO_CANDIDATE">
+      <div class="img-wrap">
+        <img src="../demo-approved-candidates/TRN-1124.webp" alt="Drumstick Gum  Powder" loading="lazy" />
+        <span class="badge badge-real">REAL PHOTO CANDIDATE</span>
+      </div>
+      <div class="info">
+        <div class="sku-row">
+          <span class="sku">TRN-1124</span>
+          <span class="form-tag">Herbal powder</span>
+        </div>
+        <div class="name-en">Drumstick Gum  Powder</div>
+        <div class="name-ta">முருங்கை பிசின் பொடி</div>
+        <div class="bot-name"><em>Drumstick Gum (Siddha/Ayurvedic ground herbal formulation)</em></div>
+        <div class="source-info">
+          <div class="src-line"><strong>Source:</strong> Wikimedia Commons / Authentic Field</div>
+          <div class="lic-line"><strong>License:</strong> Public domain</div>
+        </div>
+        <div class="action-row">
+          <button class="btn-check" onclick="markChecked(this, 'TRN-1124')">✓ Ready for Demo</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card page-5 status-REAL_PHOTO_CANDIDATE">
+      <div class="img-wrap">
+        <img src="../demo-approved-candidates/TRN-1125.webp" alt="Drumstick Leaves  Powder" loading="lazy" />
+        <span class="badge badge-real">REAL PHOTO CANDIDATE</span>
+      </div>
+      <div class="info">
+        <div class="sku-row">
+          <span class="sku">TRN-1125</span>
+          <span class="form-tag">Herbal powder</span>
+        </div>
+        <div class="name-en">Drumstick Leaves  Powder</div>
+        <div class="name-ta">முருங்கை இலை பொடி</div>
+        <div class="bot-name"><em>Drumstick Leaves (Siddha/Ayurvedic ground herbal formulation)</em></div>
+        <div class="source-info">
+          <div class="src-line"><strong>Source:</strong> Wikimedia Commons / Authentic Field</div>
+          <div class="lic-line"><strong>License:</strong> CC BY 4.0</div>
+        </div>
+        <div class="action-row">
+          <button class="btn-check" onclick="markChecked(this, 'TRN-1125')">✓ Ready for Demo</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card page-5 status-REAL_PHOTO_CANDIDATE">
+      <div class="img-wrap">
+        <img src="../demo-approved-candidates/TRN-1126.webp" alt="Tailed pepper  Powder" loading="lazy" />
+        <span class="badge badge-real">REAL PHOTO CANDIDATE</span>
+      </div>
+      <div class="info">
+        <div class="sku-row">
+          <span class="sku">TRN-1126</span>
+          <span class="form-tag">Herbal powder</span>
+        </div>
+        <div class="name-en">Tailed pepper  Powder</div>
+        <div class="name-ta">வால்மிளகு பொடி</div>
+        <div class="bot-name"><em>Tailed pepper (Siddha/Ayurvedic ground herbal formulation)</em></div>
+        <div class="source-info">
+          <div class="src-line"><strong>Source:</strong> Wikimedia Commons / Authentic Field</div>
+          <div class="lic-line"><strong>License:</strong> No restrictions</div>
+        </div>
+        <div class="action-row">
+          <button class="btn-check" onclick="markChecked(this, 'TRN-1126')">✓ Ready for Demo</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card page-5 status-REAL_PHOTO_CANDIDATE">
+      <div class="img-wrap">
+        <img src="../demo-approved-candidates/TRN-1127.webp" alt="Nutmeg  Powder" loading="lazy" />
+        <span class="badge badge-real">REAL PHOTO CANDIDATE</span>
+      </div>
+      <div class="info">
+        <div class="sku-row">
+          <span class="sku">TRN-1127</span>
+          <span class="form-tag">Herbal powder</span>
+        </div>
+        <div class="name-en">Nutmeg  Powder</div>
+        <div class="name-ta">ஜாதிக்காய் பொடி</div>
+        <div class="bot-name"><em>Myristica fragrans</em></div>
+        <div class="source-info">
+          <div class="src-line"><strong>Source:</strong> Wikimedia Commons / Authentic Field</div>
+          <div class="lic-line"><strong>License:</strong> Public domain</div>
+        </div>
+        <div class="action-row">
+          <button class="btn-check" onclick="markChecked(this, 'TRN-1127')">✓ Ready for Demo</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card page-5 status-REAL_PHOTO_CANDIDATE">
+      <div class="img-wrap">
+        <img src="../demo-approved-candidates/TRN-1128.webp" alt="Sweet Flag  Powder" loading="lazy" />
+        <span class="badge badge-real">REAL PHOTO CANDIDATE</span>
+      </div>
+      <div class="info">
+        <div class="sku-row">
+          <span class="sku">TRN-1128</span>
+          <span class="form-tag">Herbal powder</span>
+        </div>
+        <div class="name-en">Sweet Flag  Powder</div>
+        <div class="name-ta">வசம்பு பொடி</div>
+        <div class="bot-name"><em>Sweet Flag (Siddha/Ayurvedic ground herbal formulation)</em></div>
+        <div class="source-info">
+          <div class="src-line"><strong>Source:</strong> Wikimedia Commons / Authentic Field</div>
+          <div class="lic-line"><strong>License:</strong> CC BY 2.0</div>
+        </div>
+        <div class="action-row">
+          <button class="btn-check" onclick="markChecked(this, 'TRN-1128')">✓ Ready for Demo</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card page-5 status-REAL_PHOTO_CANDIDATE">
+      <div class="img-wrap">
+        <img src="../demo-approved-candidates/TRN-1129.webp" alt="Flax seeds  Powder" loading="lazy" />
+        <span class="badge badge-real">REAL PHOTO CANDIDATE</span>
+      </div>
+      <div class="info">
+        <div class="sku-row">
+          <span class="sku">TRN-1129</span>
+          <span class="form-tag">Herbal powder</span>
+        </div>
+        <div class="name-en">Flax seeds  Powder</div>
+        <div class="name-ta">ஆளிவிதை பொடி</div>
+        <div class="bot-name"><em>Linum usitatissimum</em></div>
+        <div class="source-info">
+          <div class="src-line"><strong>Source:</strong> Wikimedia Commons / Authentic Field</div>
+          <div class="lic-line"><strong>License:</strong> Public domain</div>
+        </div>
+        <div class="action-row">
+          <button class="btn-check" onclick="markChecked(this, 'TRN-1129')">✓ Ready for Demo</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card page-5 status-REAL_PHOTO_CANDIDATE">
+      <div class="img-wrap">
+        <img src="../demo-approved-candidates/TRN-1130.webp" alt="Rosemary  Powder" loading="lazy" />
+        <span class="badge badge-real">REAL PHOTO CANDIDATE</span>
+      </div>
+      <div class="info">
+        <div class="sku-row">
+          <span class="sku">TRN-1130</span>
+          <span class="form-tag">Herbal powder</span>
+        </div>
+        <div class="name-en">Rosemary  Powder</div>
+        <div class="name-ta">ரோஸ்மேரி பொடி</div>
+        <div class="bot-name"><em>Salvia rosmarinus</em></div>
+        <div class="source-info">
+          <div class="src-line"><strong>Source:</strong> Wikimedia Commons / Authentic Field</div>
+          <div class="lic-line"><strong>License:</strong> CC BY-SA 4.0</div>
+        </div>
+        <div class="action-row">
+          <button class="btn-check" onclick="markChecked(this, 'TRN-1130')">✓ Ready for Demo</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card page-5 status-REAL_PHOTO_CANDIDATE">
+      <div class="img-wrap">
+        <img src="../demo-approved-candidates/TRN-1131.webp" alt="Henna Leaves  Powder" loading="lazy" />
+        <span class="badge badge-real">REAL PHOTO CANDIDATE</span>
+      </div>
+      <div class="info">
+        <div class="sku-row">
+          <span class="sku">TRN-1131</span>
+          <span class="form-tag">Herbal powder</span>
+        </div>
+        <div class="name-en">Henna Leaves  Powder</div>
+        <div class="name-ta">மருதாணி இலை பொடி</div>
+        <div class="bot-name"><em>Lawsonia inermis</em></div>
+        <div class="source-info">
+          <div class="src-line"><strong>Source:</strong> Wikimedia Commons / Authentic Field</div>
+          <div class="lic-line"><strong>License:</strong> Public domain</div>
+        </div>
+        <div class="action-row">
+          <button class="btn-check" onclick="markChecked(this, 'TRN-1131')">✓ Ready for Demo</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card page-5 status-REAL_PHOTO_CANDIDATE">
+      <div class="img-wrap">
+        <img src="../demo-approved-candidates/TRN-1132.webp" alt="Marjoram  Powder" loading="lazy" />
+        <span class="badge badge-real">REAL PHOTO CANDIDATE</span>
+      </div>
+      <div class="info">
+        <div class="sku-row">
+          <span class="sku">TRN-1132</span>
+          <span class="form-tag">Herbal powder</span>
+        </div>
+        <div class="name-en">Marjoram  Powder</div>
+        <div class="name-ta">மரிக்கொழுந்து பொடி</div>
+        <div class="bot-name"><em>Marjoram (Siddha/Ayurvedic ground herbal formulation)</em></div>
+        <div class="source-info">
+          <div class="src-line"><strong>Source:</strong> Wikimedia Commons / Authentic Field</div>
+          <div class="lic-line"><strong>License:</strong> Public domain</div>
+        </div>
+        <div class="action-row">
+          <button class="btn-check" onclick="markChecked(this, 'TRN-1132')">✓ Ready for Demo</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card page-5 status-REAL_PHOTO_CANDIDATE">
+      <div class="img-wrap">
+        <img src="../demo-approved-candidates/TRN-1133.webp" alt="Country Senna Leaf  Powder" loading="lazy" />
+        <span class="badge badge-real">REAL PHOTO CANDIDATE</span>
+      </div>
+      <div class="info">
+        <div class="sku-row">
+          <span class="sku">TRN-1133</span>
+          <span class="form-tag">Herbal powder</span>
+        </div>
+        <div class="name-en">Country Senna Leaf  Powder</div>
+        <div class="name-ta">நிலாவரை பொடி</div>
+        <div class="bot-name"><em>Country Senna Leaf (Siddha/Ayurvedic ground herbal formulation)</em></div>
+        <div class="source-info">
+          <div class="src-line"><strong>Source:</strong> Wikimedia Commons / Authentic Field</div>
+          <div class="lic-line"><strong>License:</strong> Public domain</div>
+        </div>
+        <div class="action-row">
+          <button class="btn-check" onclick="markChecked(this, 'TRN-1133')">✓ Ready for Demo</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card page-5 status-REAL_PHOTO_CANDIDATE">
+      <div class="img-wrap">
+        <img src="../demo-approved-candidates/TRN-1134.webp" alt="Hibiscus Leaf  Powder" loading="lazy" />
+        <span class="badge badge-real">REAL PHOTO CANDIDATE</span>
+      </div>
+      <div class="info">
+        <div class="sku-row">
+          <span class="sku">TRN-1134</span>
+          <span class="form-tag">Herbal powder</span>
+        </div>
+        <div class="name-en">Hibiscus Leaf  Powder</div>
+        <div class="name-ta">செம்பருத்தி இலை பொடி</div>
+        <div class="bot-name"><em>Hibiscus Leaf (Siddha/Ayurvedic ground herbal formulation)</em></div>
+        <div class="source-info">
+          <div class="src-line"><strong>Source:</strong> Wikimedia Commons / Authentic Field</div>
+          <div class="lic-line"><strong>License:</strong> CC BY-SA 4.0</div>
+        </div>
+        <div class="action-row">
+          <button class="btn-check" onclick="markChecked(this, 'TRN-1134')">✓ Ready for Demo</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card page-5 status-REAL_PHOTO_CANDIDATE">
+      <div class="img-wrap">
+        <img src="../demo-approved-candidates/TRN-1135.webp" alt="Hibiscus Flower  Powder" loading="lazy" />
+        <span class="badge badge-real">REAL PHOTO CANDIDATE</span>
+      </div>
+      <div class="info">
+        <div class="sku-row">
+          <span class="sku">TRN-1135</span>
+          <span class="form-tag">Herbal powder</span>
+        </div>
+        <div class="name-en">Hibiscus Flower  Powder</div>
+        <div class="name-ta">செம்பருத்தி பூ பொடி</div>
+        <div class="bot-name"><em>Hibiscus rosa-sinensis</em></div>
+        <div class="source-info">
+          <div class="src-line"><strong>Source:</strong> Wikimedia Commons / Authentic Field</div>
+          <div class="lic-line"><strong>License:</strong> CC BY-SA 3.0</div>
+        </div>
+        <div class="action-row">
+          <button class="btn-check" onclick="markChecked(this, 'TRN-1135')">✓ Ready for Demo</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card page-5 status-REAL_PHOTO_CANDIDATE">
+      <div class="img-wrap">
+        <img src="../demo-approved-candidates/TRN-1136.webp" alt="Soap pod  Powder" loading="lazy" />
+        <span class="badge badge-real">REAL PHOTO CANDIDATE</span>
+      </div>
+      <div class="info">
+        <div class="sku-row">
+          <span class="sku">TRN-1136</span>
+          <span class="form-tag">Herbal powder</span>
+        </div>
+        <div class="name-en">Soap pod  Powder</div>
+        <div class="name-ta">சீயக்காய் பொடி</div>
+        <div class="bot-name"><em>Soap pod (Siddha/Ayurvedic ground herbal formulation)</em></div>
+        <div class="source-info">
+          <div class="src-line"><strong>Source:</strong> Wikimedia Commons / Authentic Field</div>
+          <div class="lic-line"><strong>License:</strong> Public domain</div>
+        </div>
+        <div class="action-row">
+          <button class="btn-check" onclick="markChecked(this, 'TRN-1136')">✓ Ready for Demo</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card page-5 status-REAL_PHOTO_CANDIDATE">
+      <div class="img-wrap">
+        <img src="../demo-approved-candidates/TRN-1137.webp" alt="Dil Seeds  Powder" loading="lazy" />
+        <span class="badge badge-real">REAL PHOTO CANDIDATE</span>
+      </div>
+      <div class="info">
+        <div class="sku-row">
+          <span class="sku">TRN-1137</span>
+          <span class="form-tag">Herbal powder</span>
+        </div>
+        <div class="name-en">Dil Seeds  Powder</div>
+        <div class="name-ta">சதக்குப்பை பொடி</div>
+        <div class="bot-name"><em>Dil Seeds (Siddha/Ayurvedic ground herbal formulation)</em></div>
+        <div class="source-info">
+          <div class="src-line"><strong>Source:</strong> Wikimedia Commons / Authentic Field</div>
+          <div class="lic-line"><strong>License:</strong> No restrictions</div>
+        </div>
+        <div class="action-row">
+          <button class="btn-check" onclick="markChecked(this, 'TRN-1137')">✓ Ready for Demo</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card page-5 status-REAL_PHOTO_CANDIDATE">
+      <div class="img-wrap">
+        <img src="../demo-approved-candidates/TRN-1138.webp" alt="Nutgrass  Powder" loading="lazy" />
+        <span class="badge badge-real">REAL PHOTO CANDIDATE</span>
+      </div>
+      <div class="info">
+        <div class="sku-row">
+          <span class="sku">TRN-1138</span>
+          <span class="form-tag">Herbal powder</span>
+        </div>
+        <div class="name-en">Nutgrass  Powder</div>
+        <div class="name-ta">கோரைக்கிழங்கு பொடி</div>
+        <div class="bot-name"><em>Nutgrass (Siddha/Ayurvedic ground herbal formulation)</em></div>
+        <div class="source-info">
+          <div class="src-line"><strong>Source:</strong> Wikimedia Commons / Authentic Field</div>
+          <div class="lic-line"><strong>License:</strong> CC BY-SA 2.0</div>
+        </div>
+        <div class="action-row">
+          <button class="btn-check" onclick="markChecked(this, 'TRN-1138')">✓ Ready for Demo</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card page-5 status-REAL_PHOTO_CANDIDATE">
+      <div class="img-wrap">
+        <img src="../demo-approved-candidates/TRN-1139.webp" alt="Black Cumin  Powder" loading="lazy" />
+        <span class="badge badge-real">REAL PHOTO CANDIDATE</span>
+      </div>
+      <div class="info">
+        <div class="sku-row">
+          <span class="sku">TRN-1139</span>
+          <span class="form-tag">Herbal powder</span>
+        </div>
+        <div class="name-en">Black Cumin  Powder</div>
+        <div class="name-ta">கருஞ்சீரகம் பொடி</div>
+        <div class="bot-name"><em>Black Cumin (Siddha/Ayurvedic ground herbal formulation)</em></div>
+        <div class="source-info">
+          <div class="src-line"><strong>Source:</strong> Wikimedia Commons / Authentic Field</div>
+          <div class="lic-line"><strong>License:</strong> CC BY-SA 4.0</div>
+        </div>
+        <div class="action-row">
+          <button class="btn-check" onclick="markChecked(this, 'TRN-1139')">✓ Ready for Demo</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card page-5 status-REAL_PHOTO_CANDIDATE">
+      <div class="img-wrap">
+        <img src="../demo-approved-candidates/TRN-1140.webp" alt="Red Fruit Creeper  Powder" loading="lazy" />
+        <span class="badge badge-real">REAL PHOTO CANDIDATE</span>
+      </div>
+      <div class="info">
+        <div class="sku-row">
+          <span class="sku">TRN-1140</span>
+          <span class="form-tag">Herbal powder</span>
+        </div>
+        <div class="name-en">Red Fruit Creeper  Powder</div>
+        <div class="name-ta">கருடக்கிழங்கு பொடி</div>
+        <div class="bot-name"><em>Red Fruit Creeper (Siddha/Ayurvedic ground herbal formulation)</em></div>
+        <div class="source-info">
+          <div class="src-line"><strong>Source:</strong> Wikimedia Commons / Authentic Field</div>
+          <div class="lic-line"><strong>License:</strong> No restrictions</div>
+        </div>
+        <div class="action-row">
+          <button class="btn-check" onclick="markChecked(this, 'TRN-1140')">✓ Ready for Demo</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card page-5 status-REAL_PHOTO_CANDIDATE">
+      <div class="img-wrap">
+        <img src="../demo-approved-candidates/TRN-1141.webp" alt="Senna Flowers Powder" loading="lazy" />
+        <span class="badge badge-real">REAL PHOTO CANDIDATE</span>
+      </div>
+      <div class="info">
+        <div class="sku-row">
+          <span class="sku">TRN-1141</span>
+          <span class="form-tag">Herbal powder</span>
+        </div>
+        <div class="name-en">Senna Flowers Powder</div>
+        <div class="name-ta">ஆவாரம்பூ பொடி</div>
+        <div class="bot-name"><em>Senna Flowers (Siddha/Ayurvedic ground herbal formulation)</em></div>
+        <div class="source-info">
+          <div class="src-line"><strong>Source:</strong> Wikimedia Commons / Authentic Field</div>
+          <div class="lic-line"><strong>License:</strong> CC BY-SA 4.0</div>
+        </div>
+        <div class="action-row">
+          <button class="btn-check" onclick="markChecked(this, 'TRN-1141')">✓ Ready for Demo</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card page-5 status-REAL_PHOTO_CANDIDATE">
+      <div class="img-wrap">
+        <img src="../demo-approved-candidates/TRN-1142.webp" alt="Alkanet Roots  Powder" loading="lazy" />
+        <span class="badge badge-real">REAL PHOTO CANDIDATE</span>
+      </div>
+      <div class="info">
+        <div class="sku-row">
+          <span class="sku">TRN-1142</span>
+          <span class="form-tag">Herbal powder</span>
+        </div>
+        <div class="name-en">Alkanet Roots  Powder</div>
+        <div class="name-ta">வேம்பாலம்பட்டை பொடி</div>
+        <div class="bot-name"><em>Alkanet Roots (Siddha/Ayurvedic ground herbal formulation)</em></div>
+        <div class="source-info">
+          <div class="src-line"><strong>Source:</strong> Wikimedia Commons / Authentic Field</div>
+          <div class="lic-line"><strong>License:</strong> No restrictions</div>
+        </div>
+        <div class="action-row">
+          <button class="btn-check" onclick="markChecked(this, 'TRN-1142')">✓ Ready for Demo</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card page-5 status-REAL_PHOTO_CANDIDATE">
+      <div class="img-wrap">
+        <img src="../demo-approved-candidates/TRN-1143.webp" alt="Camel Grass  Powder - 1" loading="lazy" />
+        <span class="badge badge-real">REAL PHOTO CANDIDATE</span>
+      </div>
+      <div class="info">
+        <div class="sku-row">
+          <span class="sku">TRN-1143</span>
+          <span class="form-tag">Herbal powder</span>
+        </div>
+        <div class="name-en">Camel Grass  Powder - 1</div>
+        <div class="name-ta">வெட்டிவேர் பொடி -1</div>
+        <div class="bot-name"><em>Camel Grass   - 1 (Siddha/Ayurvedic ground herbal formulation)</em></div>
+        <div class="source-info">
+          <div class="src-line"><strong>Source:</strong> Wikimedia Commons / Authentic Field</div>
+          <div class="lic-line"><strong>License:</strong> Public domain</div>
+        </div>
+        <div class="action-row">
+          <button class="btn-check" onclick="markChecked(this, 'TRN-1143')">✓ Ready for Demo</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card page-5 status-REAL_PHOTO_CANDIDATE">
+      <div class="img-wrap">
+        <img src="../demo-approved-candidates/TRN-1144.webp" alt="Camel Grass  Powder - 2" loading="lazy" />
+        <span class="badge badge-real">REAL PHOTO CANDIDATE</span>
+      </div>
+      <div class="info">
+        <div class="sku-row">
+          <span class="sku">TRN-1144</span>
+          <span class="form-tag">Herbal powder</span>
+        </div>
+        <div class="name-en">Camel Grass  Powder - 2</div>
+        <div class="name-ta">வெட்டிவேர் பொடி -2</div>
+        <div class="bot-name"><em>Camel Grass   - 2 (Siddha/Ayurvedic ground herbal formulation)</em></div>
+        <div class="source-info">
+          <div class="src-line"><strong>Source:</strong> Wikimedia Commons / Authentic Field</div>
+          <div class="lic-line"><strong>License:</strong> Public domain</div>
+        </div>
+        <div class="action-row">
+          <button class="btn-check" onclick="markChecked(this, 'TRN-1144')">✓ Ready for Demo</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card page-6 status-REAL_PHOTO_CANDIDATE">
+      <div class="img-wrap">
+        <img src="../demo-approved-candidates/TRN-1145.webp" alt="Bilva Leaves  Powder" loading="lazy" />
+        <span class="badge badge-real">REAL PHOTO CANDIDATE</span>
+      </div>
+      <div class="info">
+        <div class="sku-row">
+          <span class="sku">TRN-1145</span>
+          <span class="form-tag">Herbal powder</span>
+        </div>
+        <div class="name-en">Bilva Leaves  Powder</div>
+        <div class="name-ta">வில்வ இலை பொடி</div>
+        <div class="bot-name"><em>Bilva Leaves (Siddha/Ayurvedic ground herbal formulation)</em></div>
+        <div class="source-info">
+          <div class="src-line"><strong>Source:</strong> Wikimedia Commons / Authentic Field</div>
+          <div class="lic-line"><strong>License:</strong> CC0</div>
+        </div>
+        <div class="action-row">
+          <button class="btn-check" onclick="markChecked(this, 'TRN-1145')">✓ Ready for Demo</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card page-6 status-REAL_PHOTO_CANDIDATE">
+      <div class="img-wrap">
+        <img src="../demo-approved-candidates/TRN-1146.webp" alt="Bilva Fruit  Powder" loading="lazy" />
+        <span class="badge badge-real">REAL PHOTO CANDIDATE</span>
+      </div>
+      <div class="info">
+        <div class="sku-row">
+          <span class="sku">TRN-1146</span>
+          <span class="form-tag">Herbal powder</span>
+        </div>
+        <div class="name-en">Bilva Fruit  Powder</div>
+        <div class="name-ta">வில்வ பழம் பொடி</div>
+        <div class="bot-name"><em>Aegle marmelos</em></div>
+        <div class="source-info">
+          <div class="src-line"><strong>Source:</strong> Wikimedia Commons / Authentic Field</div>
+          <div class="lic-line"><strong>License:</strong> CC BY 4.0</div>
+        </div>
+        <div class="action-row">
+          <button class="btn-check" onclick="markChecked(this, 'TRN-1146')">✓ Ready for Demo</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card page-6 status-REAL_PHOTO_CANDIDATE">
+      <div class="img-wrap">
+        <img src="../demo-approved-candidates/TRN-1147.webp" alt="Indian Rose  Powder - 1" loading="lazy" />
+        <span class="badge badge-real">REAL PHOTO CANDIDATE</span>
+      </div>
+      <div class="info">
+        <div class="sku-row">
+          <span class="sku">TRN-1147</span>
+          <span class="form-tag">Herbal powder</span>
+        </div>
+        <div class="name-en">Indian Rose  Powder - 1</div>
+        <div class="name-ta">ரோஸ் பொடி -1</div>
+        <div class="bot-name"><em>Indian Rose   - 1 (Siddha/Ayurvedic ground herbal formulation)</em></div>
+        <div class="source-info">
+          <div class="src-line"><strong>Source:</strong> Wikimedia Commons / Authentic Field</div>
+          <div class="lic-line"><strong>License:</strong> No restrictions</div>
+        </div>
+        <div class="action-row">
+          <button class="btn-check" onclick="markChecked(this, 'TRN-1147')">✓ Ready for Demo</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card page-6 status-REAL_PHOTO_CANDIDATE">
+      <div class="img-wrap">
+        <img src="../demo-approved-candidates/TRN-1148.webp" alt="Indian Rose  Powder - 2" loading="lazy" />
+        <span class="badge badge-real">REAL PHOTO CANDIDATE</span>
+      </div>
+      <div class="info">
+        <div class="sku-row">
+          <span class="sku">TRN-1148</span>
+          <span class="form-tag">Herbal powder</span>
+        </div>
+        <div class="name-en">Indian Rose  Powder - 2</div>
+        <div class="name-ta">ரோஸ் பொடி -2</div>
+        <div class="bot-name"><em>Indian Rose   - 2 (Siddha/Ayurvedic ground herbal formulation)</em></div>
+        <div class="source-info">
+          <div class="src-line"><strong>Source:</strong> Wikimedia Commons / Authentic Field</div>
+          <div class="lic-line"><strong>License:</strong> No restrictions</div>
+        </div>
+        <div class="action-row">
+          <button class="btn-check" onclick="markChecked(this, 'TRN-1148')">✓ Ready for Demo</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card page-6 status-REAL_PHOTO_CANDIDATE">
+      <div class="img-wrap">
+        <img src="../demo-approved-candidates/TRN-1149.webp" alt="Fuller Earth  Powder" loading="lazy" />
+        <span class="badge badge-real">REAL PHOTO CANDIDATE</span>
+      </div>
+      <div class="info">
+        <div class="sku-row">
+          <span class="sku">TRN-1149</span>
+          <span class="form-tag">Herbal powder</span>
+        </div>
+        <div class="name-en">Fuller Earth  Powder</div>
+        <div class="name-ta">முல்தானி மட்டி பொடி</div>
+        <div class="bot-name"><em>Fuller Earth (Siddha/Ayurvedic ground herbal formulation)</em></div>
+        <div class="source-info">
+          <div class="src-line"><strong>Source:</strong> Wikimedia Commons / Authentic Field</div>
+          <div class="lic-line"><strong>License:</strong> No restrictions</div>
+        </div>
+        <div class="action-row">
+          <button class="btn-check" onclick="markChecked(this, 'TRN-1149')">✓ Ready for Demo</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card page-6 status-REAL_PHOTO_CANDIDATE">
+      <div class="img-wrap">
+        <img src="../demo-approved-candidates/TRN-1150.webp" alt="Indian madder  Powder" loading="lazy" />
+        <span class="badge badge-real">REAL PHOTO CANDIDATE</span>
+      </div>
+      <div class="info">
+        <div class="sku-row">
+          <span class="sku">TRN-1150</span>
+          <span class="form-tag">Herbal powder</span>
+        </div>
+        <div class="name-en">Indian madder  Powder</div>
+        <div class="name-ta">மஞ்சிஷ்டா பொடி</div>
+        <div class="bot-name"><em>Indian madder (Siddha/Ayurvedic ground herbal formulation)</em></div>
+        <div class="source-info">
+          <div class="src-line"><strong>Source:</strong> Wikimedia Commons / Authentic Field</div>
+          <div class="lic-line"><strong>License:</strong> No restrictions</div>
+        </div>
+        <div class="action-row">
+          <button class="btn-check" onclick="markChecked(this, 'TRN-1150')">✓ Ready for Demo</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card page-6 status-REAL_PHOTO_CANDIDATE">
+      <div class="img-wrap">
+        <img src="../demo-approved-candidates/TRN-1151.webp" alt="Indian Rennet  Powder" loading="lazy" />
+        <span class="badge badge-real">REAL PHOTO CANDIDATE</span>
+      </div>
+      <div class="info">
+        <div class="sku-row">
+          <span class="sku">TRN-1151</span>
+          <span class="form-tag">Herbal powder</span>
+        </div>
+        <div class="name-en">Indian Rennet  Powder</div>
+        <div class="name-ta">பன்னீர் பூ பொடி</div>
+        <div class="bot-name"><em>Indian Rennet (Siddha/Ayurvedic ground herbal formulation)</em></div>
+        <div class="source-info">
+          <div class="src-line"><strong>Source:</strong> Wikimedia Commons / Authentic Field</div>
+          <div class="lic-line"><strong>License:</strong> CC BY-SA 4.0</div>
+        </div>
+        <div class="action-row">
+          <button class="btn-check" onclick="markChecked(this, 'TRN-1151')">✓ Ready for Demo</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card page-6 status-REAL_PHOTO_CANDIDATE">
+      <div class="img-wrap">
+        <img src="../demo-approved-candidates/TRN-1152.webp" alt="Alam Stone  Powder" loading="lazy" />
+        <span class="badge badge-real">REAL PHOTO CANDIDATE</span>
+      </div>
+      <div class="info">
+        <div class="sku-row">
+          <span class="sku">TRN-1152</span>
+          <span class="form-tag">Herbal powder</span>
+        </div>
+        <div class="name-en">Alam Stone  Powder</div>
+        <div class="name-ta">படிகாரம் பொடி</div>
+        <div class="bot-name"><em>Alam Stone (Siddha/Ayurvedic ground herbal formulation)</em></div>
+        <div class="source-info">
+          <div class="src-line"><strong>Source:</strong> Wikimedia Commons / Authentic Field</div>
+          <div class="lic-line"><strong>License:</strong> CC0</div>
+        </div>
+        <div class="action-row">
+          <button class="btn-check" onclick="markChecked(this, 'TRN-1152')">✓ Ready for Demo</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card page-6 status-REAL_PHOTO_CANDIDATE">
+      <div class="img-wrap">
+        <img src="../demo-approved-candidates/TRN-1153.webp" alt="Rough Chaff  Powder" loading="lazy" />
+        <span class="badge badge-real">REAL PHOTO CANDIDATE</span>
+      </div>
+      <div class="info">
+        <div class="sku-row">
+          <span class="sku">TRN-1153</span>
+          <span class="form-tag">Herbal powder</span>
+        </div>
+        <div class="name-en">Rough Chaff  Powder</div>
+        <div class="name-ta">நாயுருவி அரிசி பொடி</div>
+        <div class="bot-name"><em>Rough Chaff (Siddha/Ayurvedic ground herbal formulation)</em></div>
+        <div class="source-info">
+          <div class="src-line"><strong>Source:</strong> Wikimedia Commons / Authentic Field</div>
+          <div class="lic-line"><strong>License:</strong> No restrictions</div>
+        </div>
+        <div class="action-row">
+          <button class="btn-check" onclick="markChecked(this, 'TRN-1153')">✓ Ready for Demo</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card page-6 status-REAL_PHOTO_CANDIDATE">
+      <div class="img-wrap">
+        <img src="../demo-approved-candidates/TRN-1154.webp" alt="Sweet Basil  Powder" loading="lazy" />
+        <span class="badge badge-real">REAL PHOTO CANDIDATE</span>
+      </div>
+      <div class="info">
+        <div class="sku-row">
+          <span class="sku">TRN-1154</span>
+          <span class="form-tag">Herbal powder</span>
+        </div>
+        <div class="name-en">Sweet Basil  Powder</div>
+        <div class="name-ta">திருநீற்று பச்சிலை பொடி</div>
+        <div class="bot-name"><em>Sweet Basil (Siddha/Ayurvedic ground herbal formulation)</em></div>
+        <div class="source-info">
+          <div class="src-line"><strong>Source:</strong> Wikimedia Commons / Authentic Field</div>
+          <div class="lic-line"><strong>License:</strong> CC BY 2.0</div>
+        </div>
+        <div class="action-row">
+          <button class="btn-check" onclick="markChecked(this, 'TRN-1154')">✓ Ready for Demo</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card page-6 status-REAL_PHOTO_CANDIDATE">
+      <div class="img-wrap">
+        <img src="../demo-approved-candidates/TRN-1155.webp" alt="Wild Turmeric  Powder" loading="lazy" />
+        <span class="badge badge-real">REAL PHOTO CANDIDATE</span>
+      </div>
+      <div class="info">
+        <div class="sku-row">
+          <span class="sku">TRN-1155</span>
+          <span class="form-tag">Herbal powder</span>
+        </div>
+        <div class="name-en">Wild Turmeric  Powder</div>
+        <div class="name-ta">கஸ்தூரி மஞ்சள் பொடி</div>
+        <div class="bot-name"><em>Wild Turmeric (Siddha/Ayurvedic ground herbal formulation)</em></div>
+        <div class="source-info">
+          <div class="src-line"><strong>Source:</strong> Wikimedia Commons / Authentic Field</div>
+          <div class="lic-line"><strong>License:</strong> CC BY-SA 4.0</div>
+        </div>
+        <div class="action-row">
+          <button class="btn-check" onclick="markChecked(this, 'TRN-1155')">✓ Ready for Demo</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card page-6 status-REAL_PHOTO_CANDIDATE">
+      <div class="img-wrap">
+        <img src="../demo-approved-candidates/TRN-1156.webp" alt="Lemon Peel  Powder" loading="lazy" />
+        <span class="badge badge-real">REAL PHOTO CANDIDATE</span>
+      </div>
+      <div class="info">
+        <div class="sku-row">
+          <span class="sku">TRN-1156</span>
+          <span class="form-tag">Herbal powder</span>
+        </div>
+        <div class="name-en">Lemon Peel  Powder</div>
+        <div class="name-ta">எலுமிச்சை தோல் பொடி</div>
+        <div class="bot-name"><em>Lemon Peel (Siddha/Ayurvedic ground herbal formulation)</em></div>
+        <div class="source-info">
+          <div class="src-line"><strong>Source:</strong> Wikimedia Commons / Authentic Field</div>
+          <div class="lic-line"><strong>License:</strong> CC BY 2.0</div>
+        </div>
+        <div class="action-row">
+          <button class="btn-check" onclick="markChecked(this, 'TRN-1156')">✓ Ready for Demo</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card page-6 status-REAL_PHOTO_CANDIDATE">
+      <div class="img-wrap">
+        <img src="../demo-approved-candidates/TRN-1157.webp" alt="White Dammer  Powder" loading="lazy" />
+        <span class="badge badge-real">REAL PHOTO CANDIDATE</span>
+      </div>
+      <div class="info">
+        <div class="sku-row">
+          <span class="sku">TRN-1157</span>
+          <span class="form-tag">Herbal powder</span>
+        </div>
+        <div class="name-en">White Dammer  Powder</div>
+        <div class="name-ta">குங்கிலியம் பொடி</div>
+        <div class="bot-name"><em>White Dammer (Siddha/Ayurvedic ground herbal formulation)</em></div>
+        <div class="source-info">
+          <div class="src-line"><strong>Source:</strong> Wikimedia Commons / Authentic Field</div>
+          <div class="lic-line"><strong>License:</strong> CC BY-SA 3.0</div>
+        </div>
+        <div class="action-row">
+          <button class="btn-check" onclick="markChecked(this, 'TRN-1157')">✓ Ready for Demo</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card page-6 status-REAL_PHOTO_CANDIDATE">
+      <div class="img-wrap">
+        <img src="../demo-approved-candidates/TRN-1158.webp" alt="Turmeric  Powder" loading="lazy" />
+        <span class="badge badge-real">REAL PHOTO CANDIDATE</span>
+      </div>
+      <div class="info">
+        <div class="sku-row">
+          <span class="sku">TRN-1158</span>
+          <span class="form-tag">Herbal powder</span>
+        </div>
+        <div class="name-en">Turmeric  Powder</div>
+        <div class="name-ta">விரலி மஞ்சள் பொடி</div>
+        <div class="bot-name"><em>Curcuma longa</em></div>
+        <div class="source-info">
+          <div class="src-line"><strong>Source:</strong> Wikimedia Commons / Authentic Field</div>
+          <div class="lic-line"><strong>License:</strong> CC BY-SA 3.0</div>
+        </div>
+        <div class="action-row">
+          <button class="btn-check" onclick="markChecked(this, 'TRN-1158')">✓ Ready for Demo</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card page-6 status-REAL_PHOTO_CANDIDATE">
+      <div class="img-wrap">
+        <img src="../demo-approved-candidates/TRN-1159.webp" alt="Garlic  Powder" loading="lazy" />
+        <span class="badge badge-real">REAL PHOTO CANDIDATE</span>
+      </div>
+      <div class="info">
+        <div class="sku-row">
+          <span class="sku">TRN-1159</span>
+          <span class="form-tag">Herbal powder</span>
+        </div>
+        <div class="name-en">Garlic  Powder</div>
+        <div class="name-ta">பூண்டு பொடி</div>
+        <div class="bot-name"><em>Allium sativum</em></div>
+        <div class="source-info">
+          <div class="src-line"><strong>Source:</strong> Wikimedia Commons / Authentic Field</div>
+          <div class="lic-line"><strong>License:</strong> CC0</div>
+        </div>
+        <div class="action-row">
+          <button class="btn-check" onclick="markChecked(this, 'TRN-1159')">✓ Ready for Demo</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card page-6 status-REAL_PHOTO_CANDIDATE">
+      <div class="img-wrap">
+        <img src="../demo-approved-candidates/TRN-1160.webp" alt="Cinnamon  Powder" loading="lazy" />
+        <span class="badge badge-real">REAL PHOTO CANDIDATE</span>
+      </div>
+      <div class="info">
+        <div class="sku-row">
+          <span class="sku">TRN-1160</span>
+          <span class="form-tag">Herbal powder</span>
+        </div>
+        <div class="name-en">Cinnamon  Powder</div>
+        <div class="name-ta">இலவங்கம் பொடி</div>
+        <div class="bot-name"><em>Cinnamomum verum</em></div>
+        <div class="source-info">
+          <div class="src-line"><strong>Source:</strong> Wikimedia Commons / Authentic Field</div>
+          <div class="lic-line"><strong>License:</strong> CC BY-SA 3.0</div>
+        </div>
+        <div class="action-row">
+          <button class="btn-check" onclick="markChecked(this, 'TRN-1160')">✓ Ready for Demo</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card page-6 status-REAL_PHOTO_CANDIDATE">
+      <div class="img-wrap">
+        <img src="../demo-approved-candidates/TRN-1161.webp" alt="Bishop Weed  Powder" loading="lazy" />
+        <span class="badge badge-real">REAL PHOTO CANDIDATE</span>
+      </div>
+      <div class="info">
+        <div class="sku-row">
+          <span class="sku">TRN-1161</span>
+          <span class="form-tag">Herbal powder</span>
+        </div>
+        <div class="name-en">Bishop Weed  Powder</div>
+        <div class="name-ta">ஓமம் பொடி</div>
+        <div class="bot-name"><em>Bishop Weed (Siddha/Ayurvedic ground herbal formulation)</em></div>
+        <div class="source-info">
+          <div class="src-line"><strong>Source:</strong> Wikimedia Commons / Authentic Field</div>
+          <div class="lic-line"><strong>License:</strong> Public domain</div>
+        </div>
+        <div class="action-row">
+          <button class="btn-check" onclick="markChecked(this, 'TRN-1161')">✓ Ready for Demo</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card page-6 status-REAL_PHOTO_CANDIDATE">
+      <div class="img-wrap">
+        <img src="../demo-approved-candidates/TRN-1162.webp" alt="Dry Ginger Powder" loading="lazy" />
+        <span class="badge badge-real">REAL PHOTO CANDIDATE</span>
+      </div>
+      <div class="info">
+        <div class="sku-row">
+          <span class="sku">TRN-1162</span>
+          <span class="form-tag">Herbal powder</span>
+        </div>
+        <div class="name-en">Dry Ginger Powder</div>
+        <div class="name-ta">சுக்கு பொடி</div>
+        <div class="bot-name"><em>Dry Ginger (Siddha/Ayurvedic ground herbal formulation)</em></div>
+        <div class="source-info">
+          <div class="src-line"><strong>Source:</strong> Wikimedia Commons / Authentic Field</div>
+          <div class="lic-line"><strong>License:</strong> CC BY-SA 4.0</div>
+        </div>
+        <div class="action-row">
+          <button class="btn-check" onclick="markChecked(this, 'TRN-1162')">✓ Ready for Demo</button>
+        </div>
+      </div>
+    </div>
+    
+  </div>
+</body>
+</html>

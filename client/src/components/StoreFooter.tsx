@@ -37,11 +37,11 @@ export default function StoreFooter() {
             </button>
 
             {/* Registered Entity & Location */}
-            <div className="mt-4 text-xs">
-              <p className="font-bold tracking-wider text-[#123D28] uppercase">
+            <div className="mt-4">
+              <p className="font-bold text-[13px] tracking-wider text-[#0B2D1D] uppercase">
                 TRINAYAA ENTERPRISES
               </p>
-              <p className="text-[#123D28]/80 mt-0.5">Erode, Tamil Nadu</p>
+              <p className="text-xs text-[#0B2D1D]/90 font-medium mt-0.5">Erode, Tamil Nadu</p>
             </div>
 
             {/* Social Links Row */}
@@ -98,14 +98,14 @@ export default function StoreFooter() {
 
           {/* Column 2: Quick Links */}
           <div className="lg:border-l lg:border-[#123D28]/25 lg:pl-6">
-            <h4 className="font-serif font-bold text-xs tracking-wider uppercase text-[#123D28] mb-3">
+            <h4 className="font-serif font-bold text-[13px] sm:text-sm tracking-wider uppercase text-[#123D28] mb-3.5">
               QUICK LINKS
             </h4>
-            <ul className="space-y-1.5 text-xs text-[#123D28]/85">
+            <ul className="space-y-2 text-[13px] text-[#0B2D1D] font-medium">
               <li>
                 <button
                   onClick={() => setLocation("/")}
-                  className="hover:text-[#123D28] hover:underline transition-colors text-left"
+                  className="hover:text-[#7A1B28] hover:underline transition-colors text-left"
                 >
                   Home
                 </button>
@@ -113,7 +113,7 @@ export default function StoreFooter() {
               <li>
                 <button
                   onClick={() => setLocation("/products")}
-                  className="hover:text-[#123D28] hover:underline transition-colors text-left"
+                  className="hover:text-[#7A1B28] hover:underline transition-colors text-left"
                 >
                   Products
                 </button>
@@ -121,7 +121,7 @@ export default function StoreFooter() {
               <li>
                 <button
                   onClick={() => setLocation("/about")}
-                  className="hover:text-[#123D28] hover:underline transition-colors text-left"
+                  className="hover:text-[#7A1B28] hover:underline transition-colors text-left"
                 >
                   About Us
                 </button>
@@ -129,7 +129,7 @@ export default function StoreFooter() {
               <li>
                 <button
                   onClick={() => setLocation("/bulk-enquiry")}
-                  className="hover:text-[#123D28] hover:underline transition-colors text-left"
+                  className="hover:text-[#7A1B28] hover:underline transition-colors text-left"
                 >
                   Bulk Enquiries
                 </button>
@@ -137,7 +137,7 @@ export default function StoreFooter() {
               <li>
                 <button
                   onClick={() => setLocation("/contact")}
-                  className="hover:text-[#123D28] hover:underline transition-colors text-left"
+                  className="hover:text-[#7A1B28] hover:underline transition-colors text-left"
                 >
                   Help
                 </button>
@@ -145,7 +145,7 @@ export default function StoreFooter() {
               <li>
                 <button
                   onClick={() => setLocation("/contact")}
-                  className="hover:text-[#123D28] hover:underline transition-colors text-left"
+                  className="hover:text-[#7A1B28] hover:underline transition-colors text-left"
                 >
                   Contact
                 </button>
@@ -155,14 +155,14 @@ export default function StoreFooter() {
 
           {/* Column 3: Useful Policies */}
           <div className="lg:border-l lg:border-[#123D28]/25 lg:pl-6">
-            <h4 className="font-serif font-bold text-xs tracking-wider uppercase text-[#123D28] mb-3">
+            <h4 className="font-serif font-bold text-[13px] sm:text-sm tracking-wider uppercase text-[#123D28] mb-3.5">
               USEFUL POLICIES
             </h4>
-            <ul className="space-y-1.5 text-xs text-[#123D28]/85">
+            <ul className="space-y-2 text-[13px] text-[#0B2D1D] font-medium">
               <li>
                 <button
                   onClick={() => setLocation("/policies/privacy")}
-                  className="hover:text-[#123D28] hover:underline transition-colors text-left"
+                  className="hover:text-[#7A1B28] hover:underline transition-colors text-left"
                 >
                   Privacy Policy
                 </button>
@@ -170,7 +170,7 @@ export default function StoreFooter() {
               <li>
                 <button
                   onClick={() => setLocation("/policies/returns")}
-                  className="hover:text-[#123D28] hover:underline transition-colors text-left"
+                  className="hover:text-[#7A1B28] hover:underline transition-colors text-left"
                 >
                   Refund &amp; Returns
                 </button>
@@ -178,7 +178,7 @@ export default function StoreFooter() {
               <li>
                 <button
                   onClick={() => setLocation("/policies/shipping")}
-                  className="hover:text-[#123D28] hover:underline transition-colors text-left"
+                  className="hover:text-[#7A1B28] hover:underline transition-colors text-left"
                 >
                   Shipping Policy
                 </button>
@@ -186,7 +186,7 @@ export default function StoreFooter() {
               <li>
                 <button
                   onClick={() => setLocation("/policies/terms")}
-                  className="hover:text-[#123D28] hover:underline transition-colors text-left"
+                  className="hover:text-[#7A1B28] hover:underline transition-colors text-left"
                 >
                   Terms of Service
                 </button>
@@ -196,35 +196,35 @@ export default function StoreFooter() {
 
           {/* Column 4: Contact Us */}
           <div className="lg:border-l lg:border-[#123D28]/25 lg:pl-6">
-            <h4 className="font-serif font-bold text-xs tracking-wider uppercase text-[#123D28] mb-3">
+            <h4 className="font-serif font-bold text-[13px] sm:text-sm tracking-wider uppercase text-[#123D28] mb-3.5">
               CONTACT US
             </h4>
-            <div className="space-y-3 text-xs text-[#123D28]/85">
+            <div className="space-y-3 text-[13px] text-[#0B2D1D]">
               <div className="flex items-start gap-2.5">
-                <MapPin size={15} className="text-[#123D28] shrink-0 mt-0.5" />
+                <MapPin size={16} className="text-[#0B2D1D] shrink-0 mt-0.5" />
                 <div>
-                  <p className="font-bold text-[#123D28]">TRINAYAA ENTERPRISES</p>
-                  <p className="text-[11px] text-[#123D28]/80 leading-snug">
+                  <p className="font-bold text-[13px] sm:text-sm text-[#0B2D1D]">TRINAYAA ENTERPRISES</p>
+                  <p className="text-xs text-[#0B2D1D]/90 font-medium leading-snug">
                     Erode, Tamil Nadu – 638 001, India
                   </p>
                 </div>
               </div>
 
               <div className="flex items-center gap-2.5">
-                <Phone size={15} className="text-[#123D28] shrink-0" />
+                <Phone size={16} className="text-[#0B2D1D] shrink-0" />
                 <a
                   href={`tel:${(socialLinks?.whatsappPhone || "+919442218990").replace(/[^0-9+]/g, "")}`}
-                  className="hover:text-[#123D28] hover:underline"
+                  className="font-medium text-[#0B2D1D] hover:text-[#7A1B28] hover:underline transition-colors"
                 >
                   {socialLinks?.whatsappPhone || "+91 94422 18990"}
                 </a>
               </div>
 
               <div className="flex items-center gap-2.5">
-                <Mail size={15} className="text-[#123D28] shrink-0" />
+                <Mail size={16} className="text-[#0B2D1D] shrink-0" />
                 <a
                   href="mailto:support@trinayaa.com"
-                  className="hover:text-[#123D28] hover:underline"
+                  className="font-medium text-[#0B2D1D] hover:text-[#7A1B28] hover:underline transition-colors"
                 >
                   support@trinayaa.com
                 </a>
@@ -326,9 +326,9 @@ export default function StoreFooter() {
         </div>
 
         {/* Bottom Bar: Copyright */}
-        <div className="border-t border-[#123D28]/20 mt-8 pt-4 flex flex-col sm:flex-row items-center justify-between text-[11px] text-[#123D28]/80 gap-2">
+        <div className="border-t border-[#123D28]/25 mt-8 pt-4 flex flex-col sm:flex-row items-center justify-between text-xs text-[#0B2D1D]/90 font-medium gap-2">
           <span>© 2026 TRINAYAA ENTERPRISES. All rights reserved.</span>
-          <span className="text-[10px] text-[#123D28]/60">
+          <span className="text-xs text-[#0B2D1D]/80">
             Handcrafted Herbal Botanicals from Erode, Tamil Nadu
           </span>
         </div>

@@ -1,0 +1,974 @@
+[
+  {
+    "sku": "TRN-1001",
+    "name_en": "Licorice Root",
+    "name_ta": "அதிமதுரம்",
+    "product_type": "Herb"
+  },
+  {
+    "sku": "TRN-1002",
+    "name_en": "Ashwagandha - 1",
+    "name_ta": "அமுக்கரா",
+    "product_type": "Whole ingredient"
+  },
+  {
+    "sku": "TRN-1003",
+    "name_en": "Peepal Seeds",
+    "name_ta": "அரச விதை",
+    "product_type": "Seed"
+  },
+  {
+    "sku": "TRN-1004",
+    "name_en": "Ashwagandha - 2",
+    "name_ta": "அஸ்வகந்தா",
+    "product_type": "Whole ingredient"
+  },
+  {
+    "sku": "TRN-1005",
+    "name_en": "Inknut/Myrobalan",
+    "name_ta": "கடுக்காய்",
+    "product_type": "Whole ingredient"
+  },
+  {
+    "sku": "TRN-1006",
+    "name_en": "Indian Aloe Gum",
+    "name_ta": "கரியபவளம்",
+    "product_type": "Whole ingredient"
+  },
+  {
+    "sku": "TRN-1007",
+    "name_en": "Fever Nut",
+    "name_ta": "கழற்சிக்காய்",
+    "product_type": "Whole ingredient"
+  },
+  {
+    "sku": "TRN-1008",
+    "name_en": "Babchi Seeds",
+    "name_ta": "கார்போக அரிசி",
+    "product_type": "Seed"
+  },
+  {
+    "sku": "TRN-1009",
+    "name_en": "Malabar Tamarind",
+    "name_ta": "குடம்புளி",
+    "product_type": "Whole ingredient"
+  },
+  {
+    "sku": "TRN-1010",
+    "name_en": "Lesser Galangal",
+    "name_ta": "சித்தரத்தை",
+    "product_type": "Whole ingredient"
+  },
+  {
+    "sku": "TRN-1011",
+    "name_en": "Sweet basil",
+    "name_ta": "சீனித்துளசி",
+    "product_type": "Whole ingredient"
+  },
+  {
+    "sku": "TRN-1012",
+    "name_en": "Lotus Flower",
+    "name_ta": "தாமரை பூ",
+    "product_type": "Herb"
+  },
+  {
+    "sku": "TRN-1013",
+    "name_en": "Lotus Seeds",
+    "name_ta": "தாமரை விதை",
+    "product_type": "Seed"
+  },
+  {
+    "sku": "TRN-1014",
+    "name_en": "Indian Silver Fir",
+    "name_ta": "தாளிசபத்திரி",
+    "product_type": "Whole ingredient"
+  },
+  {
+    "sku": "TRN-1015",
+    "name_en": "Long pepper",
+    "name_ta": "திப்பிலி (அரிசி)",
+    "product_type": "Whole ingredient"
+  },
+  {
+    "sku": "TRN-1016",
+    "name_en": "Big Pepper",
+    "name_ta": "திப்பிலி (யானை)",
+    "product_type": "Whole ingredient"
+  },
+  {
+    "sku": "TRN-1017",
+    "name_en": "Round Pepper",
+    "name_ta": "திப்பிலி (உருண்டை)",
+    "product_type": "Whole ingredient"
+  },
+  {
+    "sku": "TRN-1018",
+    "name_en": "Indian Mallow Seeds",
+    "name_ta": "துத்தி விதை",
+    "product_type": "Seed"
+  },
+  {
+    "sku": "TRN-1019",
+    "name_en": "Indian Sarasparilla",
+    "name_ta": "நன்னாரி",
+    "product_type": "Whole ingredient"
+  },
+  {
+    "sku": "TRN-1020",
+    "name_en": "Black Plum Seeds/Jamun Seeds",
+    "name_ta": "நாவல் கொட்டை",
+    "product_type": "Seed"
+  },
+  {
+    "sku": "TRN-1021",
+    "name_en": "Black Plum Bark/Jamun Bark",
+    "name_ta": "நாவல் பட்டை",
+    "product_type": "Herb"
+  },
+  {
+    "sku": "TRN-1022",
+    "name_en": "King of bitter",
+    "name_ta": "நிலவேம்பு",
+    "product_type": "Whole ingredient"
+  },
+  {
+    "sku": "TRN-1023",
+    "name_en": "Caltrops Large",
+    "name_ta": "நெருஞ்சில் முள் (பெ)",
+    "product_type": "Whole ingredient"
+  },
+  {
+    "sku": "TRN-1024",
+    "name_en": "Caltrops Small",
+    "name_ta": "நெருஞ்சில் முள் (சி)",
+    "product_type": "Whole ingredient"
+  },
+  {
+    "sku": "TRN-1025",
+    "name_en": "Indian Goosberry",
+    "name_ta": "நெல்லி வத்தல்",
+    "product_type": "Whole ingredient"
+  },
+  {
+    "sku": "TRN-1026",
+    "name_en": "Sappan Wood",
+    "name_ta": "பதிமுகம்",
+    "product_type": "Whole ingredient"
+  },
+  {
+    "sku": "TRN-1027",
+    "name_en": "Indian Cotton Seeds",
+    "name_ta": "பருத்தி விதை",
+    "product_type": "Seed"
+  },
+  {
+    "sku": "TRN-1028",
+    "name_en": "Almond Gum",
+    "name_ta": "பாதாம்பிசின்",
+    "product_type": "Whole ingredient"
+  },
+  {
+    "sku": "TRN-1029",
+    "name_en": "Veldt Grape",
+    "name_ta": "பிரண்டை",
+    "product_type": "Whole ingredient"
+  },
+  {
+    "sku": "TRN-1030",
+    "name_en": "Menthol Crystal",
+    "name_ta": "புதினா உப்பு",
+    "product_type": "Whole ingredient"
+  },
+  {
+    "sku": "TRN-1031",
+    "name_en": "Greater Galangal",
+    "name_ta": "பேரரத்தை",
+    "product_type": "Whole ingredient"
+  },
+  {
+    "sku": "TRN-1032",
+    "name_en": "Arjun bark",
+    "name_ta": "மருதம்பட்டை",
+    "product_type": "Herb"
+  },
+  {
+    "sku": "TRN-1033",
+    "name_en": "Blue Jack",
+    "name_ta": "மாசிக்காய்",
+    "product_type": "Whole ingredient"
+  },
+  {
+    "sku": "TRN-1034",
+    "name_en": "Pomegranate Skin",
+    "name_ta": "மாதுளை தோல்",
+    "product_type": "Whole ingredient"
+  },
+  {
+    "sku": "TRN-1035",
+    "name_en": "Pomegranate Seeds",
+    "name_ta": "மாதுளை விதை",
+    "product_type": "Seed"
+  },
+  {
+    "sku": "TRN-1036",
+    "name_en": "Mango Kernel",
+    "name_ta": "மாம்பருப்பு",
+    "product_type": "Whole ingredient"
+  },
+  {
+    "sku": "TRN-1037",
+    "name_en": "Goat Leg Tuber",
+    "name_ta": "முடவாட்டுக்கால் கிழங்கு",
+    "product_type": "Whole ingredient"
+  },
+  {
+    "sku": "TRN-1038",
+    "name_en": "Drumstick Seeds",
+    "name_ta": "முருங்கை விதை",
+    "product_type": "Seed"
+  },
+  {
+    "sku": "TRN-1039",
+    "name_en": "Drumstick Gum",
+    "name_ta": "முருங்கை பிசின்",
+    "product_type": "Whole ingredient"
+  },
+  {
+    "sku": "TRN-1040",
+    "name_en": "Drumstick Flower",
+    "name_ta": "முருங்கை பூ",
+    "product_type": "Herb"
+  },
+  {
+    "sku": "TRN-1041",
+    "name_en": "Indian Screw Tree",
+    "name_ta": "வலம்புரி - இடம்புரி",
+    "product_type": "Whole ingredient"
+  },
+  {
+    "sku": "TRN-1042",
+    "name_en": "Tailed pepper",
+    "name_ta": "வால்மிளகு",
+    "product_type": "Whole ingredient"
+  },
+  {
+    "sku": "TRN-1043",
+    "name_en": "Nutmeg",
+    "name_ta": "ஜாதிக்காய்",
+    "product_type": "Whole ingredient"
+  },
+  {
+    "sku": "TRN-1044",
+    "name_en": "Sweet Flag",
+    "name_ta": "வசம்பு",
+    "product_type": "Whole ingredient"
+  },
+  {
+    "sku": "TRN-1045",
+    "name_en": "Rosemary",
+    "name_ta": "ரோஸ்மேரி",
+    "product_type": "Whole ingredient"
+  },
+  {
+    "sku": "TRN-1046",
+    "name_en": "Henna",
+    "name_ta": "மருதாணி",
+    "product_type": "Whole ingredient"
+  },
+  {
+    "sku": "TRN-1047",
+    "name_en": "Marjoram",
+    "name_ta": "மரிக்கொழுந்து",
+    "product_type": "Whole ingredient"
+  },
+  {
+    "sku": "TRN-1048",
+    "name_en": "Country Senna Leaf",
+    "name_ta": "நிலாவரை",
+    "product_type": "Herb"
+  },
+  {
+    "sku": "TRN-1049",
+    "name_en": "Hibiscus Leaf",
+    "name_ta": "செம்பருத்தி இலை",
+    "product_type": "Herb"
+  },
+  {
+    "sku": "TRN-1050",
+    "name_en": "Hibiscus Flower",
+    "name_ta": "செம்பருத்தி பூ",
+    "product_type": "Herb"
+  },
+  {
+    "sku": "TRN-1051",
+    "name_en": "Soap pod Special",
+    "name_ta": "சீயக்காய் - 1",
+    "product_type": "Whole ingredient"
+  },
+  {
+    "sku": "TRN-1052",
+    "name_en": "Soap pod",
+    "name_ta": "சீயக்காய் - 2",
+    "product_type": "Whole ingredient"
+  },
+  {
+    "sku": "TRN-1053",
+    "name_en": "Dil Seeds",
+    "name_ta": "சதக்குப்பை",
+    "product_type": "Seed"
+  },
+  {
+    "sku": "TRN-1054",
+    "name_en": "Nutgrass",
+    "name_ta": "கோரைக்கிழங்கு",
+    "product_type": "Whole ingredient"
+  },
+  {
+    "sku": "TRN-1055",
+    "name_en": "Red Fruit Creeper",
+    "name_ta": "கருடக்கிழங்கு",
+    "product_type": "Whole ingredient"
+  },
+  {
+    "sku": "TRN-1056",
+    "name_en": "Indian Indigo",
+    "name_ta": "அவுரி விதை",
+    "product_type": "Whole ingredient"
+  },
+  {
+    "sku": "TRN-1057",
+    "name_en": "Black Cumin",
+    "name_ta": "கருஞ்சீரகம்",
+    "product_type": "Whole ingredient"
+  },
+  {
+    "sku": "TRN-1058",
+    "name_en": "Soap Pod Powder",
+    "name_ta": "சீயக்காய் மிக்ஸ் பொடி",
+    "product_type": "Powder"
+  },
+  {
+    "sku": "TRN-1059",
+    "name_en": "Alkanet Roots",
+    "name_ta": "வேம்பாளம் பட்டை",
+    "product_type": "Herb"
+  },
+  {
+    "sku": "TRN-1060",
+    "name_en": "Camel Grass",
+    "name_ta": "வெட்டிவேர்",
+    "product_type": "Whole ingredient"
+  },
+  {
+    "sku": "TRN-1061",
+    "name_en": "Turmeric",
+    "name_ta": "விரலிமஞ்சள்",
+    "product_type": "Whole ingredient"
+  },
+  {
+    "sku": "TRN-1062",
+    "name_en": "Bilva Fruit Dry",
+    "name_ta": "வில்வ ஓடு",
+    "product_type": "Whole ingredient"
+  },
+  {
+    "sku": "TRN-1063",
+    "name_en": "Indian Rose",
+    "name_ta": "ரோஜாபூ",
+    "product_type": "Whole ingredient"
+  },
+  {
+    "sku": "TRN-1064",
+    "name_en": "Fuller Earth",
+    "name_ta": "முல்தானி மட்டி",
+    "product_type": "Whole ingredient"
+  },
+  {
+    "sku": "TRN-1065",
+    "name_en": "Indian madder",
+    "name_ta": "மஞ்சிஷ்டா",
+    "product_type": "Whole ingredient"
+  },
+  {
+    "sku": "TRN-1066",
+    "name_en": "Indian Rennet",
+    "name_ta": "பன்னீர் பூ",
+    "product_type": "Whole ingredient"
+  },
+  {
+    "sku": "TRN-1067",
+    "name_en": "Alam Stone",
+    "name_ta": "படிகாரம்",
+    "product_type": "Whole ingredient"
+  },
+  {
+    "sku": "TRN-1068",
+    "name_en": "Rough Chaff",
+    "name_ta": "நாயுருவி அரிசி",
+    "product_type": "Whole ingredient"
+  },
+  {
+    "sku": "TRN-1069",
+    "name_en": "Sweet Basil",
+    "name_ta": "திருநீற்று பச்சிலை",
+    "product_type": "Whole ingredient"
+  },
+  {
+    "sku": "TRN-1070",
+    "name_en": "Wild Turmeric",
+    "name_ta": "கஸ்தூரி மஞ்சள்",
+    "product_type": "Whole ingredient"
+  },
+  {
+    "sku": "TRN-1071",
+    "name_en": "Lemon Peel",
+    "name_ta": "எலுமிச்சை தோல்",
+    "product_type": "Whole ingredient"
+  },
+  {
+    "sku": "TRN-1072",
+    "name_en": "Senna Flowers",
+    "name_ta": "ஆவாரம்பூ",
+    "product_type": "Herb"
+  },
+  {
+    "sku": "TRN-1073",
+    "name_en": "Benzoin Resin - 1",
+    "name_ta": "சாம்பிராணி 1",
+    "product_type": "Whole ingredient"
+  },
+  {
+    "sku": "TRN-1074",
+    "name_en": "Benzoin Resin - 2",
+    "name_ta": "சாம்பிராணி 2",
+    "product_type": "Whole ingredient"
+  },
+  {
+    "sku": "TRN-1075",
+    "name_en": "Benzoin Resin - 3",
+    "name_ta": "சாம்பிராணி 3",
+    "product_type": "Whole ingredient"
+  },
+  {
+    "sku": "TRN-1076",
+    "name_en": "Black Dammer",
+    "name_ta": "குங்கிலியம் (க)",
+    "product_type": "Whole ingredient"
+  },
+  {
+    "sku": "TRN-1077",
+    "name_en": "White Dammer",
+    "name_ta": "குங்கிலியம் (வெ)",
+    "product_type": "Whole ingredient"
+  },
+  {
+    "sku": "TRN-1078",
+    "name_en": "Magic ginger",
+    "name_ta": "மேஜிக் இஞ்சி",
+    "product_type": "Whole ingredient"
+  },
+  {
+    "sku": "TRN-1079",
+    "name_en": "Amla Tea",
+    "name_ta": "நெல்லி டி",
+    "product_type": "Whole ingredient"
+  },
+  {
+    "sku": "TRN-1080",
+    "name_en": "Ginger Soup",
+    "name_ta": "இஞ்சி சூப்",
+    "product_type": "Whole ingredient"
+  },
+  {
+    "sku": "TRN-1081",
+    "name_en": "Pumpkin Seeds",
+    "name_ta": "பூசணி விதை",
+    "product_type": "Seed"
+  },
+  {
+    "sku": "TRN-1082",
+    "name_en": "Cucumber Seeds",
+    "name_ta": "வெள்ளரி விதை",
+    "product_type": "Seed"
+  },
+  {
+    "sku": "TRN-1083",
+    "name_en": "Sunflower Seeds",
+    "name_ta": "சூரியகாந்தி விதை",
+    "product_type": "Seed"
+  },
+  {
+    "sku": "TRN-1084",
+    "name_en": "Chia Seeds",
+    "name_ta": "சியா விதை",
+    "product_type": "Seed"
+  },
+  {
+    "sku": "TRN-1085",
+    "name_en": "Flax Sseeds",
+    "name_ta": "ஆளி விதை",
+    "product_type": "Seed"
+  },
+  {
+    "sku": "TRN-1086",
+    "name_en": "Basil Seeds",
+    "name_ta": "சப்ஜா விதை",
+    "product_type": "Seed"
+  },
+  {
+    "sku": "TRN-1087",
+    "name_en": "Spogel Seeds",
+    "name_ta": "இசப்புகல் விதை",
+    "product_type": "Seed"
+  },
+  {
+    "sku": "TRN-1088",
+    "name_en": "fenugreek Seeds",
+    "name_ta": "வெந்தய விதைகள்",
+    "product_type": "Seed"
+  },
+  {
+    "sku": "TRN-1089",
+    "name_en": "Cinnamon",
+    "name_ta": "இலவங்கம்",
+    "product_type": "Whole ingredient"
+  },
+  {
+    "sku": "TRN-1090",
+    "name_en": "Cardamom",
+    "name_ta": "ஏலரிசி",
+    "product_type": "Whole ingredient"
+  },
+  {
+    "sku": "TRN-1091",
+    "name_en": "Bishop Weed",
+    "name_ta": "ஓமம்",
+    "product_type": "Whole ingredient"
+  },
+  {
+    "sku": "TRN-1092",
+    "name_en": "Dry Ginger",
+    "name_ta": "சுக்கு",
+    "product_type": "Whole ingredient"
+  },
+  {
+    "sku": "TRN-1093",
+    "name_en": "Garlic",
+    "name_ta": "பூண்டு - புகை",
+    "product_type": "Whole ingredient"
+  },
+  {
+    "sku": "TRN-1094",
+    "name_en": "Licorice Root Powder",
+    "name_ta": "அதிமதுரம் பொடி",
+    "product_type": "Powder"
+  },
+  {
+    "sku": "TRN-1095",
+    "name_en": "Ashwagandha Powder",
+    "name_ta": "அமுக்கரா பொடி",
+    "product_type": "Powder"
+  },
+  {
+    "sku": "TRN-1096",
+    "name_en": "Peepal Seeds Powder",
+    "name_ta": "அரச விதை பொடி",
+    "product_type": "Seed"
+  },
+  {
+    "sku": "TRN-1097",
+    "name_en": "Inknut/Myrobalan  Powder",
+    "name_ta": "கடுக்காய் பொடி",
+    "product_type": "Powder"
+  },
+  {
+    "sku": "TRN-1098",
+    "name_en": "Indian Aloevera  Powder",
+    "name_ta": "கற்றாழை பொடி",
+    "product_type": "Powder"
+  },
+  {
+    "sku": "TRN-1099",
+    "name_en": "Fever Nut  Powder",
+    "name_ta": "கழற்சிக்காய் பொடி",
+    "product_type": "Powder"
+  },
+  {
+    "sku": "TRN-1100",
+    "name_en": "Babchi Seeds  Powder",
+    "name_ta": "கார்போக அரிசி பொடி",
+    "product_type": "Seed"
+  },
+  {
+    "sku": "TRN-1101",
+    "name_en": "Lesser Galangal  Powder",
+    "name_ta": "சித்தரத்தை பொடி",
+    "product_type": "Powder"
+  },
+  {
+    "sku": "TRN-1102",
+    "name_en": "Sweet basil  Powder",
+    "name_ta": "சீனி துளசி பொடி",
+    "product_type": "Powder"
+  },
+  {
+    "sku": "TRN-1103",
+    "name_en": "Indian Silver Fir  Powder",
+    "name_ta": "தாளிச்சபத்திரி பொடி",
+    "product_type": "Powder"
+  },
+  {
+    "sku": "TRN-1104",
+    "name_en": "Long pepper  Powder",
+    "name_ta": "திப்பிலி பொடி",
+    "product_type": "Powder"
+  },
+  {
+    "sku": "TRN-1105",
+    "name_en": "Indian Mallow Seeds  Powder",
+    "name_ta": "துத்தி பொடி",
+    "product_type": "Seed"
+  },
+  {
+    "sku": "TRN-1106",
+    "name_en": "Indian Sarasparilla  Powder",
+    "name_ta": "நன்னாரி பொடி",
+    "product_type": "Powder"
+  },
+  {
+    "sku": "TRN-1107",
+    "name_en": "Black Plum Seeds/Jamun Seeds  Powder",
+    "name_ta": "நாவல்கொட்டை பொடி",
+    "product_type": "Seed"
+  },
+  {
+    "sku": "TRN-1108",
+    "name_en": "Black Plum Bark/Jamun Bark  Powder",
+    "name_ta": "நாவல் பட்டை பொடி",
+    "product_type": "Powder"
+  },
+  {
+    "sku": "TRN-1109",
+    "name_en": "King of bitter  Powder",
+    "name_ta": "நிலவேம்பு பொடி",
+    "product_type": "Powder"
+  },
+  {
+    "sku": "TRN-1110",
+    "name_en": "Caltrops Large  Powder",
+    "name_ta": "நெருஞ்சில் (பெ) பொடி",
+    "product_type": "Powder"
+  },
+  {
+    "sku": "TRN-1111",
+    "name_en": "Caltrops Small  Powder",
+    "name_ta": "நெருஞ்சில் (சி) பொடி",
+    "product_type": "Powder"
+  },
+  {
+    "sku": "TRN-1112",
+    "name_en": "Indian Goosberry  Powder - 1",
+    "name_ta": "நெல்லிக்காய் பொடி-1",
+    "product_type": "Powder"
+  },
+  {
+    "sku": "TRN-1113",
+    "name_en": "Indian Goosberry  Powder - 2",
+    "name_ta": "நெல்லிக்காய் பொடி-2",
+    "product_type": "Powder"
+  },
+  {
+    "sku": "TRN-1114",
+    "name_en": "Sappan Wood  Powder",
+    "name_ta": "பதிமுகம் பொடி",
+    "product_type": "Powder"
+  },
+  {
+    "sku": "TRN-1115",
+    "name_en": "Veldt Grape  Powder",
+    "name_ta": "பிரண்டை பொடி",
+    "product_type": "Powder"
+  },
+  {
+    "sku": "TRN-1116",
+    "name_en": "Menthol Crystal  Powder",
+    "name_ta": "புதினா பொடி",
+    "product_type": "Powder"
+  },
+  {
+    "sku": "TRN-1117",
+    "name_en": "Greater Galangal  Powder",
+    "name_ta": "பேரரத்தை பொடி",
+    "product_type": "Powder"
+  },
+  {
+    "sku": "TRN-1118",
+    "name_en": "Arjun bark  Powder",
+    "name_ta": "மருதம்பட்டை பொடி",
+    "product_type": "Powder"
+  },
+  {
+    "sku": "TRN-1119",
+    "name_en": "Blue Jack  Powder",
+    "name_ta": "மாசிக்காய் பொடி",
+    "product_type": "Powder"
+  },
+  {
+    "sku": "TRN-1120",
+    "name_en": "Pomegranate Skin  Powder",
+    "name_ta": "மாதுளை தோல் பொடி",
+    "product_type": "Powder"
+  },
+  {
+    "sku": "TRN-1121",
+    "name_en": "Mango Kernel  Powder",
+    "name_ta": "மாம்பருப்பு பொடி",
+    "product_type": "Powder"
+  },
+  {
+    "sku": "TRN-1122",
+    "name_en": "Goat Leg Tuber  Powder",
+    "name_ta": "முடவாட்டுக் கால் பொடி",
+    "product_type": "Powder"
+  },
+  {
+    "sku": "TRN-1123",
+    "name_en": "Drumstick Seeds  Powder",
+    "name_ta": "முருங்கை விதை பொடி",
+    "product_type": "Seed"
+  },
+  {
+    "sku": "TRN-1124",
+    "name_en": "Drumstick Gum  Powder",
+    "name_ta": "முருங்கை பிசின் பொடி",
+    "product_type": "Powder"
+  },
+  {
+    "sku": "TRN-1125",
+    "name_en": "Drumstick Leaves  Powder",
+    "name_ta": "முருங்கை இலை பொடி",
+    "product_type": "Powder"
+  },
+  {
+    "sku": "TRN-1126",
+    "name_en": "Tailed pepper  Powder",
+    "name_ta": "வால்மிளகு பொடி",
+    "product_type": "Powder"
+  },
+  {
+    "sku": "TRN-1127",
+    "name_en": "Nutmeg  Powder",
+    "name_ta": "ஜாதிக்காய் பொடி",
+    "product_type": "Powder"
+  },
+  {
+    "sku": "TRN-1128",
+    "name_en": "Sweet Flag  Powder",
+    "name_ta": "வசம்பு பொடி",
+    "product_type": "Powder"
+  },
+  {
+    "sku": "TRN-1129",
+    "name_en": "Flax seeds  Powder",
+    "name_ta": "ஆளிவிதை பொடி",
+    "product_type": "Seed"
+  },
+  {
+    "sku": "TRN-1130",
+    "name_en": "Rosemary  Powder",
+    "name_ta": "ரோஸ்மேரி பொடி",
+    "product_type": "Powder"
+  },
+  {
+    "sku": "TRN-1131",
+    "name_en": "Henna Leaves  Powder",
+    "name_ta": "மருதாணி இலை பொடி",
+    "product_type": "Powder"
+  },
+  {
+    "sku": "TRN-1132",
+    "name_en": "Marjoram  Powder",
+    "name_ta": "மரிக்கொழுந்து பொடி",
+    "product_type": "Powder"
+  },
+  {
+    "sku": "TRN-1133",
+    "name_en": "Country Senna Leaf  Powder",
+    "name_ta": "நிலாவரை பொடி",
+    "product_type": "Powder"
+  },
+  {
+    "sku": "TRN-1134",
+    "name_en": "Hibiscus Leaf  Powder",
+    "name_ta": "செம்பருத்தி இலை பொடி",
+    "product_type": "Powder"
+  },
+  {
+    "sku": "TRN-1135",
+    "name_en": "Hibiscus Flower  Powder",
+    "name_ta": "செம்பருத்தி பூ பொடி",
+    "product_type": "Powder"
+  },
+  {
+    "sku": "TRN-1136",
+    "name_en": "Soap pod  Powder",
+    "name_ta": "சீயக்காய் பொடி",
+    "product_type": "Powder"
+  },
+  {
+    "sku": "TRN-1137",
+    "name_en": "Dil Seeds  Powder",
+    "name_ta": "சதக்குப்பை பொடி",
+    "product_type": "Seed"
+  },
+  {
+    "sku": "TRN-1138",
+    "name_en": "Nutgrass  Powder",
+    "name_ta": "கோரைக்கிழங்கு பொடி",
+    "product_type": "Powder"
+  },
+  {
+    "sku": "TRN-1139",
+    "name_en": "Black Cumin  Powder",
+    "name_ta": "கருஞ்சீரகம் பொடி",
+    "product_type": "Powder"
+  },
+  {
+    "sku": "TRN-1140",
+    "name_en": "Red Fruit Creeper  Powder",
+    "name_ta": "கருடக்கிழங்கு பொடி",
+    "product_type": "Powder"
+  },
+  {
+    "sku": "TRN-1141",
+    "name_en": "Senna Flowers Powder",
+    "name_ta": "ஆவாரம்பூ பொடி",
+    "product_type": "Powder"
+  },
+  {
+    "sku": "TRN-1142",
+    "name_en": "Alkanet Roots  Powder",
+    "name_ta": "வேம்பாலம்பட்டை பொடி",
+    "product_type": "Powder"
+  },
+  {
+    "sku": "TRN-1143",
+    "name_en": "Camel Grass  Powder - 1",
+    "name_ta": "வெட்டிவேர் பொடி -1",
+    "product_type": "Powder"
+  },
+  {
+    "sku": "TRN-1144",
+    "name_en": "Camel Grass  Powder - 2",
+    "name_ta": "வெட்டிவேர் பொடி -2",
+    "product_type": "Powder"
+  },
+  {
+    "sku": "TRN-1145",
+    "name_en": "Bilva Leaves  Powder",
+    "name_ta": "வில்வ இலை பொடி",
+    "product_type": "Powder"
+  },
+  {
+    "sku": "TRN-1146",
+    "name_en": "Bilva Fruit  Powder",
+    "name_ta": "வில்வ பழம் பொடி",
+    "product_type": "Powder"
+  },
+  {
+    "sku": "TRN-1147",
+    "name_en": "Indian Rose  Powder - 1",
+    "name_ta": "ரோஸ் பொடி -1",
+    "product_type": "Powder"
+  },
+  {
+    "sku": "TRN-1148",
+    "name_en": "Indian Rose  Powder - 2",
+    "name_ta": "ரோஸ் பொடி -2",
+    "product_type": "Powder"
+  },
+  {
+    "sku": "TRN-1149",
+    "name_en": "Fuller Earth  Powder",
+    "name_ta": "முல்தானி மட்டி பொடி",
+    "product_type": "Powder"
+  },
+  {
+    "sku": "TRN-1150",
+    "name_en": "Indian madder  Powder",
+    "name_ta": "மஞ்சிஷ்டா பொடி",
+    "product_type": "Powder"
+  },
+  {
+    "sku": "TRN-1151",
+    "name_en": "Indian Rennet  Powder",
+    "name_ta": "பன்னீர் பூ பொடி",
+    "product_type": "Powder"
+  },
+  {
+    "sku": "TRN-1152",
+    "name_en": "Alam Stone  Powder",
+    "name_ta": "படிகாரம் பொடி",
+    "product_type": "Powder"
+  },
+  {
+    "sku": "TRN-1153",
+    "name_en": "Rough Chaff  Powder",
+    "name_ta": "நாயுருவி அரிசி பொடி",
+    "product_type": "Powder"
+  },
+  {
+    "sku": "TRN-1154",
+    "name_en": "Sweet Basil  Powder",
+    "name_ta": "திருநீற்று பச்சிலை பொடி",
+    "product_type": "Powder"
+  },
+  {
+    "sku": "TRN-1155",
+    "name_en": "Wild Turmeric  Powder",
+    "name_ta": "கஸ்தூரி மஞ்சள் பொடி",
+    "product_type": "Powder"
+  },
+  {
+    "sku": "TRN-1156",
+    "name_en": "Lemon Peel  Powder",
+    "name_ta": "எலுமிச்சை தோல் பொடி",
+    "product_type": "Powder"
+  },
+  {
+    "sku": "TRN-1157",
+    "name_en": "White Dammer  Powder",
+    "name_ta": "குங்கிலியம் பொடி",
+    "product_type": "Powder"
+  },
+  {
+    "sku": "TRN-1158",
+    "name_en": "Turmeric  Powder",
+    "name_ta": "விரலி மஞ்சள் பொடி",
+    "product_type": "Powder"
+  },
+  {
+    "sku": "TRN-1159",
+    "name_en": "Garlic  Powder",
+    "name_ta": "பூண்டு பொடி",
+    "product_type": "Powder"
+  },
+  {
+    "sku": "TRN-1160",
+    "name_en": "Cinnamon  Powder",
+    "name_ta": "இலவங்கம் பொடி",
+    "product_type": "Powder"
+  },
+  {
+    "sku": "TRN-1161",
+    "name_en": "Bishop Weed  Powder",
+    "name_ta": "ஓமம் பொடி",
+    "product_type": "Powder"
+  },
+  {
+    "sku": "TRN-1162",
+    "name_en": "Dry Ginger Powder",
+    "name_ta": "சுக்கு பொடி",
+    "product_type": "Powder"
+  }
+]

@@ -194,3 +194,4 @@ with open('server/routers.ts', 'w', encoding='utf-8') as f:
     f.write(content)
 
 print("server/routers.ts patched successfully.")
+
