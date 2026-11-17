@@ -2444,7 +2444,14 @@ export const campaignsRepo = {
   getActive() {
     const db = getDatabase();
     const now = new Date().toISOString();
-    return db.prepare("SELECT * FROM campaigns WHERE isActive = 1 AND startDate <= ? AND endDate >= ? ORDER BY discountValue DESC").all(now, now) as any[];
+    return db.prepare(`
+      SELECT * FROM campaigns 
+      WHERE isActive = 1 
+        AND (CASE WHEN length(startDate) = 10 THEN startDate || 'T00:00:00.000Z' ELSE startDate END) <= ?
+        AND (CASE WHEN length(endDate) = 10 THEN endDate || 'T23:59:59.999Z' ELSE endDate END) >= ?
+        AND (usageLimit <= 0 OR usageCount < usageLimit)
+      ORDER BY discountValue DESC
+    `).all(now, now) as any[];
   },
 
   getByCode(code: string) {
@@ -2458,10 +2465,13 @@ export const campaignsRepo = {
       return { valid: false, message: "Coupon code not found." };
     }
     const now = new Date().toISOString();
-    if (campaign.endDate && now > campaign.endDate) {
+    const endFormatted = campaign.endDate && campaign.endDate.length === 10 ? campaign.endDate + "T23:59:59.999Z" : campaign.endDate;
+    const startFormatted = campaign.startDate && campaign.startDate.length === 10 ? campaign.startDate + "T00:00:00.000Z" : campaign.startDate;
+
+    if (endFormatted && now > endFormatted) {
       return { valid: false, message: "This promotional campaign has expired." };
     }
-    if (campaign.startDate && now < campaign.startDate) {
+    if (startFormatted && now < startFormatted) {
       return { valid: false, message: "This promotional campaign is not active yet." };
     }
     if (campaign.isActive === 0 || campaign.isActive === false) {

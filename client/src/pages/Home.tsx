@@ -9,6 +9,7 @@ import {
   Clock3,
   CreditCard,
   Facebook,
+  Gift,
   Heart,
   Instagram,
   Leaf,
@@ -19,12 +20,14 @@ import {
   Menu,
   Minus,
   Package,
+  Percent,
   Phone,
   Plus,
   Search,
   ShieldCheck,
   ShoppingBag,
   Sparkles,
+  Tag,
   Truck,
   UserRound,
   X,
@@ -599,6 +602,26 @@ function CheckoutModal({
   });
   const saveAddressMutation = trpc.addresses.create.useMutation();
 
+  // Phase 2: Active Festival Offers Query for Checkout Visibility
+  const { data: rawFestivalOffers = [], isLoading: loadingOffers } = trpc.offers.getActive.useQuery(undefined, {
+    enabled: open,
+    staleTime: 30000,
+  });
+
+  // Deduplicate offers by uppercase code to ensure clean display
+  const festivalOffers = useMemo(() => {
+    const seen = new Set<string>();
+    const list: any[] = [];
+    for (const off of rawFestivalOffers) {
+      const codeUpper = (off.code || "").trim().toUpperCase();
+      if (codeUpper && !seen.has(codeUpper)) {
+        seen.add(codeUpper);
+        list.push(off);
+      }
+    }
+    return list;
+  }, [rawFestivalOffers]);
+
   const subtotal = cart.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0);
 
   // Phase 5: Server-side COD Eligibility Check
@@ -849,22 +872,172 @@ function CheckoutModal({
                     </label>
                   )}
                 </div>
-                <div className="form-section">
-                  <h3>Festival Coupons</h3>
-                  <div className="flex gap-2">
-                    <input
-                      placeholder="Enter promo code (e.g. FESTIVE15)"
-                      value={couponCode}
-                      onChange={(e) => setCouponCode(e.target.value)}
-                      className="text-xs uppercase"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => validateCouponMutation.mutate({ code: couponCode, subtotal })}
-                      className="dark-button text-xs py-1.5 px-3 shrink-0"
-                    >
-                      Apply
-                    </button>
+                <div className="form-section space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="text-sm font-serif font-bold text-[#123D28] flex items-center gap-1.5">
+                        <Gift size={16} className="text-[#AE6A2B]" />
+                        Festival Offers
+                      </h3>
+                      <p className="text-[11px] text-[#6C7167]">Explore available offers for your order.</p>
+                    </div>
+                    {appliedCoupon && (
+                      <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded-full shadow-2xs">
+                        <Check size={12} className="text-emerald-700" /> {appliedCoupon.code} Applied
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Active Festival Offer Cards */}
+                  {loadingOffers ? (
+                    <div className="text-xs text-[#6C7167] py-2 animate-pulse flex items-center gap-1.5">
+                      <Sparkles size={14} className="animate-spin text-[#AE6A2B]" /> Loading festival offers...
+                    </div>
+                  ) : festivalOffers.length === 0 ? (
+                    <p className="text-xs text-[#6C7167] italic py-1 bg-amber-50/50 p-2.5 rounded-lg border border-amber-100">
+                      No festival offers are currently available for this order.
+                    </p>
+                  ) : (
+                    <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
+                      {festivalOffers.map((offer: any) => {
+                        const isApplied = appliedCoupon?.code?.toUpperCase() === offer.code?.toUpperCase();
+                        const meetsMinOrder = !offer.minOrderValue || subtotal >= offer.minOrderValue;
+                        const discountBadge =
+                          offer.discountType === "PERCENTAGE"
+                            ? `${offer.discountValue}% OFF`
+                            : `₹${offer.discountValue} OFF`;
+
+                        return (
+                          <div
+                            key={offer.id || offer.code}
+                            className={`p-3 rounded-xl border transition-all text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
+                              isApplied
+                                ? "bg-emerald-50/90 border-emerald-400 ring-1 ring-emerald-300"
+                                : meetsMinOrder
+                                ? "bg-[#FAF7F0] border-[#DEDFD5] hover:border-[#123D28]/40 shadow-2xs"
+                                : "bg-slate-50/80 border-slate-200 opacity-80"
+                            }`}
+                          >
+                            <div className="flex-1 space-y-1">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className="font-serif font-bold text-[#123D28] text-xs">
+                                  {offer.name}
+                                </span>
+                                <span className="px-1.5 py-0.5 rounded-sm bg-white border border-[#DEDFD5] font-mono font-bold text-[10.5px] tracking-wider text-[#123D28]">
+                                  {offer.code}
+                                </span>
+                                <span className="font-bold text-emerald-800 text-[11px] bg-emerald-100/70 px-1.5 py-0.5 rounded">
+                                  {discountBadge}
+                                </span>
+                              </div>
+
+                              <div className="text-[11px] text-[#6C7167] flex items-center gap-2 flex-wrap">
+                                {offer.minOrderValue > 0 ? (
+                                  <span>Min order: ₹{offer.minOrderValue}</span>
+                                ) : (
+                                  <span>No minimum order</span>
+                                )}
+                                {offer.maxDiscount > 0 && offer.discountType === "PERCENTAGE" && (
+                                  <span>• Max discount: ₹{offer.maxDiscount}</span>
+                                )}
+                                {offer.endDate && (
+                                  <span>
+                                    • Valid till: {new Date(offer.endDate).toLocaleDateString("en-IN", { month: "short", day: "numeric", year: "numeric" })}
+                                  </span>
+                                )}
+                              </div>
+
+                              {offer.bannerText && (
+                                <p className="text-[10.5px] text-[#123D28]/80 italic line-clamp-1">
+                                  {offer.bannerText}
+                                </p>
+                              )}
+
+                              {!meetsMinOrder && (
+                                <p className="text-[10.5px] text-amber-700 font-medium">
+                                  Add ₹{Math.round(offer.minOrderValue - subtotal)} more to unlock this offer
+                                </p>
+                              )}
+                            </div>
+
+                            <div className="shrink-0 self-end sm:self-center">
+                              {isApplied ? (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setAppliedCoupon(null);
+                                    setCouponCode("");
+                                    toast.info("Offer removed");
+                                  }}
+                                  className="text-xs text-rose-700 hover:text-rose-900 font-semibold px-2.5 py-1 rounded-md border border-rose-300 bg-rose-50 hover:bg-rose-100 transition-colors"
+                                >
+                                  Remove
+                                </button>
+                              ) : (
+                                <button
+                                  type="button"
+                                  disabled={validateCouponMutation.isPending}
+                                  onClick={() => {
+                                    setCouponCode(offer.code);
+                                    validateCouponMutation.mutate({ code: offer.code, subtotal });
+                                  }}
+                                  className={`text-xs py-1.5 px-3.5 rounded-lg font-semibold transition-all ${
+                                    meetsMinOrder
+                                      ? "bg-[#123D28] text-white hover:bg-[#0B2D1D] shadow-xs cursor-pointer"
+                                      : "bg-[#123D28]/20 text-[#123D28]/60 cursor-pointer hover:bg-[#123D28]/30"
+                                  }`}
+                                  title={meetsMinOrder ? "Apply this festival offer" : `Requires minimum order of ₹${offer.minOrderValue}`}
+                                >
+                                  Apply Offer
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  {/* Manual Promo Code Input Area */}
+                  <div className="pt-2 border-t border-[#DEDFD5]/60">
+                    <label className="block text-[11px] font-semibold text-[#123D28] mb-1">
+                      Have another coupon or promo code?
+                    </label>
+                    <div className="flex gap-2">
+                      <input
+                        placeholder="Enter promo code (e.g. FESTIVE15)"
+                        value={couponCode}
+                        onChange={(e) => setCouponCode(e.target.value)}
+                        className="text-xs uppercase flex-1"
+                      />
+                      <button
+                        type="button"
+                        disabled={!couponCode.trim() || validateCouponMutation.isPending}
+                        onClick={() => validateCouponMutation.mutate({ code: couponCode.trim(), subtotal })}
+                        className="dark-button text-xs py-1.5 px-4 shrink-0"
+                      >
+                        {validateCouponMutation.isPending ? "Validating..." : "Apply"}
+                      </button>
+                    </div>
+                    {appliedCoupon && (
+                      <div className="flex items-center justify-between text-xs text-emerald-800 mt-2 bg-emerald-50/80 px-2.5 py-1.5 rounded-lg border border-emerald-200">
+                        <span className="flex items-center gap-1.5">
+                          <CheckCircle2 size={14} className="text-emerald-700" />
+                          Coupon <strong>{appliedCoupon.code}</strong> applied ({formatINR(discountAmount)} saved)
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setAppliedCoupon(null);
+                            setCouponCode("");
+                            toast.info("Coupon removed");
+                          }}
+                          className="text-rose-600 hover:text-rose-800 hover:underline font-semibold ml-2 text-xs"
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </div>
                 <div className="form-section">
