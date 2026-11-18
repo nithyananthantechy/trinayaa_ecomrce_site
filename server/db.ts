@@ -344,6 +344,34 @@ function initTables(db: any) {
     CREATE INDEX IF NOT EXISTS idx_enquiries_number ON business_enquiries(enquiryNumber);
     CREATE INDEX IF NOT EXISTS idx_enquiries_status ON business_enquiries(status);
     CREATE INDEX IF NOT EXISTS idx_enquiry_items_enquiryId ON business_enquiry_items(enquiryId);
+
+    -- Phase 3: New Product Enquiries
+    CREATE TABLE IF NOT EXISTS product_enquiries (
+      id TEXT PRIMARY KEY,
+      enquiry_number TEXT NOT NULL UNIQUE,
+      customer_id TEXT NOT NULL,
+      customer_name TEXT NOT NULL,
+      customer_email TEXT NOT NULL,
+      customer_phone TEXT,
+      product_name TEXT NOT NULL,
+      category TEXT,
+      requested_quantity TEXT NOT NULL,
+      preferred_pack_size TEXT,
+      description TEXT NOT NULL,
+      reference_image TEXT,
+      status TEXT NOT NULL DEFAULT 'NEW',
+      admin_notes TEXT,
+      reviewed_at TEXT,
+      reviewed_by TEXT,
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (customer_id) REFERENCES users(id) ON DELETE CASCADE
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_product_enquiries_cust ON product_enquiries(customer_id);
+    CREATE INDEX IF NOT EXISTS idx_product_enquiries_num ON product_enquiries(enquiry_number);
+    CREATE INDEX IF NOT EXISTS idx_product_enquiries_status ON product_enquiries(status);
+    CREATE INDEX IF NOT EXISTS idx_product_enquiries_created ON product_enquiries(created_at);
   `);
 
   // Safe schema migrations for existing database tables
@@ -4934,5 +4962,176 @@ export const socialLinksRepo = {
     );
 
     return this.getConfig();
+  },
+};
+
+// ==========================================
+// 23. PRODUCT ENQUIRIES REPOSITORY (PHASE 3)
+// ==========================================
+function mapEnquiryRow(row: any) {
+  if (!row) return null;
+  return {
+    id: row.id,
+    enquiryNumber: row.enquiry_number,
+    enquiry_number: row.enquiry_number,
+    customerId: row.customer_id,
+    customer_id: row.customer_id,
+    customerName: row.customer_name,
+    customer_name: row.customer_name,
+    customerEmail: row.customer_email,
+    customer_email: row.customer_email,
+    customerPhone: row.customer_phone,
+    customer_phone: row.customer_phone,
+    productName: row.product_name,
+    product_name: row.product_name,
+    category: row.category,
+    requestedQuantity: row.requested_quantity,
+    requested_quantity: row.requested_quantity,
+    preferredPackSize: row.preferred_pack_size,
+    preferred_pack_size: row.preferred_pack_size,
+    description: row.description,
+    referenceImage: row.reference_image,
+    reference_image: row.reference_image,
+    status: row.status,
+    adminNotes: row.admin_notes,
+    admin_notes: row.admin_notes,
+    reviewedAt: row.reviewed_at,
+    reviewed_at: row.reviewed_at,
+    reviewedBy: row.reviewed_by,
+    reviewed_by: row.reviewed_by,
+    createdAt: row.created_at,
+    created_at: row.created_at,
+    updatedAt: row.updated_at,
+    updated_at: row.updated_at,
+  };
+}
+
+export const productEnquiriesRepo = {
+  generateEnquiryNumber(): string {
+    const db = getDatabase();
+    const year = new Date().getFullYear();
+    const prefix = `TRN-ENQ-${year}-`;
+    const row = db.prepare(`
+      SELECT count(*) as count FROM product_enquiries WHERE enquiry_number LIKE ?
+    `).get(`${prefix}%`) as { count: number };
+    const nextSeq = (row?.count || 0) + 1;
+    return `${prefix}${String(nextSeq).padStart(5, "0")}`;
+  },
+
+  create(data: {
+    customerId: string;
+    customerName: string;
+    customerEmail: string;
+    customerPhone?: string | null;
+    productName: string;
+    category?: string | null;
+    requestedQuantity: string;
+    preferredPackSize?: string | null;
+    description: string;
+    referenceImage?: string | null;
+  }) {
+    const db = getDatabase();
+    const id = "enq_" + Date.now() + "_" + Math.floor(Math.random() * 10000);
+    const enquiryNumber = this.generateEnquiryNumber();
+    const now = new Date().toISOString();
+    const status = "NEW";
+
+    db.prepare(`
+      INSERT INTO product_enquiries (
+        id, enquiry_number, customer_id, customer_name, customer_email, customer_phone,
+        product_name, category, requested_quantity, preferred_pack_size, description,
+        reference_image, status, admin_notes, reviewed_at, reviewed_by, created_at, updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, NULL, NULL, ?, ?)
+    `).run(
+      id,
+      enquiryNumber,
+      data.customerId,
+      data.customerName,
+      data.customerEmail,
+      data.customerPhone || null,
+      data.productName.trim(),
+      data.category?.trim() || null,
+      data.requestedQuantity.trim(),
+      data.preferredPackSize?.trim() || null,
+      data.description.trim(),
+      data.referenceImage || null,
+      status,
+      now,
+      now
+    );
+
+    return this.getById(id)!;
+  },
+
+  getById(id: string, customerId?: string) {
+    const db = getDatabase();
+    let row: any;
+    if (customerId) {
+      row = db.prepare("SELECT * FROM product_enquiries WHERE id = ? AND customer_id = ?").get(id, customerId);
+    } else {
+      row = db.prepare("SELECT * FROM product_enquiries WHERE id = ?").get(id);
+    }
+    return mapEnquiryRow(row);
+  },
+
+  getByEnquiryNumber(enquiryNumber: string, customerId?: string) {
+    const db = getDatabase();
+    let row: any;
+    if (customerId) {
+      row = db.prepare("SELECT * FROM product_enquiries WHERE enquiry_number = ? AND customer_id = ?").get(enquiryNumber, customerId);
+    } else {
+      row = db.prepare("SELECT * FROM product_enquiries WHERE enquiry_number = ?").get(enquiryNumber);
+    }
+    return mapEnquiryRow(row);
+  },
+
+  getByCustomerId(customerId: string) {
+    const db = getDatabase();
+    const rows = db.prepare("SELECT * FROM product_enquiries WHERE customer_id = ? ORDER BY created_at DESC").all(customerId) as any[];
+    return rows.map(mapEnquiryRow);
+  },
+
+  adminList(filters: { status?: string; search?: string } = {}) {
+    const db = getDatabase();
+    let query = "SELECT * FROM product_enquiries WHERE 1=1";
+    const params: any[] = [];
+
+    if (filters.status && filters.status !== "ALL") {
+      query += " AND status = ?";
+      params.push(filters.status);
+    }
+
+    if (filters.search && filters.search.trim()) {
+      query += " AND (enquiry_number LIKE ? OR product_name LIKE ? OR customer_name LIKE ? OR customer_email LIKE ? OR customer_phone LIKE ?)";
+      const term = `%${filters.search.trim()}%`;
+      params.push(term, term, term, term, term);
+    }
+
+    query += " ORDER BY created_at DESC";
+    const rows = db.prepare(query).all(...params) as any[];
+    return rows.map(mapEnquiryRow);
+  },
+
+  adminUpdateStatus(id: string, status: string, adminNotes?: string, adminName?: string) {
+    const db = getDatabase();
+    const validStatuses = ["NEW", "UNDER_REVIEW", "SOURCING", "AVAILABLE", "UNABLE_TO_SOURCE", "CLOSED"];
+    if (!validStatuses.includes(status)) {
+      throw new Error(`Invalid status: ${status}. Must be one of ${validStatuses.join(", ")}`);
+    }
+
+    const now = new Date().toISOString();
+    let query = "UPDATE product_enquiries SET status = ?, reviewed_at = ?, reviewed_by = ?, updated_at = ?";
+    const params: any[] = [status, now, adminName || "Administrator", now];
+
+    if (adminNotes !== undefined) {
+      query += ", admin_notes = ?";
+      params.push(adminNotes.trim());
+    }
+
+    query += " WHERE id = ?";
+    params.push(id);
+
+    db.prepare(query).run(...params);
+    return this.getById(id);
   },
 };

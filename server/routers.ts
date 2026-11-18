@@ -1,4 +1,4 @@
-import { notifySupportTicketCreated, notifySupportTicketReply } from './telegram';
+import { notifySupportTicketCreated, notifySupportTicketReply, notifyProductEnquiryCreated } from './telegram';
 import { COOKIE_NAME } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
@@ -3149,6 +3149,109 @@ addresses: router({
           productId: input.productId,
           notes: input.notes,
         });
+      }),
+  }),
+
+  // ==========================================
+  // 19. NEW PRODUCT ENQUIRIES (PHASE 3)
+  // ==========================================
+  productEnquiries: router({
+    submit: protectedProcedure
+      .input(
+        z.object({
+          productName: z.string().min(2, "Product name must be at least 2 characters").max(200),
+          category: z.string().max(100).optional(),
+          requestedQuantity: z.string().min(1, "Preferred quantity is required").max(100),
+          preferredPackSize: z.string().max(100).optional(),
+          description: z.string().min(10, "Please provide a description of at least 10 characters").max(3000),
+          referenceImage: z.string().max(1000).optional().nullable(),
+        })
+      )
+      .mutation(async ({ ctx, input }) => {
+        const customerId = String(ctx.user.id);
+        const customerName = ctx.user.name || "Customer";
+        const customerEmail = ctx.user.email || "";
+        const customerPhone = ctx.user.phone || null;
+
+        const enquiry = db.productEnquiriesRepo.create({
+          customerId,
+          customerName,
+          customerEmail,
+          customerPhone,
+          productName: input.productName,
+          category: input.category || null,
+          requestedQuantity: input.requestedQuantity,
+          preferredPackSize: input.preferredPackSize || null,
+          description: input.description,
+          referenceImage: input.referenceImage || null,
+        });
+
+        // Non-blocking Telegram notification to admins
+        notifyProductEnquiryCreated({
+          enquiryNumber: enquiry.enquiryNumber,
+          productName: enquiry.productName,
+          requestedQuantity: enquiry.requestedQuantity,
+          customerName: enquiry.customerName,
+        }).catch((err) => console.error("[Enquiry Telegram Alert Failed]:", err));
+
+        return enquiry;
+      }),
+
+    myEnquiries: protectedProcedure.query(async ({ ctx }) => {
+      return db.productEnquiriesRepo.getByCustomerId(String(ctx.user.id));
+    }),
+
+    getById: protectedProcedure
+      .input(z.object({ id: z.string() }))
+      .query(async ({ ctx, input }) => {
+        const customerId = String(ctx.user.id);
+        const enquiry = db.productEnquiriesRepo.getById(input.id, customerId);
+        if (!enquiry) {
+          throw new TRPCError({ code: "NOT_FOUND", message: "Product enquiry not found or access denied." });
+        }
+        // Do not expose internal admin notes to customer
+        const { adminNotes, admin_notes, ...safeEnquiry } = enquiry;
+        return safeEnquiry;
+      }),
+
+    // Admin procedures
+    adminList: adminProcedure
+      .input(
+        z.object({
+          status: z.string().optional(),
+          search: z.string().optional(),
+        }).optional()
+      )
+      .query(async ({ input }) => {
+        return db.productEnquiriesRepo.adminList(input || {});
+      }),
+
+    adminGetById: adminProcedure
+      .input(z.object({ id: z.string() }))
+      .query(async ({ input }) => {
+        const enquiry = db.productEnquiriesRepo.getById(input.id);
+        if (!enquiry) {
+          throw new TRPCError({ code: "NOT_FOUND", message: "Product enquiry not found." });
+        }
+        return enquiry;
+      }),
+
+    adminUpdateStatus: adminProcedure
+      .input(
+        z.object({
+          id: z.string(),
+          status: z.enum(["NEW", "UNDER_REVIEW", "SOURCING", "AVAILABLE", "UNABLE_TO_SOURCE", "CLOSED"]),
+          adminNotes: z.string().max(2000).optional(),
+        })
+      )
+      .mutation(async ({ ctx, input }) => {
+        const adminName = ctx.user.name || "Administrator";
+        return db.productEnquiriesRepo.adminUpdateStatus(
+          input.id,
+          input.status,
+          input.adminNotes,
+          adminName
+        );
       }),
   }),
 });

@@ -566,4 +566,32 @@ export const customerRewardRedemptions = mysqlTable("customer_reward_redemptions
 export type CustomerRewardRedemption = typeof customerRewardRedemptions.$inferSelect;
 export type InsertCustomerRewardRedemption = typeof customerRewardRedemptions.$inferInsert;
 
+// ==========================================
+// 23. NEW PRODUCT ENQUIRIES (PHASE 3)
+// ==========================================
+export const productEnquiries = mysqlTable("product_enquiries", {
+  id: varchar("id", { length: 64 }).primaryKey(),
+  enquiryNumber: varchar("enquiry_number", { length: 64 }).notNull().unique(), // e.g. TRN-ENQ-2026-00001
+  customerId: varchar("customer_id", { length: 64 }).notNull(),
+  customerName: varchar("customer_name", { length: 255 }).notNull(),
+  customerEmail: varchar("customer_email", { length: 320 }).notNull(),
+  customerPhone: varchar("customer_phone", { length: 32 }),
+  productName: varchar("product_name", { length: 255 }).notNull(),
+  category: varchar("category", { length: 128 }),
+  requestedQuantity: varchar("requested_quantity", { length: 64 }).notNull(),
+  preferredPackSize: varchar("preferred_pack_size", { length: 64 }),
+  description: text("description").notNull(),
+  referenceImage: text("reference_image"),
+  status: varchar("status", { length: 32 }).default("NEW").notNull(), // 'NEW' | 'UNDER_REVIEW' | 'SOURCING' | 'AVAILABLE' | 'UNABLE_TO_SOURCE' | 'CLOSED'
+  adminNotes: text("admin_notes"),
+  reviewedAt: text("reviewed_at"),
+  reviewedBy: varchar("reviewed_by", { length: 128 }),
+  createdAt: text("created_at").notNull(),
+  updatedAt: text("updated_at").notNull(),
+});
+
+export type ProductEnquiry = typeof productEnquiries.$inferSelect;
+export type InsertProductEnquiry = typeof productEnquiries.$inferInsert;
+
+
 

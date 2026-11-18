@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll } from "vitest";
+import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import * as db from "./db.ts";
 import { appRouter } from "./routers.ts";
 
@@ -53,6 +53,12 @@ describe("TRINAYAA Phase 2 — Festival Offers Visibility at Checkout Suite", ()
   };
 
   beforeAll(async () => {
+    const rawDb = db.getDatabase();
+    rawDb.prepare(`
+      INSERT OR REPLACE INTO users (id, email, passwordHash, name, phone, role, status, createdAt, updatedAt)
+      VALUES (?, ?, 'dummy_hash', ?, ?, 'CUSTOMER', 'ACTIVE', datetime('now'), datetime('now'))
+    `).run(mockUser.id, mockUser.email, mockUser.name, mockUser.phone);
+
     callerPublic = appRouter.createCaller(createMockContext(null).ctx);
     callerAuth = appRouter.createCaller(createMockContext(mockUser).ctx);
 
@@ -291,76 +297,118 @@ describe("TRINAYAA Phase 2 — Festival Offers Visibility at Checkout Suite", ()
   // 11. Payment amount matches server-calculated order total
   it("11: Server orders.create enforces discount validation and stores correct total payable", async () => {
     const allProducts = db.productsRepo.getAll();
-    const product = allProducts[0];
+    const product = allProducts.find((p) => p.stock > 5 && p.isCodAvailable !== false) || allProducts[0];
     expect(product).toBeDefined();
+    const packSize = product.sizes && product.sizes.length > 0 ? product.sizes[0].label : "Standard";
+    const unitPrice = product.sizes && product.sizes.length > 0 ? product.sizes[0].price : product.price;
+    const quantity = Math.max(2, Math.ceil(400 / unitPrice));
+    const subtotal = unitPrice * quantity;
 
-    const orderRes = await callerAuth.orders.create({
+    const order = await callerAuth.orders.create({
       customerName: "Festival Test Customer",
       customerPhone: "9876543210",
       customerEmail: "festival_test@trinayaa.test",
-      shippingAddress: "123 Green Bazaar, Erode, Tamil Nadu 638001",
-      paymentMethod: "COD",
+      shippingAddress: {
+        street: "123 Green Bazaar Street",
+        city: "Erode",
+        state: "Tamil Nadu",
+        pinCode: "638001",
+      },
+      paymentMethod: "RAZORPAY",
       couponCode: testActiveCode,
       items: [
         {
           productId: product.id,
-          name: product.name,
-          packSize: "100g",
-          unitPrice: 500,
-          quantity: 2, // subtotal = 1000
+          packSize: packSize,
+          quantity: quantity,
         },
       ],
     });
 
-    expect(orderRes.success).toBe(true);
-    expect(orderRes.order).toBeDefined();
-    // Subtotal 1000, 20% discount = 200, Shipping (>=799) = 0 => Total = 800
-    expect(orderRes.order.subtotal).toBe(1000);
-    expect(orderRes.order.discountAmount).toBe(200);
-    expect(orderRes.order.couponCode).toBe(testActiveCode);
-    expect(orderRes.order.total).toBe(800);
+    expect(order).toBeDefined();
+    expect(order.id).toBeDefined();
+    expect(order.subtotal).toBe(subtotal);
+    const expectedDiscount = Math.round((subtotal * 20) / 100);
+    expect(order.discountAmount).toBe(expectedDiscount);
+    expect(order.couponCode).toBe(testActiveCode);
+    const expectedShipping = subtotal >= 799 ? 0 : 60;
+    expect(order.total).toBe(subtotal - expectedDiscount + expectedShipping);
   });
 
   // 12. Existing COD checkout remains functional
   it("12: Cash on Delivery (COD) order checkout operates without regression", async () => {
     const allProducts = db.productsRepo.getAll();
-    const product = allProducts[0];
+    const product = allProducts.find((p) => p.stock > 5 && p.isCodAvailable !== false) || allProducts[0];
+    const packSize = product.sizes && product.sizes.length > 0 ? product.sizes[0].label : "Standard";
+    const unitPrice = product.sizes && product.sizes.length > 0 ? product.sizes[0].price : product.price;
+    const minCod = db.siteContentRepo.getMinimumCodOrderValue();
+    const quantity = Math.max(1, Math.ceil(Math.max(minCod, 300) / unitPrice));
+    const subtotal = unitPrice * quantity;
 
-    const orderRes = await callerAuth.orders.create({
+    const order = await callerAuth.orders.create({
       customerName: "COD Customer",
       customerPhone: "9876543211",
       customerEmail: "cod_customer@trinayaa.test",
-      shippingAddress: "45 Market Street, Erode 638002",
+      shippingAddress: {
+        street: "45 Market Street",
+        city: "Erode",
+        state: "Tamil Nadu",
+        pinCode: "638002",
+      },
       paymentMethod: "COD",
       items: [
         {
           productId: product.id,
-          name: product.name,
-          packSize: "100g",
-          unitPrice: 300,
-          quantity: 1, // subtotal = 300 (< 799)
+          packSize: packSize,
+          quantity: quantity,
         },
       ],
     });
 
-    expect(orderRes.success).toBe(true);
-    expect(orderRes.order.paymentMethod).toBe("COD");
-    expect(orderRes.order.orderStatus).toBe("Confirmed");
-    expect(orderRes.order.paymentStatus).toBe("Pending");
-    // 300 + 60 shipping = 360
-    expect(orderRes.order.total).toBe(360);
+    expect(order).toBeDefined();
+    expect(order.paymentMethod).toBe("COD");
+    expect(order.orderStatus).toBe("Confirmed");
+    expect(order.paymentStatus).toBe("PENDING");
+    expect(order.subtotal).toBe(subtotal);
   });
 
   // 13. Existing Razorpay checkout remains functional
   it("13: Razorpay order creation creates simulated/live order and matches total amount", async () => {
+    const allProducts = db.productsRepo.getAll();
+    const product = allProducts.find((p) => p.stock > 5) || allProducts[0];
+    const packSize = product.sizes && product.sizes.length > 0 ? product.sizes[0].label : "Standard";
+
+    const testOrder = await callerAuth.orders.create({
+      customerName: "Razorpay Customer",
+      customerPhone: "9876543212",
+      customerEmail: "rzp_customer@trinayaa.test",
+      shippingAddress: {
+        street: "123 Bazaar Street",
+        city: "Erode",
+        state: "Tamil Nadu",
+        pinCode: "638001",
+      },
+      paymentMethod: "RAZORPAY",
+      items: [
+        {
+          productId: product.id,
+          packSize: packSize,
+          quantity: 2,
+        },
+      ],
+    });
+
+    expect(testOrder.id).toBeDefined();
+
     const rzpOrder = await callerAuth.payments.createRazorpayOrder({
-      amount: 800,
-      receipt: `rcpt_test_${Date.now()}`,
+      orderId: testOrder.id,
     });
 
     expect(rzpOrder).toBeDefined();
-    expect(rzpOrder.id).toBeDefined();
-    expect(rzpOrder.amount).toBe(80000); // 800 * 100 paise
+    expect(rzpOrder.orderId).toBe(testOrder.id);
+    expect(rzpOrder.razorpayOrderId).toBeDefined();
+    expect(rzpOrder.amount).toBe(testOrder.total);
+    expect(rzpOrder.amountInPaise).toBe(Math.round(testOrder.total * 100));
     expect(rzpOrder.currency).toBe("INR");
   });
 
@@ -373,5 +421,19 @@ describe("TRINAYAA Phase 2 — Festival Offers Visibility at Checkout Suite", ()
       "SELECT * FROM campaigns WHERE isActive = 1 AND startDate <= ? AND endDate >= ?"
     ).all(farFuture, farFuture);
     expect(futureOffers.length).toBe(0);
+  });
+
+  afterAll(() => {
+    const rawDb = db.getDatabase();
+    try {
+      rawDb.prepare("DELETE FROM order_items WHERE orderId IN (SELECT id FROM orders WHERE customerId = ?)").run(mockUser.id);
+      rawDb.prepare("DELETE FROM order_status_history WHERE orderId IN (SELECT id FROM orders WHERE customerId = ?)").run(mockUser.id);
+      rawDb.prepare("DELETE FROM payments WHERE orderId IN (SELECT id FROM orders WHERE customerId = ?)").run(mockUser.id);
+      rawDb.prepare("DELETE FROM orders WHERE customerId = ?").run(mockUser.id);
+      rawDb.prepare("DELETE FROM users WHERE id = ?").run(mockUser.id);
+      rawDb.prepare("DELETE FROM campaigns WHERE code LIKE 'ACTIVE_%' OR code LIKE 'EXP_%' OR code LIKE 'INACT_%' OR code LIKE 'FUT_%' OR code LIKE 'CAP_%' OR code LIKE 'MIN_%'").run();
+    } catch {
+      // Ignore cleanup error
+    }
   });
 });

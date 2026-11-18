@@ -15,6 +15,7 @@ import AdminLogin from "./pages/admin/AdminLogin";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import BulkEnquiryPage from "./pages/BulkEnquiryPage";
 import CustomerAccountPage from "./pages/CustomerAccountPage";
+import ProductEnquiryPage from "./pages/ProductEnquiryPage";
 import CustomerAssistantBot from "./components/CustomerAssistantBot";
 import FooterSamplesPage from "./pages/FooterSamplesPage";
 
@@ -30,6 +31,7 @@ function Router() {
       <Route path="/policies/:type" component={PolicyPage} />
       <Route path="/track-order" component={TrackOrder} />
       <Route path="/bulk-enquiry" component={BulkEnquiryPage} />
+      <Route path="/product-enquiry" component={ProductEnquiryPage} />
       <Route path="/account" component={CustomerAccountPage} />
       <Route path="/footer-samples" component={FooterSamplesPage} />
       <Route path="/admin/login" component={AdminLogin} />

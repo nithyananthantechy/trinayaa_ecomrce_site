@@ -775,6 +775,55 @@ export async function notifySupportTicketReply(ticket: {
 }
 
 // ==========================================
+// 4A-2. TELEGRAM PRODUCT ENQUIRY NOTIFICATION (PHASE 3)
+// ==========================================
+const dispatchedEnquiryAlerts = new Set<string>();
+
+export async function notifyProductEnquiryCreated(enquiry: {
+  enquiryNumber: string;
+  productName: string;
+  requestedQuantity: string;
+  customerName: string;
+}) {
+  try {
+    const eventKey = `enquiry_created_${enquiry.enquiryNumber}`;
+    if (dispatchedEnquiryAlerts.has(eventKey)) return;
+    dispatchedEnquiryAlerts.add(eventKey);
+
+    const allowedIds = db.telegramRepo.getAllAllowedIds();
+    if (!allowedIds || allowedIds.length === 0) return;
+
+    const text = `🌿 *NEW PRODUCT ENQUIRY RECEIVED*
+
+` +
+      `• *Enquiry No:* \`${enquiry.enquiryNumber}\`
+` +
+      `• *Product:* *${enquiry.productName}*
+` +
+      `• *Quantity:* ${enquiry.requestedQuantity}
+` +
+      `• *Customer:* ${enquiry.customerName}
+` +
+      `• *Time:* ${new Date().toLocaleTimeString()}
+
+` +
+      `👉 _Review and update sourcing status in Admin Feedback & Reviews._`;
+
+    for (const adminId of allowedIds) {
+      await sendTelegramMessage(adminId, text, {
+        inline_keyboard: [
+          [
+            { text: "📦 View Enquiries in Admin", url: "http://localhost:3000/admin?tab=feedback" }
+          ]
+        ]
+      });
+    }
+  } catch (err) {
+    console.error("[Telegram Enquiry Alert Error]:", err);
+  }
+}
+
+// ==========================================
 // 4B. TELEGRAM LONG POLLING SERVICE
 // ==========================================
 

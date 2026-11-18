@@ -35,9 +35,10 @@ import {
   MessageSquare,
   Award,
   Gift,
+  PackageSearch,
 } from "lucide-react";
 
-type AccountTab = "profile" | "addresses" | "orders" | "wishlist" | "tickets" | "feedback" | "rewards" | "security";
+type AccountTab = "profile" | "addresses" | "orders" | "wishlist" | "tickets" | "feedback" | "rewards" | "enquiries" | "security";
 
 export default function CustomerAccountPage() {
   const [, setLocation] = useLocation();
@@ -146,11 +147,15 @@ export default function CustomerAccountPage() {
     enabled: Boolean(currentUser),
   });
 
+  const { data: myEnquiries = [], isLoading: enquiriesLoading, refetch: refetchEnquiries } = trpc.productEnquiries.myEnquiries.useQuery(undefined, {
+    enabled: Boolean(currentUser),
+  });
+
   // Check URL query tab parameter
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const tabParam = params.get("tab");
-    if (tabParam && ["profile", "addresses", "orders", "wishlist", "tickets", "feedback", "security"].includes(tabParam)) {
+    if (tabParam && ["profile", "addresses", "orders", "wishlist", "tickets", "feedback", "rewards", "enquiries", "security"].includes(tabParam)) {
       setActiveTab(tabParam as AccountTab);
     }
   }, []);
@@ -518,6 +523,7 @@ export default function CustomerAccountPage() {
             { id: "tickets" as AccountTab, label: `Support Helpdesk (${myTickets.length})`, icon: LifeBuoy },
             { id: "feedback" as AccountTab, label: "Feedback & Reviews", icon: Star },
             { id: "rewards" as AccountTab, label: `My Rewards (${rewardsOverview?.balance ?? 0} pts)`, icon: Award },
+            { id: "enquiries" as AccountTab, label: `Product Enquiries (${myEnquiries.length})`, icon: PackageSearch },
             { id: "security" as AccountTab, label: "Login & Security", icon: KeyRound },
           ].map(({ id, label, icon: Icon }) => (
             <button
@@ -1553,6 +1559,94 @@ export default function CustomerAccountPage() {
                   ))}
                 </div>
               )}
+            </div>
+          </div>
+        )}
+
+        {/* ======================================================== */}
+        {/* TAB 8: PRODUCT ENQUIRIES */}
+        {/* ======================================================== */}
+        {activeTab === "enquiries" && (
+          <div className="space-y-6">
+            <div className="bg-white rounded-3xl border border-[#DEDFD5] p-6 sm:p-8 shadow-xs">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-[#EFECE4] gap-3">
+                <div>
+                  <h2 className="font-serif text-lg sm:text-xl font-bold text-[#123D28]">
+                    New Product Enquiries &amp; Requests
+                  </h2>
+                  <p className="text-xs text-[#6C7167] mt-0.5">
+                    View sourcing status of requested botanicals or submit a new custom product enquiry.
+                  </p>
+                </div>
+                <Link href="/product-enquiry">
+                  <a className="py-2.5 px-4 bg-[#123D28] hover:bg-[#1B4E35] text-white font-bold text-xs rounded-xl transition-colors shadow-2xs self-start sm:self-auto flex items-center gap-1.5 shrink-0">
+                    <PackageSearch size={14} />
+                    <span>Request New Product &rarr;</span>
+                  </a>
+                </Link>
+              </div>
+
+              {/* Enquiries list */}
+              <div className="pt-4">
+                {enquiriesLoading ? (
+                  <div className="py-8 text-center text-xs text-[#6C7167]">Loading your enquiries...</div>
+                ) : myEnquiries.length === 0 ? (
+                  <div className="py-12 text-center text-xs text-[#6C7167] border border-dashed border-[#DEDFD5] rounded-2xl bg-[#FAF8F2] p-6 space-y-3">
+                    <PackageSearch size={36} className="mx-auto text-[#8C6D3F] opacity-70" />
+                    <div>
+                      <h4 className="font-bold text-sm text-[#123D28]">No Product Enquiries Yet</h4>
+                      <p className="mt-1 text-[#6C7167] max-w-md mx-auto">
+                        Need an herb, seed, leaf, or raw powder that is not currently listed in our store? Let our sourcing team in Tamil Nadu know what you need!
+                      </p>
+                    </div>
+                    <Link href="/product-enquiry">
+                      <a className="inline-flex items-center gap-1.5 py-2 px-4 bg-[#123D28] text-white rounded-xl font-bold text-xs hover:bg-[#1B4E35] transition-colors">
+                        <span>Submit a Product Request</span>
+                      </a>
+                    </Link>
+                  </div>
+                ) : (
+                  <div className="divide-y divide-[#EFECE4] border border-[#DEDFD5] rounded-2xl overflow-hidden">
+                    {myEnquiries.map((enq: any) => (
+                      <div key={enq.id} className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs bg-[#FAF8F2] hover:bg-white transition-colors">
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            <span className="font-mono text-[10px] font-bold text-[#8C6D3F] bg-white px-2 py-0.5 rounded border border-[#EFECE4]">
+                              {enq.enquiryNumber}
+                            </span>
+                            <span className="font-bold text-[#123D28] text-sm">{enq.productName}</span>
+                          </div>
+                          <div className="text-[11px] text-[#6C7167]">
+                            <span>Quantity: <strong>{enq.requestedQuantity}</strong></span>
+                            {enq.preferredPackSize && <span> · Pack Size: <strong>{enq.preferredPackSize}</strong></span>}
+                            <span> · Submitted {enq.createdAt ? new Date(enq.createdAt).toLocaleDateString("en-IN") : "Recent"}</span>
+                          </div>
+                          <p className="text-[11px] text-[#2B3527] italic bg-white/80 p-2 rounded-lg border border-[#EFECE4] mt-1">
+                            "{enq.description}"
+                          </p>
+                        </div>
+                        <div className="shrink-0 self-start sm:self-center">
+                          <span className={`px-2.5 py-1 text-[11px] font-bold rounded-full ${
+                            enq.status === "AVAILABLE"
+                              ? "bg-emerald-100 text-emerald-900 border border-emerald-300"
+                              : enq.status === "SOURCING"
+                              ? "bg-indigo-100 text-indigo-900 border border-indigo-200"
+                              : enq.status === "UNDER_REVIEW"
+                              ? "bg-amber-100 text-amber-900 border border-amber-200"
+                              : enq.status === "UNABLE_TO_SOURCE"
+                              ? "bg-slate-100 text-slate-700 border border-slate-300"
+                              : enq.status === "CLOSED"
+                              ? "bg-zinc-100 text-zinc-700 border border-zinc-200"
+                              : "bg-sky-100 text-sky-800 border border-sky-200"
+                          }`}>
+                            {enq.status === "AVAILABLE" ? "Available in Store!" : enq.status === "SOURCING" ? "Sourcing" : enq.status === "UNDER_REVIEW" ? "Under Review" : enq.status === "UNABLE_TO_SOURCE" ? "Unable to Source" : enq.status === "CLOSED" ? "Closed" : "New Request"}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         )}

@@ -20,6 +20,7 @@ import {
   Menu,
   Minus,
   Package,
+  PackageSearch,
   Percent,
   Phone,
   Plus,
@@ -353,6 +354,13 @@ function SiteHeader({
                     >
                       <MapPin size={15} className="text-[#8C6D3F]" />
                       <span>Delivery Addresses</span>
+                    </button>
+                    <button
+                      onClick={() => { setAccountDropdownOpen(false); setLocation("/product-enquiry"); }}
+                      className="w-full flex items-center gap-2.5 px-3 py-2 hover:bg-[#FAF8F2] hover:text-[#123D28] rounded-xl transition-colors font-medium text-left"
+                    >
+                      <PackageSearch size={15} className="text-emerald-700" />
+                      <span>New Product Enquiry</span>
                     </button>
                     {(currentUser.role === "ADMIN" || currentUser.role === "SUPER_ADMIN") && (
                       <button
