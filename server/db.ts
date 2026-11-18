@@ -5,7 +5,7 @@ import crypto from "node:crypto";
 import path from "node:path";
 import fs from "node:fs";
 import { notificationsService, type OrderNotificationEvent } from "./notifications.ts";
-import { generateWhatsAppLink, isValidSocialUrl } from "./sanitize";
+import { generateWhatsAppLink, isValidSocialUrl } from "./sanitize.ts";
 
 // Path to SQLite database
 const DB_PATH = process.env.DATABASE_URL?.replace(/^sqlite:/, "") || process.env.DATABASE_PATH || path.resolve(process.cwd(), "data", "trinayaa.db");
@@ -168,6 +168,21 @@ function initTables(db: any) {
       image TEXT,
       FOREIGN KEY (orderId) REFERENCES orders(id) ON DELETE CASCADE
     );
+
+    CREATE TABLE IF NOT EXISTS order_documents (
+      id TEXT PRIMARY KEY,
+      order_id TEXT NOT NULL,
+      order_number TEXT NOT NULL,
+      document_type TEXT NOT NULL, -- 'INVOICE', 'SHIPPING_SLIP', 'DELIVERY_CHALLAN', 'PACKING_STICKER'
+      document_number TEXT NOT NULL UNIQUE,
+      generated_by TEXT NOT NULL,
+      metadata TEXT,
+      created_at TEXT NOT NULL,
+      FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE
+    );
+    CREATE INDEX IF NOT EXISTS idx_order_docs_order ON order_documents(order_id, document_type);
+    CREATE INDEX IF NOT EXISTS idx_order_docs_number ON order_documents(document_number);
+    CREATE INDEX IF NOT EXISTS idx_order_docs_order_number ON order_documents(order_number);
 
     CREATE TABLE IF NOT EXISTS order_status_history (
       id TEXT PRIMARY KEY,
@@ -1983,6 +1998,140 @@ export const paymentsRepo = {
 };
 
 // ==========================================
+// 4B. FULFILMENT & ORDER DOCUMENTS REPOSITORY (PHASE 5)
+// ==========================================
+export function numberToIndianWords(amount: number): string {
+  if (!amount || isNaN(amount) || amount === 0) return "Rupees Zero Only";
+
+  const ones = ["", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine",
+    "Ten", "Eleven", "Twelve", "Thirteen", "Fourteen", "Fifteen", "Sixteen", "Seventeen", "Eighteen", "Nineteen"];
+  const tens = ["", "", "Twenty", "Thirty", "Forty", "Fifty", "Sixty", "Seventy", "Eighty", "Ninety"];
+
+  function convertTwoDigits(n: number): string {
+    if (n < 20) return ones[n];
+    const unit = n % 10;
+    return tens[Math.floor(n / 10)] + (unit ? " " + ones[unit] : "");
+  }
+
+  function convertThreeDigits(n: number): string {
+    const hundred = Math.floor(n / 100);
+    const rest = n % 100;
+    let res = "";
+    if (hundred > 0) {
+      res += ones[hundred] + " Hundred";
+      if (rest > 0) res += " ";
+    }
+    if (rest > 0) {
+      res += convertTwoDigits(rest);
+    }
+    return res;
+  }
+
+  const integerPart = Math.floor(Math.abs(amount));
+  const decimalPart = Math.round((Math.abs(amount) - integerPart) * 100);
+
+  let n = integerPart;
+  const crore = Math.floor(n / 10000000);
+  n %= 10000000;
+  const lakh = Math.floor(n / 100000);
+  n %= 100000;
+  const thousand = Math.floor(n / 1000);
+  n %= 1000;
+  const hundredAndRest = n;
+
+  const parts: string[] = [];
+  if (crore > 0) parts.push(convertThreeDigits(crore) + " Crore");
+  if (lakh > 0) parts.push(convertTwoDigits(lakh) + " Lakh");
+  if (thousand > 0) parts.push(convertTwoDigits(thousand) + " Thousand");
+  if (hundredAndRest > 0) parts.push(convertThreeDigits(hundredAndRest));
+
+  let words = "Rupees " + (parts.length > 0 ? parts.join(" ") : "Zero");
+  if (decimalPart > 0) {
+    words += " and " + convertTwoDigits(decimalPart) + " Paise";
+  }
+  words += " Only";
+  return words;
+}
+
+export const orderDocumentsRepo = {
+  getDocPrefix(docType: string): string {
+    switch (docType) {
+      case "INVOICE": return "TRN-INV";
+      case "DELIVERY_CHALLAN": return "TRN-DC";
+      case "SHIPPING_SLIP": return "TRN-SHIP";
+      case "PACKING_STICKER": return "TRN-LBL";
+      default: return `TRN-${docType}`;
+    }
+  },
+
+  getNextSequence(docType: string, year: number): number {
+    const db = getDatabase();
+    const prefix = `${this.getDocPrefix(docType)}-${year}-%`;
+    const row = db.prepare(
+      "SELECT MAX(CAST(SUBSTR(document_number, -5) AS INTEGER)) as maxSeq FROM order_documents WHERE document_type = ? AND document_number LIKE ?"
+    ).get(docType, prefix) as any;
+    return (row?.maxSeq || 0) + 1;
+  },
+
+  getOrGenerate(orderId: string, orderNumber: string, docType: string, generatedBy: string = "system", metadata: any = {}) {
+    const db = getDatabase();
+    // 1. Check if document already exists for this order & docType
+    const existing = db.prepare(
+      "SELECT * FROM order_documents WHERE (order_id = ? OR order_number = ?) AND document_type = ?"
+    ).get(orderId, orderNumber, docType) as any;
+
+    if (existing) {
+      return {
+        ...existing,
+        metadata: existing.metadata ? (typeof existing.metadata === "string" ? JSON.parse(existing.metadata) : existing.metadata) : {}
+      };
+    }
+
+    // 2. Generate sequential number: TRN-[TYPE]-YYYY-XXXXX
+    const year = new Date().getFullYear();
+    const seq = this.getNextSequence(docType, year);
+    const docNumber = `${this.getDocPrefix(docType)}-${year}-${String(seq).padStart(5, "0")}`;
+    const id = "doc_" + Date.now() + "_" + Math.floor(Math.random() * 10000);
+    const now = new Date().toISOString();
+
+    db.prepare(`
+      INSERT INTO order_documents (id, order_id, order_number, document_type, document_number, generated_by, metadata, created_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(id, orderId, orderNumber, docType, docNumber, generatedBy, JSON.stringify(metadata || {}), now);
+
+    return {
+      id,
+      order_id: orderId,
+      order_number: orderNumber,
+      document_type: docType,
+      document_number: docNumber,
+      generated_by: generatedBy,
+      metadata,
+      created_at: now
+    };
+  },
+
+  listByOrder(orderIdentifier: string) {
+    const db = getDatabase();
+    const rows = db.prepare("SELECT * FROM order_documents WHERE order_id = ? OR order_number = ? ORDER BY created_at ASC").all(orderIdentifier, orderIdentifier) as any[];
+    return rows.map(r => ({
+      ...r,
+      metadata: r.metadata ? (typeof r.metadata === "string" ? JSON.parse(r.metadata) : r.metadata) : {}
+    }));
+  },
+
+  getByNumber(documentNumber: string) {
+    const db = getDatabase();
+    const r = db.prepare("SELECT * FROM order_documents WHERE document_number = ?").get(documentNumber) as any;
+    if (!r) return null;
+    return {
+      ...r,
+      metadata: r.metadata ? (typeof r.metadata === "string" ? JSON.parse(r.metadata) : r.metadata) : {}
+    };
+  }
+};
+
+// ==========================================
 // 5. ORDERS & TRACKING REPOSITORY
 // ==========================================
 export const ordersRepo = {
@@ -2542,7 +2691,7 @@ export const ordersRepo = {
     return [headers.join(","), ...rows].join("\n");
   },
 
-  getShippingSlip(orderIdentifier: string) {
+  getShippingSlip(orderIdentifier: string, generatedBy: string = "Admin") {
     const db = getDatabase();
     const order = (db.prepare("SELECT * FROM orders WHERE id = ? OR orderNumber = ?").get(orderIdentifier, orderIdentifier) || null) as any;
     if (!order) return null;
@@ -2567,7 +2716,19 @@ export const ordersRepo = {
       parsedAddress?.state ? `${parsedAddress.state} - ${parsedAddress?.pinCode || ""}` : parsedAddress?.pinCode,
     ].filter(Boolean);
 
+    // Document numbering sequence: TRN-SHIP-YYYY-XXXXX
+    const docRecord = orderDocumentsRepo.getOrGenerate(
+      enriched.id,
+      enriched.orderNumber,
+      "SHIPPING_SLIP",
+      generatedBy,
+      { total: enriched.total, itemCount: (enriched.items || []).length }
+    );
+
     return {
+      documentType: "SHIPPING_SLIP",
+      documentNumber: docRecord.document_number,
+      documentId: docRecord.id,
       orderId: enriched.id,
       orderNumber: enriched.orderNumber,
       createdAt: enriched.createdAt,
@@ -2581,7 +2742,8 @@ export const ordersRepo = {
       customerEmail: enriched.customerEmail,
       shippingAddress: parsedAddress,
       formattedAddress: addressLines.join(", "),
-      items: (enriched.items || []).map((it: any) => ({
+      items: (enriched.items || []).map((it: any, idx: number) => ({
+        sNo: idx + 1,
         id: it.id,
         productId: it.productId,
         productNameEn: it.productNameEn || it.name,
@@ -2595,12 +2757,373 @@ export const ordersRepo = {
       subtotal: enriched.subtotal,
       shippingFee: enriched.shippingFee || 0,
       discountAmount: enriched.discountAmount || 0,
+      couponCode: enriched.couponCode || null,
       total: enriched.total,
+      totalInWords: numberToIndianWords(enriched.total),
       paymentMethod: enriched.paymentMethod,
       paymentStatus: enriched.paymentStatus,
       orderStatus: enriched.orderStatus,
       trackingNumber: enriched.trackingNumber || null,
       carrier: enriched.carrier || null,
+      dispatchHq: "TRINAYAA Erode Fulfillment Centre, Tamil Nadu",
+      signatory: "Authorized Dispatch Supervisor - TRINAYAA ENTERPRISES",
+    };
+  },
+
+  getCustomerInvoice(orderIdentifier: string, generatedBy: string = "Admin") {
+    const db = getDatabase();
+    const order = (db.prepare("SELECT * FROM orders WHERE id = ? OR orderNumber = ?").get(orderIdentifier, orderIdentifier) || null) as any;
+    if (!order) return null;
+    const enriched = this.enrichOrder(order);
+
+    let parsedAddress = enriched.shippingAddress;
+    if (typeof parsedAddress === "string") {
+      try {
+        parsedAddress = JSON.parse(parsedAddress);
+      } catch {
+        parsedAddress = { street: parsedAddress, city: "", state: "Tamil Nadu", pinCode: "" };
+      }
+    }
+
+    const addressLines = [
+      parsedAddress?.recipientName ? `Attn: ${parsedAddress.recipientName}` : null,
+      parsedAddress?.addressLine1 || parsedAddress?.street,
+      parsedAddress?.addressLine2,
+      parsedAddress?.landmark ? `Landmark: ${parsedAddress.landmark}` : null,
+      parsedAddress?.district,
+      parsedAddress?.city,
+      parsedAddress?.state ? `${parsedAddress.state} - ${parsedAddress?.pinCode || ""}` : parsedAddress?.pinCode,
+    ].filter(Boolean);
+
+    // Document numbering sequence: TRN-INV-YYYY-XXXXX
+    const docRecord = orderDocumentsRepo.getOrGenerate(
+      enriched.id,
+      enriched.orderNumber,
+      "INVOICE",
+      generatedBy,
+      { total: enriched.total, paymentMethod: enriched.paymentMethod }
+    );
+
+    // Line items with HSN and GST calculation (Botanical wellness commodities default GST 5%: 2.5% CGST + 2.5% SGST)
+    const items = (enriched.items || []).map((it: any, idx: number) => {
+      const lineTotal = (it.price || it.unitPrice) * it.quantity;
+      const taxable = Math.round((lineTotal / 1.05) * 100) / 100;
+      const gstAmount = Math.round((lineTotal - taxable) * 100) / 100;
+      const halfGst = Math.round((gstAmount / 2) * 100) / 100;
+
+      return {
+        sNo: idx + 1,
+        id: it.id,
+        productId: it.productId,
+        productNameEn: it.productNameEn || it.name,
+        productNameTa: it.productNameTa || "",
+        sku: it.sku || `TRN-${it.productId?.replace(/\D/g, "") || "ITEM"}`,
+        hsnCode: "121190",
+        packSize: it.packSize || "100g",
+        unitPrice: it.price || it.unitPrice,
+        quantity: it.quantity,
+        taxableAmount: taxable,
+        cgstRate: 2.5,
+        cgstAmount: halfGst,
+        sgstRate: 2.5,
+        sgstAmount: halfGst,
+        total: lineTotal,
+      };
+    });
+
+    const totalTaxable = Math.round(items.reduce((acc: number, it: any) => acc + it.taxableAmount, 0) * 100) / 100;
+    const totalCgst = Math.round(items.reduce((acc: number, it: any) => acc + it.cgstAmount, 0) * 100) / 100;
+    const totalSgst = Math.round(items.reduce((acc: number, it: any) => acc + it.sgstAmount, 0) * 100) / 100;
+
+    return {
+      documentType: "CUSTOMER_INVOICE",
+      invoiceNumber: docRecord.document_number,
+      documentId: docRecord.id,
+      orderId: enriched.id,
+      orderNumber: enriched.orderNumber,
+      invoiceDate: new Date(docRecord.created_at).toLocaleDateString("en-IN", {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+      }),
+      orderDate: new Date(enriched.createdAt).toLocaleDateString("en-IN", {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+      }),
+      sellerDetails: {
+        companyName: "TRINAYAA ENTERPRISES",
+        tagline: "Pure Seeds • Raw Powders • True Herbs",
+        registeredOffice: "14/2, Perundurai Road, Erode, Tamil Nadu - 638 011, India",
+        fulfillmentCenter: "TRINAYAA Erode Fulfillment Centre, Erode HQ",
+        state: "Tamil Nadu",
+        stateCode: "33",
+        gstin: "33AABCT9988F1Z2",
+        pan: "AABCT9988F",
+        fssaiNumber: "12423008000451",
+        contactEmail: "support@trinayaa.com",
+        contactPhone: "+91 94422 18990",
+        website: "https://trinayaa.com",
+      },
+      buyerDetails: {
+        customerId: enriched.customerId || null,
+        customerName: enriched.customerName,
+        customerEmail: enriched.customerEmail,
+        customerPhone: enriched.customerPhone,
+        shippingAddress: parsedAddress,
+        billingAddress: parsedAddress,
+        formattedAddress: addressLines.join(", "),
+        placeOfSupply: parsedAddress?.state ? `${parsedAddress.state} (${parsedAddress.state.toLowerCase() === "tamil nadu" ? "33" : "OS"})` : "Tamil Nadu (33)",
+      },
+      items,
+      subtotal: enriched.subtotal,
+      discountAmount: enriched.discountAmount || 0,
+      couponCode: enriched.couponCode || null,
+      shippingFee: enriched.shippingFee || 0,
+      totalTaxable,
+      totalCgst,
+      totalSgst,
+      totalTax: Math.round((totalCgst + totalSgst) * 100) / 100,
+      total: enriched.total,
+      totalInWords: numberToIndianWords(enriched.total),
+      paymentMethod: enriched.paymentMethod,
+      paymentStatus: enriched.paymentStatus,
+      paymentRef: enriched.razorpayPaymentId || (enriched.paymentMethod === "COD" ? "Cash on Delivery" : "Prepaid Online"),
+      orderStatus: enriched.orderStatus,
+      termsAndConditions: [
+        "All products sold are natural botanicals and wellness commodities.",
+        "Computer-generated invoice. No physical signature required under Section 10A of IT Act 2000.",
+        "Subject to Erode, Tamil Nadu jurisdiction.",
+      ],
+      authorizedSignatory: "TRINAYAA ENTERPRISES - Authorized Signatory",
+    };
+  },
+
+  getDeliveryChallan(orderIdentifier: string, generatedBy: string = "Admin") {
+    const db = getDatabase();
+    const order = (db.prepare("SELECT * FROM orders WHERE id = ? OR orderNumber = ?").get(orderIdentifier, orderIdentifier) || null) as any;
+    if (!order) return null;
+    const enriched = this.enrichOrder(order);
+
+    let parsedAddress = enriched.shippingAddress;
+    if (typeof parsedAddress === "string") {
+      try {
+        parsedAddress = JSON.parse(parsedAddress);
+      } catch {
+        parsedAddress = { street: parsedAddress, city: "", state: "Tamil Nadu", pinCode: "" };
+      }
+    }
+
+    const addressLines = [
+      parsedAddress?.recipientName ? `Attn: ${parsedAddress.recipientName}` : null,
+      parsedAddress?.addressLine1 || parsedAddress?.street,
+      parsedAddress?.addressLine2,
+      parsedAddress?.landmark ? `Landmark: ${parsedAddress.landmark}` : null,
+      parsedAddress?.district,
+      parsedAddress?.city,
+      parsedAddress?.state ? `${parsedAddress.state} - ${parsedAddress?.pinCode || ""}` : parsedAddress?.pinCode,
+    ].filter(Boolean);
+
+    // Document numbering sequence: TRN-DC-YYYY-XXXXX
+    const docRecord = orderDocumentsRepo.getOrGenerate(
+      enriched.id,
+      enriched.orderNumber,
+      "DELIVERY_CHALLAN",
+      generatedBy,
+      { total: enriched.total, itemCount: (enriched.items || []).length }
+    );
+
+    // Also look up invoice number if generated
+    const invDoc = db.prepare("SELECT document_number FROM order_documents WHERE order_id = ? AND document_type = 'INVOICE'").get(enriched.id) as any;
+
+    const items = (enriched.items || []).map((it: any, idx: number) => ({
+      sNo: idx + 1,
+      id: it.id,
+      productId: it.productId,
+      productNameEn: it.productNameEn || it.name,
+      productNameTa: it.productNameTa || "",
+      sku: it.sku || `TRN-${it.productId?.replace(/\D/g, "") || "ITEM"}`,
+      hsnCode: "121190",
+      packSize: it.packSize || "100g",
+      quantity: it.quantity,
+      uom: "Packs",
+      rate: it.price || it.unitPrice,
+      totalValue: (it.price || it.unitPrice) * it.quantity,
+    }));
+
+    const totalQuantity = items.reduce((acc: number, it: any) => acc + (it.quantity || 1), 0);
+
+    return {
+      documentType: "DELIVERY_CHALLAN",
+      challanNumber: docRecord.document_number,
+      documentId: docRecord.id,
+      orderId: enriched.id,
+      orderNumber: enriched.orderNumber,
+      invoiceNumber: invDoc?.document_number || "To be billed / Pending",
+      challanDate: new Date(docRecord.created_at).toLocaleDateString("en-IN", {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+      }),
+      orderDate: new Date(enriched.createdAt).toLocaleDateString("en-IN", {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+      }),
+      consignor: {
+        name: "TRINAYAA ENTERPRISES",
+        address: "14/2, Perundurai Road, Erode, Tamil Nadu - 638 011",
+        fulfillmentCenter: "TRINAYAA Erode Warehouse & Dispatch Facility",
+        gstin: "33AABCT9988F1Z2",
+        phone: "+91 94422 18990",
+      },
+      consignee: {
+        name: enriched.customerName,
+        phone: enriched.customerPhone,
+        email: enriched.customerEmail,
+        shippingAddress: parsedAddress,
+        formattedAddress: addressLines.join(", "),
+        city: parsedAddress?.city || "",
+        district: parsedAddress?.district || "",
+        state: parsedAddress?.state || "Tamil Nadu",
+        pinCode: parsedAddress?.pinCode || "",
+      },
+      transportDetails: {
+        carrier: enriched.carrier || "E-Commerce Express Courier",
+        trackingNumber: enriched.trackingNumber || `AWB-PENDING-${enriched.orderNumber}`,
+        modeOfTransport: "Road / Surface Express Cargo",
+        vehicleOrLorryNumber: "N/A (Courier Parcel)",
+        placeOfSupply: parsedAddress?.state || "Tamil Nadu",
+      },
+      reasonForTransport: "Supply of Goods under Section 31(7) and Rule 55 of CGST Rules, 2017 (E-Commerce Customer Delivery)",
+      items,
+      totalQuantity,
+      subtotal: enriched.subtotal,
+      shippingFee: enriched.shippingFee || 0,
+      total: enriched.total,
+      totalInWords: numberToIndianWords(enriched.total),
+      declaration: "Certified that the particulars given above are true and correct and the goods described are being transported for delivery to customer against confirmed e-commerce order under Section 31(7) and Rule 55 of the CGST Rules, 2017.",
+      dispatchedBy: "TRINAYAA Warehouse Dispatch HQ",
+      receivedBy: "Consignee Signature & Date",
+    };
+  },
+
+  getPackingSticker(orderIdentifier: string, generatedBy: string = "Admin") {
+    const db = getDatabase();
+    const order = (db.prepare("SELECT * FROM orders WHERE id = ? OR orderNumber = ?").get(orderIdentifier, orderIdentifier) || null) as any;
+    if (!order) return null;
+    const enriched = this.enrichOrder(order);
+
+    let parsedAddress = enriched.shippingAddress;
+    if (typeof parsedAddress === "string") {
+      try {
+        parsedAddress = JSON.parse(parsedAddress);
+      } catch {
+        parsedAddress = { street: parsedAddress, city: "", state: "Tamil Nadu", pinCode: "" };
+      }
+    }
+
+    const addressLines = [
+      parsedAddress?.recipientName ? `Attn: ${parsedAddress.recipientName}` : null,
+      parsedAddress?.addressLine1 || parsedAddress?.street,
+      parsedAddress?.addressLine2,
+      parsedAddress?.landmark ? `Landmark: ${parsedAddress.landmark}` : null,
+      parsedAddress?.district,
+      parsedAddress?.city,
+      parsedAddress?.state ? `${parsedAddress.state} - ${parsedAddress?.pinCode || ""}` : parsedAddress?.pinCode,
+    ].filter(Boolean);
+
+    // Document numbering sequence: TRN-LBL-YYYY-XXXXX
+    const docRecord = orderDocumentsRepo.getOrGenerate(
+      enriched.id,
+      enriched.orderNumber,
+      "PACKING_STICKER",
+      generatedBy,
+      { total: enriched.total, paymentMethod: enriched.paymentMethod }
+    );
+
+    const isCod = (enriched.paymentMethod || "").toUpperCase() === "COD";
+    const totalItems = (enriched.items || []).reduce((acc: number, it: any) => acc + (it.quantity || 1), 0);
+    const estWeight = totalItems * 125 + 75; // Approx weight in grams based on herbal powder packs
+
+    return {
+      documentType: "PACKING_STICKER",
+      stickerNumber: docRecord.document_number,
+      documentId: docRecord.id,
+      orderNumber: enriched.orderNumber,
+      orderId: enriched.id,
+      orderDate: new Date(enriched.createdAt).toLocaleDateString("en-IN", {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+      }),
+      from: {
+        name: "TRINAYAA ENTERPRISES",
+        addressLine: "14/2, Perundurai Road, Erode, Tamil Nadu - 638 011",
+        contact: "+91 94422 18990 | dispatch@trinayaa.com",
+        originHub: "ED-01 (Erode Dispatch HQ)",
+      },
+      to: {
+        name: enriched.customerName,
+        phone: enriched.customerPhone,
+        pinCode: parsedAddress?.pinCode || "638001",
+        city: parsedAddress?.city || "",
+        district: parsedAddress?.district || "",
+        state: parsedAddress?.state || "Tamil Nadu",
+        formattedAddress: addressLines.join(", "),
+        addressLines,
+      },
+      routing: {
+        destinationPin: parsedAddress?.pinCode || "638001",
+        carrier: enriched.carrier || "Express Logistics",
+        trackingNumber: enriched.trackingNumber || `AWB-${enriched.orderNumber}`,
+        serviceType: isCod ? "COD EXPRESS" : "PREPAID SURFACE",
+      },
+      payment: {
+        isCod,
+        badgeText: isCod ? "CASH ON DELIVERY (COD)" : "PREPAID ORDER",
+        badgeColor: isCod ? "amber" : "emerald",
+        collectAmount: isCod ? enriched.total : 0,
+        collectDisplay: isCod ? `COLLECT CASH: ₹${enriched.total}` : "DO NOT COLLECT CASH",
+        paymentStatus: enriched.paymentStatus,
+      },
+      packageSummary: {
+        totalPieces: totalItems,
+        itemCount: (enriched.items || []).length,
+        weightGrams: estWeight,
+        weightKg: (estWeight / 1000).toFixed(2),
+        itemManifest: (enriched.items || []).map((it: any) => ({
+          name: it.productNameEn || it.name,
+          packSize: it.packSize || "100g",
+          quantity: it.quantity,
+          sku: it.sku || `TRN-${it.productId?.replace(/\D/g, "") || "ITEM"}`,
+        })),
+      },
+      barcodeData: {
+        orderNumberBarcode: `*${enriched.orderNumber}*`,
+        trackingBarcode: `*${enriched.trackingNumber || enriched.orderNumber}*`,
+      },
+      securityNotice: "TAMPER-EVIDENT BOTANICAL PACK • DO NOT ACCEPT IF SEAL IS BROKEN",
+    };
+  },
+
+  getAllDocuments(orderIdentifier: string, generatedBy: string = "Admin") {
+    const shippingSlip = this.getShippingSlip(orderIdentifier, generatedBy);
+    const customerInvoice = this.getCustomerInvoice(orderIdentifier, generatedBy);
+    const deliveryChallan = this.getDeliveryChallan(orderIdentifier, generatedBy);
+    const packingSticker = this.getPackingSticker(orderIdentifier, generatedBy);
+
+    if (!shippingSlip) return null;
+
+    return {
+      orderNumber: shippingSlip.orderNumber,
+      orderId: shippingSlip.orderId,
+      shippingSlip,
+      customerInvoice,
+      deliveryChallan,
+      packingSticker,
+      generatedAt: new Date().toISOString(),
+      generatedBy,
     };
   }
 };

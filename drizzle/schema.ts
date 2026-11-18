@@ -221,6 +221,20 @@ export const orderStatusHistory = mysqlTable("order_status_history", {
 export type OrderStatusHistory = typeof orderStatusHistory.$inferSelect;
 export type InsertOrderStatusHistory = typeof orderStatusHistory.$inferInsert;
 
+export const orderDocuments = mysqlTable("order_documents", {
+  id: varchar("id", { length: 64 }).primaryKey(),
+  orderId: varchar("order_id", { length: 64 }).notNull(),
+  orderNumber: varchar("order_number", { length: 64 }).notNull(),
+  documentType: varchar("document_type", { length: 32 }).notNull(), // 'INVOICE' | 'SHIPPING_SLIP' | 'DELIVERY_CHALLAN' | 'PACKING_STICKER'
+  documentNumber: varchar("document_number", { length: 64 }).notNull().unique(),
+  generatedBy: varchar("generated_by", { length: 128 }).notNull(),
+  metadata: text("metadata"),
+  createdAt: text("created_at").notNull(),
+});
+
+export type OrderDocument = typeof orderDocuments.$inferSelect;
+export type InsertOrderDocument = typeof orderDocuments.$inferInsert;
+
 // ==========================================
 // 8. PAYMENTS & TRANSACTIONS
 // ==========================================

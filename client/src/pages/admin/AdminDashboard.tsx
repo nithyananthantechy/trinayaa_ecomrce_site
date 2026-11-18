@@ -1759,11 +1759,11 @@ export default function AdminDashboard() {
                               <button
                                 type="button"
                                 onClick={() => setShippingSlipOrderNumber(o.orderNumber)}
-                                title="Print Dispatch / Shipping Slip"
+                                title="Order Fulfilment Documents & Print Studio (Slip, Invoice, Challan, Sticker)"
                                 className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-[#FBF8F0] hover:bg-[#E8BF83]/30 text-[#123D28] border border-[#DEDFD5] rounded-lg text-xs font-semibold shadow-xs transition-all cursor-pointer"
                               >
                                 <Printer size={13} className="text-[#AE6A2B]" />
-                                <span>Slip</span>
+                                <span>Docs</span>
                               </button>
                               <button
                                 type="button"
@@ -2678,7 +2678,7 @@ export default function AdminDashboard() {
                   onClick={() => setShippingSlipOrderNumber(selectedOrder.orderNumber)}
                   className="px-2.5 py-1.5 bg-[#FBF8F0] hover:bg-[#DEDFD5]/40 text-[#123D28] border border-[#DEDFD5] rounded-md text-xs font-semibold flex items-center gap-1.5"
                 >
-                  <Printer size={13} className="text-[#AE6A2B]" /> Print Shipping Slip
+                  <Printer size={13} className="text-[#AE6A2B]" /> Fulfilment Docs & Print
                 </button>
                 <button onClick={() => setSelectedOrder(null)} className="text-[#6C7167] hover:text-[#123D28]">
                   <X size={20} />
@@ -3542,20 +3542,28 @@ export default function AdminDashboard() {
 
 
 // ==========================================
-// PRINTABLE SHIPPING SLIP MODAL (PHASE 6)
+// ORDER FULFILMENT DOCUMENT STUDIO (PHASE 5)
 // ==========================================
-function ShippingSlipModal({
+type FulfilmentDocTab = "slip" | "invoice" | "challan" | "sticker" | "all" | "gap";
+
+function OrderDocumentStudioModal({
   orderNumber,
   onClose,
 }: {
   orderNumber: string;
   onClose: () => void;
 }) {
-  const { data: slip, isLoading, error } = trpc.admin.orders.getShippingSlip.useQuery({ orderNumber });
+  const [activeDocTab, setActiveDocTab] = useState<FulfilmentDocTab>("slip");
+  const { data: bundle, isLoading, error } = trpc.admin.orders.getAllDocuments.useQuery({ orderNumber });
 
   const handlePrint = () => {
     window.print();
   };
+
+  const slip = bundle?.shippingSlip;
+  const invoice = bundle?.customerInvoice;
+  const challan = bundle?.deliveryChallan;
+  const sticker = bundle?.packingSticker;
 
   return (
     <>
@@ -3564,19 +3572,26 @@ function ShippingSlipModal({
           body * {
             visibility: hidden !important;
           }
-          #printable-shipping-slip, #printable-shipping-slip * {
+          #print-studio-content, #print-studio-content * {
             visibility: visible !important;
           }
-          #printable-shipping-slip {
-            position: fixed !important;
+          #print-studio-content {
+            position: absolute !important;
             left: 0 !important;
             top: 0 !important;
             width: 100% !important;
             margin: 0 !important;
-            padding: 28px !important;
+            padding: 16px !important;
             background: white !important;
             color: black !important;
-            font-size: 11px !important;
+          }
+          .page-break {
+            page-break-after: always !important;
+            break-after: page !important;
+            height: 0 !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            border: none !important;
           }
           .no-print, .no-print * {
             display: none !important;
@@ -3584,24 +3599,32 @@ function ShippingSlipModal({
         }
       `}</style>
 
-      <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 overflow-y-auto no-print">
-        <div className="bg-white rounded-2xl shadow-2xl max-w-3xl w-full max-h-[92vh] flex flex-col overflow-hidden border border-slate-300">
-          {/* Modal Header Actions */}
+      <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-3 overflow-y-auto no-print">
+        <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[94vh] flex flex-col overflow-hidden border border-slate-300">
+          {/* Modal Header */}
           <div className="p-4 bg-[#FBF8F0] border-b border-[#DEDFD5] flex items-center justify-between no-print">
-            <div className="flex items-center gap-2">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-[#AE6A2B] bg-[#E8BF83]/20 px-2 py-0.5 rounded">
-                Dispatch Slip
-              </span>
-              <span className="text-sm font-serif font-bold text-[#123D28]">Order {orderNumber}</span>
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg bg-[#123D28] text-white flex items-center justify-center">
+                <Printer size={16} />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-[#AE6A2B] bg-[#E8BF83]/20 px-2 py-0.5 rounded">
+                    Fulfilment Studio
+                  </span>
+                  <span className="text-sm font-serif font-bold text-[#123D28]">Order {orderNumber}</span>
+                </div>
+                <p className="text-[11px] text-[#6C7167]">Generate, inspect, and print dispatch & legal documents</p>
+              </div>
             </div>
             <div className="flex items-center gap-2">
               <button
                 type="button"
                 onClick={handlePrint}
-                disabled={isLoading || !slip}
+                disabled={isLoading || !bundle}
                 className="dark-button text-xs py-1.5 px-3 flex items-center gap-1.5 shadow-sm"
               >
-                <Printer size={14} /> Print Shipping Slip
+                <Printer size={14} /> Print {activeDocTab === "all" ? "All Documents" : activeDocTab === "sticker" ? "Sticker (4x6)" : "Document"}
               </button>
               <button
                 type="button"
@@ -3613,147 +3636,651 @@ function ShippingSlipModal({
             </div>
           </div>
 
-          {/* Printable Body */}
-          <div className="p-6 overflow-y-auto flex-1 bg-white">
+          {/* Document Navigation Tabs */}
+          <div className="px-4 py-2 bg-slate-50 border-b border-slate-200 flex items-center gap-1.5 overflow-x-auto no-print text-xs">
+            <button
+              type="button"
+              onClick={() => setActiveDocTab("slip")}
+              className={`px-3 py-1.5 rounded-lg font-medium flex items-center gap-1.5 transition-colors ${
+                activeDocTab === "slip"
+                  ? "bg-[#123D28] text-white shadow-xs"
+                  : "bg-white text-gray-700 hover:bg-gray-100 border border-gray-200"
+              }`}
+            >
+              <FileText size={13} />
+              <span>1. Shipping Slip</span>
+              {slip && <span className="text-[9px] opacity-75 font-mono">({slip.documentNumber})</span>}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setActiveDocTab("invoice")}
+              className={`px-3 py-1.5 rounded-lg font-medium flex items-center gap-1.5 transition-colors ${
+                activeDocTab === "invoice"
+                  ? "bg-[#123D28] text-white shadow-xs"
+                  : "bg-white text-gray-700 hover:bg-gray-100 border border-gray-200"
+              }`}
+            >
+              <FileText size={13} />
+              <span>2. Customer Invoice</span>
+              {invoice && <span className="text-[9px] opacity-75 font-mono">({invoice.invoiceNumber})</span>}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setActiveDocTab("challan")}
+              className={`px-3 py-1.5 rounded-lg font-medium flex items-center gap-1.5 transition-colors ${
+                activeDocTab === "challan"
+                  ? "bg-[#123D28] text-white shadow-xs"
+                  : "bg-white text-gray-700 hover:bg-gray-100 border border-gray-200"
+              }`}
+            >
+              <Layers size={13} />
+              <span>3. Delivery Challan</span>
+              {challan && <span className="text-[9px] opacity-75 font-mono">({challan.challanNumber})</span>}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setActiveDocTab("sticker")}
+              className={`px-3 py-1.5 rounded-lg font-medium flex items-center gap-1.5 transition-colors ${
+                activeDocTab === "sticker"
+                  ? "bg-[#123D28] text-white shadow-xs"
+                  : "bg-white text-gray-700 hover:bg-gray-100 border border-gray-200"
+              }`}
+            >
+              <Package size={13} />
+              <span>4. Parcel Sticker (4x6)</span>
+              {sticker && <span className="text-[9px] opacity-75 font-mono">({sticker.stickerNumber})</span>}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setActiveDocTab("all")}
+              className={`px-3 py-1.5 rounded-lg font-medium flex items-center gap-1.5 transition-colors ${
+                activeDocTab === "all"
+                  ? "bg-[#AE6A2B] text-white shadow-xs"
+                  : "bg-amber-50 text-amber-900 hover:bg-amber-100 border border-amber-200"
+              }`}
+            >
+              <Printer size={13} />
+              <span>Print All (Bundle)</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setActiveDocTab("gap")}
+              className={`px-3 py-1.5 rounded-lg font-medium flex items-center gap-1.5 transition-colors ml-auto ${
+                activeDocTab === "gap"
+                  ? "bg-slate-700 text-white shadow-xs"
+                  : "bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-300"
+              }`}
+            >
+              <Info size={13} />
+              <span>5th Doc Status</span>
+            </button>
+          </div>
+
+          {/* Printable / Viewable Document Area */}
+          <div className="p-6 overflow-y-auto flex-1 bg-slate-100/60">
             {isLoading ? (
-              <div className="py-16 text-center text-xs text-gray-500 font-medium">Loading shipping slip details...</div>
-            ) : error || !slip ? (
-              <div className="py-16 text-center text-xs text-rose-600 font-semibold">
-                Failed to load shipping slip: {error?.message || "Order not found"}
+              <div className="py-20 text-center text-xs text-gray-500 font-medium">Generating fulfilment documents...</div>
+            ) : error || !bundle ? (
+              <div className="py-20 text-center text-xs text-rose-600 font-semibold">
+                Failed to load fulfilment documents: {error?.message || "Order not found"}
               </div>
             ) : (
-              <div id="printable-shipping-slip" className="max-w-[700px] mx-auto text-black font-sans leading-relaxed text-xs">
-                {/* Header with Brand & Logo */}
-                <div className="border-b-2 border-black pb-4 mb-4 flex items-start justify-between">
-                  <div>
-                    <div className="flex items-center gap-2.5 mb-1">
-                      <div className="w-9 h-9 rounded-lg border border-black p-1 flex items-center justify-center">
-                        <img src="/images/brand/emblem_crisp.png" alt="TRINAYAA" className="w-full h-full object-contain" />
+              <div id="print-studio-content">
+                {/* TAB 1: SHIPPING SLIP */}
+                {(activeDocTab === "slip" || activeDocTab === "all") && slip && (
+                  <div className="bg-white border border-slate-300 p-6 rounded-xl shadow-xs max-w-[760px] mx-auto text-black font-sans leading-relaxed text-xs mb-8">
+                    {/* Header */}
+                    <div className="border-b-2 border-black pb-3 mb-4 flex items-start justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-lg border border-black p-1 flex items-center justify-center shrink-0">
+                          <img src="/images/brand/emblem_crisp.png" alt="TRINAYAA" className="w-full h-full object-contain" />
+                        </div>
+                        <div>
+                          <h1 className="text-xl font-bold font-serif tracking-wider text-black leading-tight">
+                            TRINAYAA ENTERPRISES
+                          </h1>
+                          <p className="text-[10px] text-gray-700 uppercase tracking-wider font-semibold">
+                            100% Pure Botanical Powders, Seeds & Herbal Wellness
+                          </p>
+                          <p className="text-[9px] text-gray-600 mt-0.5">
+                            {slip.dispatchHq} | Phone: +91 94422 18990
+                          </p>
+                        </div>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <div className="inline-block border border-black px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider mb-1 bg-gray-50">
+                          SHIPPING / DISPATCH SLIP
+                        </div>
+                        <div className="font-mono text-sm font-bold text-black">{slip.documentNumber}</div>
+                        <div className="text-[10px] text-gray-700 font-mono">Order: {slip.orderNumber}</div>
+                        <div className="text-[10px] text-gray-700">Date: {slip.orderDate}</div>
+                      </div>
+                    </div>
+
+                    {/* Consignee & Dispatch Grid */}
+                    <div className="grid grid-cols-2 gap-4 mb-4 border border-black p-3 bg-gray-50/50">
+                      <div>
+                        <h3 className="font-bold uppercase tracking-wider text-[10px] text-gray-700 border-b border-gray-300 pb-1 mb-1.5">
+                          CONSIGNEE / DELIVERY ADDRESS
+                        </h3>
+                        <div className="text-sm font-bold text-black">{slip.customerName}</div>
+                        <div className="text-[11px] font-semibold text-gray-800">Phone: {slip.customerPhone}</div>
+                        {slip.customerEmail && <div className="text-[10px] text-gray-600">Email: {slip.customerEmail}</div>}
+                        <div className="mt-1 text-[11px] text-gray-900 leading-snug">
+                          {slip.formattedAddress}
+                        </div>
                       </div>
                       <div>
-                        <h1 className="text-xl font-bold font-serif tracking-wider text-black leading-tight">
-                          TRINAYAA ENTERPRISES
-                        </h1>
-                        <p className="text-[10px] text-gray-700 uppercase tracking-wider font-semibold">
-                          100% Pure Botanical Powders, Seeds & Herbal Wellness
+                        <h3 className="font-bold uppercase tracking-wider text-[10px] text-gray-700 border-b border-gray-300 pb-1 mb-1.5">
+                          DISPATCH & PAYMENT OVERVIEW
+                        </h3>
+                        <div className="grid grid-cols-2 gap-x-2 gap-y-1 text-[10px]">
+                          <span className="text-gray-600">Payment Mode:</span>
+                          <strong className="text-black">{slip.paymentMethod}</strong>
+                          <span className="text-gray-600">Payment Status:</span>
+                          <strong className="text-black uppercase">{slip.paymentStatus}</strong>
+                          <span className="text-gray-600">Fulfilment Status:</span>
+                          <strong className="text-black">{slip.orderStatus}</strong>
+                          <span className="text-gray-600">Carrier Partner:</span>
+                          <strong className="text-black">{slip.carrier || "Standard Dispatch"}</strong>
+                          <span className="text-gray-600">AWB / Tracking #:</span>
+                          <strong className="text-black font-mono">{slip.trackingNumber || "Pending Dispatch"}</strong>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Ordered Items Packing Checklist */}
+                    <table className="w-full text-left border-collapse border border-black mb-4">
+                      <thead>
+                        <tr className="bg-gray-100 border-b border-black text-[10px] font-bold uppercase">
+                          <th className="p-2 border-r border-black w-8 text-center">#</th>
+                          <th className="p-2 border-r border-black w-24">SKU</th>
+                          <th className="p-2 border-r border-black">Botanical Description</th>
+                          <th className="p-2 border-r border-black text-center w-16">Pack</th>
+                          <th className="p-2 border-r border-black text-center w-12">Qty</th>
+                          <th className="p-2 border-r border-black text-center w-12 no-print">Packed</th>
+                          <th className="p-2 border-r border-black text-right w-16">Unit Rate</th>
+                          <th className="p-2 text-right w-20">Subtotal</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-300 text-[11px]">
+                        {slip.items.map((it: any, idx: number) => (
+                          <tr key={it.id || idx}>
+                            <td className="p-2 border-r border-black text-center text-gray-600">{idx + 1}</td>
+                            <td className="p-2 border-r border-black font-mono font-bold text-[10px]">{it.sku}</td>
+                            <td className="p-2 border-r border-black font-semibold text-black">
+                              {it.productNameEn}
+                              {it.productNameTa && (
+                                <span className="block text-[10px] font-normal text-gray-700">{it.productNameTa}</span>
+                              )}
+                            </td>
+                            <td className="p-2 border-r border-black text-center">{it.packSize}</td>
+                            <td className="p-2 border-r border-black text-center font-bold">{it.quantity}</td>
+                            <td className="p-2 border-r border-black text-center no-print">
+                              <input type="checkbox" className="rounded text-[#123D28]" defaultChecked />
+                            </td>
+                            <td className="p-2 border-r border-black text-right">₹{it.price}</td>
+                            <td className="p-2 text-right font-bold">₹{it.subtotal}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+
+                    {/* Totals & Signatures */}
+                    <div className="flex justify-between items-end mb-4">
+                      <div className="text-[10px] text-gray-600">
+                        <p className="font-semibold text-black">Packer & Dispatch Verification:</p>
+                        <p>All items checked for batch freshness, intact botanical seal & packaging hygiene.</p>
+                      </div>
+                      <div className="w-64 border border-black p-2 bg-gray-50 space-y-1 text-[11px]">
+                        <div className="flex justify-between text-gray-700">
+                          <span>Items Subtotal:</span>
+                          <span>₹{slip.subtotal}</span>
+                        </div>
+                        {slip.discountAmount > 0 && (
+                          <div className="flex justify-between text-rose-700">
+                            <span>Discount {slip.couponCode ? `(${slip.couponCode})` : ""}:</span>
+                            <span>-₹{slip.discountAmount}</span>
+                          </div>
+                        )}
+                        <div className="flex justify-between text-gray-700">
+                          <span>Delivery Fee:</span>
+                          <span>{slip.shippingFee === 0 ? "FREE" : `₹${slip.shippingFee}`}</span>
+                        </div>
+                        <div className="flex justify-between font-bold border-t border-black pt-1 text-xs text-black">
+                          <span>Net Payable:</span>
+                          <span>₹{slip.total}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="border-t border-dashed border-gray-400 pt-3 text-[10px] text-gray-600 flex justify-between items-end">
+                      <div>
+                        <p className="font-semibold text-black">Origin Dispatch HQ:</p>
+                        <p>{slip.dispatchHq}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-semibold text-black">{slip.signatory}</p>
+                        <div className="h-6"></div>
+                        <p className="font-mono text-[9px] text-gray-700">DISPATCH VERIFIED</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {activeDocTab === "all" && <div className="page-break my-6 no-print border-b-2 border-dashed border-gray-400" />}
+
+                {/* TAB 2: CUSTOMER TAX INVOICE */}
+                {(activeDocTab === "invoice" || activeDocTab === "all") && invoice && (
+                  <div className="bg-white border border-slate-300 p-6 rounded-xl shadow-xs max-w-[760px] mx-auto text-black font-sans leading-relaxed text-xs mb-8">
+                    {/* Invoice Header */}
+                    <div className="border-b-2 border-black pb-3 mb-4 flex items-start justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-lg border border-black p-1 flex items-center justify-center shrink-0">
+                          <img src="/images/brand/emblem_crisp.png" alt="TRINAYAA" className="w-full h-full object-contain" />
+                        </div>
+                        <div>
+                          <h1 className="text-xl font-bold font-serif tracking-wider text-black leading-tight">
+                            {invoice.sellerDetails.companyName}
+                          </h1>
+                          <p className="text-[10px] text-gray-700 uppercase tracking-wider font-semibold">
+                            {invoice.sellerDetails.tagline}
+                          </p>
+                          <p className="text-[9px] text-gray-600 mt-0.5">
+                            {invoice.sellerDetails.registeredOffice}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <div className="inline-block border-2 border-black px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wider mb-1 bg-gray-100">
+                          TAX INVOICE
+                        </div>
+                        <div className="font-mono text-sm font-bold text-black">{invoice.invoiceNumber}</div>
+                        <div className="text-[10px] text-gray-700">Invoice Date: {invoice.invoiceDate}</div>
+                        <div className="text-[10px] text-gray-700 font-mono">Order Ref: {invoice.orderNumber}</div>
+                      </div>
+                    </div>
+
+                    {/* Tax & Business Identification */}
+                    <div className="grid grid-cols-2 gap-4 mb-4 border border-black p-2.5 bg-gray-50/40 text-[10px]">
+                      <div>
+                        <span className="font-bold uppercase text-gray-700 block mb-1">SUPPLIER / TAX DETAILS</span>
+                        <div><strong>GSTIN:</strong> {invoice.sellerDetails.gstin}</div>
+                        <div><strong>PAN:</strong> {invoice.sellerDetails.pan}</div>
+                        <div><strong>FSSAI Lic:</strong> {invoice.sellerDetails.fssaiNumber}</div>
+                        <div><strong>State:</strong> {invoice.sellerDetails.state} (Code: {invoice.sellerDetails.stateCode})</div>
+                      </div>
+                      <div>
+                        <span className="font-bold uppercase text-gray-700 block mb-1">BUYER / BILL TO & SHIP TO</span>
+                        <div className="font-bold text-black text-[11px]">{invoice.buyerDetails.customerName}</div>
+                        <div>Phone: {invoice.buyerDetails.customerPhone}</div>
+                        {invoice.buyerDetails.customerEmail && <div>Email: {invoice.buyerDetails.customerEmail}</div>}
+                        <div className="truncate">Address: {invoice.buyerDetails.formattedAddress}</div>
+                        <div><strong>Place of Supply:</strong> {invoice.buyerDetails.placeOfSupply}</div>
+                      </div>
+                    </div>
+
+                    {/* Line Items Table with GST Breakdown */}
+                    <table className="w-full text-left border-collapse border border-black mb-4">
+                      <thead>
+                        <tr className="bg-gray-100 border-b border-black text-[9px] font-bold uppercase">
+                          <th className="p-1.5 border-r border-black w-6 text-center">#</th>
+                          <th className="p-1.5 border-r border-black">Item Description</th>
+                          <th className="p-1.5 border-r border-black w-14 text-center">HSN</th>
+                          <th className="p-1.5 border-r border-black w-12 text-center">Pack</th>
+                          <th className="p-1.5 border-r border-black w-8 text-center">Qty</th>
+                          <th className="p-1.5 border-r border-black w-14 text-right">Taxable</th>
+                          <th className="p-1.5 border-r border-black w-12 text-right">CGST</th>
+                          <th className="p-1.5 border-r border-black w-12 text-right">SGST</th>
+                          <th className="p-1.5 text-right w-16">Total (₹)</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-300 text-[10px]">
+                        {invoice.items.map((it: any) => (
+                          <tr key={it.sNo}>
+                            <td className="p-1.5 border-r border-black text-center text-gray-600">{it.sNo}</td>
+                            <td className="p-1.5 border-r border-black font-semibold text-black">
+                              {it.productNameEn}
+                              {it.productNameTa && <span className="block text-[9px] font-normal text-gray-600">{it.productNameTa}</span>}
+                              <span className="font-mono text-[8px] text-gray-500">SKU: {it.sku}</span>
+                            </td>
+                            <td className="p-1.5 border-r border-black text-center font-mono text-[9px]">{it.hsnCode}</td>
+                            <td className="p-1.5 border-r border-black text-center">{it.packSize}</td>
+                            <td className="p-1.5 border-r border-black text-center font-bold">{it.quantity}</td>
+                            <td className="p-1.5 border-r border-black text-right">₹{it.taxableAmount}</td>
+                            <td className="p-1.5 border-r border-black text-right text-[9px]">₹{it.cgstAmount}</td>
+                            <td className="p-1.5 border-r border-black text-right text-[9px]">₹{it.sgstAmount}</td>
+                            <td className="p-1.5 text-right font-bold">₹{it.total}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+
+                    {/* Financial Summary & Amount in Words */}
+                    <div className="grid grid-cols-2 gap-4 mb-4 items-start">
+                      <div className="border border-black p-2.5 bg-gray-50/50 space-y-1 text-[10px]">
+                        <div className="font-bold uppercase text-gray-700 border-b border-gray-300 pb-1">Amount In Words</div>
+                        <div className="font-semibold text-black text-[11px] italic">{invoice.totalInWords}</div>
+                        <div className="pt-2 text-[9px] text-gray-600">
+                          <strong>Payment Method:</strong> {invoice.paymentMethod} ({invoice.paymentStatus})<br />
+                          <strong>Payment Reference:</strong> {invoice.paymentRef}
+                        </div>
+                      </div>
+                      <div className="border border-black p-2.5 bg-white space-y-1 text-[10px]">
+                        <div className="flex justify-between text-gray-700">
+                          <span>Total Taxable Value:</span>
+                          <span>₹{invoice.totalTaxable}</span>
+                        </div>
+                        <div className="flex justify-between text-gray-700">
+                          <span>CGST (2.5%):</span>
+                          <span>₹{invoice.totalCgst}</span>
+                        </div>
+                        <div className="flex justify-between text-gray-700">
+                          <span>SGST (2.5%):</span>
+                          <span>₹{invoice.totalSgst}</span>
+                        </div>
+                        {invoice.discountAmount > 0 && (
+                          <div className="flex justify-between text-rose-700">
+                            <span>Promotional Discount:</span>
+                            <span>-₹{invoice.discountAmount}</span>
+                          </div>
+                        )}
+                        <div className="flex justify-between text-gray-700">
+                          <span>Shipping / Delivery Charges:</span>
+                          <span>{invoice.shippingFee === 0 ? "FREE" : `₹${invoice.shippingFee}`}</span>
+                        </div>
+                        <div className="flex justify-between font-bold border-t-2 border-black pt-1 text-xs text-black">
+                          <span>Invoice Total:</span>
+                          <span>₹{invoice.total}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Terms & Authorized Signatory */}
+                    <div className="border-t border-dashed border-gray-400 pt-3 text-[9px] text-gray-600 flex justify-between items-end">
+                      <div className="max-w-[420px]">
+                        <p className="font-bold text-black uppercase">Declaration & Terms:</p>
+                        <p>{invoice.termsAndConditions.join(" ")}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-semibold text-black">{invoice.authorizedSignatory}</p>
+                        <div className="h-6"></div>
+                        <p className="font-mono text-[9px] text-gray-700">TRINAYAA ERODE HQ</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {activeDocTab === "all" && <div className="page-break my-6 no-print border-b-2 border-dashed border-gray-400" />}
+
+                {/* TAB 3: DELIVERY CHALLAN (RULE 55) */}
+                {(activeDocTab === "challan" || activeDocTab === "all") && challan && (
+                  <div className="bg-white border border-slate-300 p-6 rounded-xl shadow-xs max-w-[760px] mx-auto text-black font-sans leading-relaxed text-xs mb-8">
+                    {/* Challan Header */}
+                    <div className="border-b-2 border-black pb-3 mb-4 flex items-start justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-lg border border-black p-1 flex items-center justify-center shrink-0">
+                          <img src="/images/brand/emblem_crisp.png" alt="TRINAYAA" className="w-full h-full object-contain" />
+                        </div>
+                        <div>
+                          <h1 className="text-xl font-bold font-serif tracking-wider text-black leading-tight">
+                            {challan.consignor.name}
+                          </h1>
+                          <p className="text-[10px] text-gray-700 uppercase tracking-wider font-semibold">
+                            Delivery Challan (Rule 55, CGST Rules 2017)
+                          </p>
+                          <p className="text-[9px] text-gray-600 mt-0.5">
+                            {challan.consignor.address}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <div className="inline-block border-2 border-black px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wider mb-1 bg-gray-100">
+                          DELIVERY CHALLAN
+                        </div>
+                        <div className="font-mono text-sm font-bold text-black">{challan.challanNumber}</div>
+                        <div className="text-[10px] text-gray-700">Challan Date: {challan.challanDate}</div>
+                        <div className="text-[10px] text-gray-700 font-mono">Invoice: {challan.invoiceNumber}</div>
+                      </div>
+                    </div>
+
+                    {/* Consignor / Consignee / Transport Grid */}
+                    <div className="grid grid-cols-2 gap-4 mb-4 border border-black p-3 bg-gray-50/50 text-[10px]">
+                      <div>
+                        <span className="font-bold uppercase text-gray-700 block mb-1">CONSIGNOR (FROM)</span>
+                        <div className="font-bold text-black">{challan.consignor.name}</div>
+                        <div>{challan.consignor.address}</div>
+                        <div>GSTIN: {challan.consignor.gstin} | Phone: {challan.consignor.phone}</div>
+
+                        <span className="font-bold uppercase text-gray-700 block mt-3 mb-1">CONSIGNEE (TO)</span>
+                        <div className="font-bold text-black text-[11px]">{challan.consignee.name}</div>
+                        <div>Phone: {challan.consignee.phone}</div>
+                        <div>{challan.consignee.formattedAddress}</div>
+                      </div>
+                      <div>
+                        <span className="font-bold uppercase text-gray-700 block mb-1">TRANSPORT & MOVEMENT PARTICULARS</span>
+                        <div className="space-y-1">
+                          <div><strong>Carrier / Logistics:</strong> {challan.transportDetails.carrier}</div>
+                          <div><strong>Tracking / AWB No:</strong> {challan.transportDetails.trackingNumber}</div>
+                          <div><strong>Mode of Transport:</strong> {challan.transportDetails.modeOfTransport}</div>
+                          <div><strong>Place of Supply:</strong> {challan.transportDetails.placeOfSupply}</div>
+                          <div className="pt-2 text-[9px] text-gray-600 italic">
+                            <strong>Reason:</strong> {challan.reasonForTransport}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Goods Description Table */}
+                    <table className="w-full text-left border-collapse border border-black mb-4">
+                      <thead>
+                        <tr className="bg-gray-100 border-b border-black text-[10px] font-bold uppercase">
+                          <th className="p-2 border-r border-black w-8 text-center">#</th>
+                          <th className="p-2 border-r border-black w-24">SKU</th>
+                          <th className="p-2 border-r border-black">Description of Goods</th>
+                          <th className="p-2 border-r border-black text-center w-16">HSN</th>
+                          <th className="p-2 border-r border-black text-center w-16">Pack Size</th>
+                          <th className="p-2 border-r border-black text-center w-12">Qty</th>
+                          <th className="p-2 border-r border-black text-center w-12">UOM</th>
+                          <th className="p-2 text-right w-20">Value (₹)</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-300 text-[11px]">
+                        {challan.items.map((it: any) => (
+                          <tr key={it.sNo}>
+                            <td className="p-2 border-r border-black text-center text-gray-600">{it.sNo}</td>
+                            <td className="p-2 border-r border-black font-mono font-bold text-[10px]">{it.sku}</td>
+                            <td className="p-2 border-r border-black font-semibold text-black">
+                              {it.productNameEn}
+                              {it.productNameTa && <span className="block text-[10px] font-normal text-gray-700">{it.productNameTa}</span>}
+                            </td>
+                            <td className="p-2 border-r border-black text-center font-mono text-[10px]">{it.hsnCode}</td>
+                            <td className="p-2 border-r border-black text-center">{it.packSize}</td>
+                            <td className="p-2 border-r border-black text-center font-bold">{it.quantity}</td>
+                            <td className="p-2 border-r border-black text-center">{it.uom}</td>
+                            <td className="p-2 text-right font-bold">₹{it.totalValue}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                      <tfoot>
+                        <tr className="bg-gray-100 font-bold border-t-2 border-black text-[11px]">
+                          <td colSpan={5} className="p-2 text-right border-r border-black">Total Dispatched Quantity / Value:</td>
+                          <td className="p-2 text-center border-r border-black">{challan.totalQuantity}</td>
+                          <td className="p-2 text-center border-r border-black">Packs</td>
+                          <td className="p-2 text-right">₹{challan.total}</td>
+                        </tr>
+                      </tfoot>
+                    </table>
+
+                    {/* Declaration & Signatures */}
+                    <div className="border border-black p-3 mb-4 bg-gray-50/50 text-[10px]">
+                      <p className="font-semibold text-black">Statutory Declaration:</p>
+                      <p>{challan.declaration}</p>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-8 border-t border-dashed border-gray-400 pt-4 text-[10px]">
+                      <div>
+                        <p className="font-semibold text-black">Dispatched By (Warehouse Logistics):</p>
+                        <div className="h-10 border-b border-gray-400 mb-1"></div>
+                        <p className="text-gray-600">TRINAYAA Erode Fulfillment Centre</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-semibold text-black">Consignee Acknowledgment / Receiver:</p>
+                        <div className="h-10 border-b border-gray-400 mb-1"></div>
+                        <p className="text-gray-600">Signature & Date of Receipt</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {activeDocTab === "all" && <div className="page-break my-6 no-print border-b-2 border-dashed border-gray-400" />}
+
+                {/* TAB 4: PARCEL / PACKING STICKER (4x6 THERMAL LABEL FORMAT) */}
+                {(activeDocTab === "sticker" || activeDocTab === "all") && sticker && (
+                  <div className="flex flex-col items-center">
+                    <div className="text-[11px] text-gray-500 mb-2 font-medium no-print">
+                      Thermal Shipping Label (4" × 6" Format) • Barcode & High-Visibility PIN
+                    </div>
+                    <div
+                      className="bg-white border-2 border-black p-4 rounded shadow-md w-full max-w-[384px] text-black font-sans leading-tight text-xs print:border-black print:shadow-none mb-8"
+                      style={{ minHeight: "560px" }}
+                    >
+                      {/* Thermal Label Header */}
+                      <div className="border-b-2 border-black pb-2 mb-2 flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <img src="/images/brand/emblem_crisp.png" alt="TRINAYAA" className="w-7 h-7 object-contain" />
+                          <div>
+                            <span className="font-serif font-bold text-sm tracking-wide block">TRINAYAA</span>
+                            <span className="text-[8px] uppercase tracking-wider text-gray-700">Botanical Express</span>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <span className="text-[9px] font-mono font-bold">{sticker.routing.originHub}</span>
+                          <span className="block text-[8px] text-gray-600">{sticker.routing.carrier}</span>
+                        </div>
+                      </div>
+
+                      {/* Payment Callout Badge */}
+                      <div
+                        className={`border-2 border-black p-2 text-center font-bold mb-3 ${
+                          sticker.payment.isCod ? "bg-amber-100" : "bg-emerald-50"
+                        }`}
+                      >
+                        <div className="text-sm tracking-wider uppercase font-black">
+                          {sticker.payment.badgeText}
+                        </div>
+                        <div className="text-xs mt-0.5 tracking-tight font-black">
+                          {sticker.payment.collectDisplay}
+                        </div>
+                      </div>
+
+                      {/* Destination / Consignee Address */}
+                      <div className="border border-black p-2.5 mb-2.5 bg-gray-50/50">
+                        <div className="text-[9px] uppercase font-bold text-gray-700 border-b border-gray-300 pb-0.5 mb-1">
+                          SHIP TO / CONSIGNEE:
+                        </div>
+                        <div className="text-base font-black tracking-tight text-black">{sticker.to.name}</div>
+                        <div className="text-xs font-bold text-gray-900 mt-0.5">📞 {sticker.to.phone}</div>
+                        <div className="text-[11px] text-gray-800 mt-1 leading-snug">
+                          {sticker.to.formattedAddress}
+                        </div>
+                        {/* Prominent PIN CODE banner */}
+                        <div className="mt-2.5 bg-black text-white px-2 py-1 text-center font-mono font-black text-sm tracking-widest rounded-xs">
+                          PIN: {sticker.to.pinCode}
+                        </div>
+                      </div>
+
+                      {/* Barcode & Tracking Area */}
+                      <div className="border border-black p-2 text-center mb-2.5">
+                        <div className="text-[9px] text-gray-600 font-mono">AWB / TRACKING NUMBER</div>
+                        <div className="font-mono text-sm font-black tracking-widest my-1">
+                          {sticker.routing.trackingNumber}
+                        </div>
+                        {/* CSS simulated barcode */}
+                        <div className="font-mono text-lg font-bold tracking-widest bg-gray-100 py-1 border border-dashed border-gray-400">
+                          {sticker.barcodeData.orderNumberBarcode}
+                        </div>
+                        <div className="text-[8px] text-gray-500 font-mono mt-0.5">ORDER #{sticker.orderNumber}</div>
+                      </div>
+
+                      {/* Manifest Brief & Package Summary */}
+                      <div className="border border-black p-2 text-[9px] mb-2 space-y-0.5">
+                        <div className="flex justify-between font-bold">
+                          <span>Contents: {sticker.packageSummary.totalPieces} Botanical Packs</span>
+                          <span>Est. Weight: ~{sticker.packageSummary.weightGrams}g</span>
+                        </div>
+                        <div className="text-gray-600 truncate">
+                          Items: {sticker.packageSummary.itemManifest.map((m: any) => `${m.name} (${m.packSize})`).join(", ")}
+                        </div>
+                      </div>
+
+                      {/* Shipper Origin / Return Address */}
+                      <div className="border-t border-black pt-1.5 text-[8px] text-gray-700 flex justify-between items-end">
+                        <div>
+                          <strong>RETURN / FROM:</strong><br />
+                          {sticker.from.name}, Erode, TN - 638011<br />
+                          Ph: +91 94422 18990
+                        </div>
+                        <div className="text-right font-mono font-bold text-[9px]">
+                          {sticker.stickerNumber}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* TAB 5: FIFTH DOCUMENT INVESTIGATION & STATUS */}
+                {activeDocTab === "gap" && (
+                  <div className="bg-white border border-slate-300 p-6 rounded-xl shadow-xs max-w-[760px] mx-auto text-black font-sans leading-relaxed text-xs">
+                    <div className="flex items-center gap-3 border-b border-gray-200 pb-3 mb-4">
+                      <div className="w-10 h-10 rounded-lg bg-amber-500/10 text-amber-800 flex items-center justify-center shrink-0">
+                        <Info size={20} />
+                      </div>
+                      <div>
+                        <h2 className="text-base font-bold font-serif text-[#123D28]">
+                          Fifth Fulfilment Document Investigation & Status
+                        </h2>
+                        <p className="text-[11px] text-gray-600">
+                          Pre-implementation audit of client materials, screenshots & e-commerce dispatch standards
                         </p>
                       </div>
                     </div>
-                    <p className="text-[10px] text-gray-600 mt-1">
-                      Registered Dispatch Unit: Main Road, Erode, Tamil Nadu — 638001 | trinayaa.in | +91 98432 00111
-                    </p>
-                  </div>
-                  <div className="text-right shrink-0">
-                    <div className="inline-block border border-black px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider mb-1 bg-gray-50">
-                      SHIPPING SLIP & INVOICE
-                    </div>
-                    <div className="font-mono text-sm font-bold text-black">{slip.orderNumber}</div>
-                    <div className="text-[10px] text-gray-700">Date: {slip.orderDate}</div>
-                  </div>
-                </div>
 
-                {/* 2-Column Delivery & Order Details */}
-                <div className="grid grid-cols-2 gap-4 mb-4 border border-black p-3 bg-white">
-                  <div>
-                    <h3 className="font-bold uppercase tracking-wider text-[10px] text-gray-700 border-b border-gray-300 pb-1 mb-1.5">
-                      CONSIGNEE / DELIVERY ADDRESS
-                    </h3>
-                    <div className="text-sm font-bold text-black">{slip.customerName}</div>
-                    <div className="text-[11px] font-semibold text-gray-800">Phone: {slip.customerPhone}</div>
-                    {slip.customerEmail && <div className="text-[10px] text-gray-600">Email: {slip.customerEmail}</div>}
-                    <div className="mt-1 text-[11px] text-gray-900 whitespace-pre-line leading-snug">
-                      {slip.formattedAddress}
-                    </div>
-                  </div>
-                  <div>
-                    <h3 className="font-bold uppercase tracking-wider text-[10px] text-gray-700 border-b border-gray-300 pb-1 mb-1.5">
-                      DISPATCH & PAYMENT DETAILS
-                    </h3>
-                    <div className="grid grid-cols-2 gap-x-2 gap-y-1 text-[10px]">
-                      <span className="text-gray-600">Payment Method:</span>
-                      <strong className="text-black">{slip.paymentMethod}</strong>
-                      <span className="text-gray-600">Payment Status:</span>
-                      <strong className="text-black uppercase">{slip.paymentStatus}</strong>
-                      <span className="text-gray-600">Fulfilment Status:</span>
-                      <strong className="text-black">{slip.orderStatus}</strong>
-                      <span className="text-gray-600">Carrier Partner:</span>
-                      <strong className="text-black">{slip.carrier || "Standard Dispatch"}</strong>
-                      <span className="text-gray-600">AWB / Tracking #:</span>
-                      <strong className="text-black font-mono">{slip.trackingNumber || "Pending"}</strong>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Ordered Items Table */}
-                <table className="w-full text-left border-collapse border border-black mb-4">
-                  <thead>
-                    <tr className="bg-gray-100 border-b border-black text-[10px] font-bold uppercase">
-                      <th className="p-2 border-r border-black w-8 text-center">#</th>
-                      <th className="p-2 border-r border-black w-24">SKU</th>
-                      <th className="p-2 border-r border-black">Botanical Description</th>
-                      <th className="p-2 border-r border-black text-center w-16">Pack</th>
-                      <th className="p-2 border-r border-black text-center w-12">Qty</th>
-                      <th className="p-2 border-r border-black text-right w-16">Price</th>
-                      <th className="p-2 text-right w-20">Subtotal</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-300 text-[11px]">
-                    {slip.items.map((it: any, idx: number) => (
-                      <tr key={it.id || idx}>
-                        <td className="p-2 border-r border-black text-center text-gray-600">{idx + 1}</td>
-                        <td className="p-2 border-r border-black font-mono font-bold text-[10px]">{it.sku}</td>
-                        <td className="p-2 border-r border-black font-semibold text-black">
-                          {it.productNameEn}
-                          {it.productNameTa && (
-                            <span className="block text-[10px] font-normal text-gray-700">{it.productNameTa}</span>
-                          )}
-                        </td>
-                        <td className="p-2 border-r border-black text-center">{it.packSize}</td>
-                        <td className="p-2 border-r border-black text-center font-bold">{it.quantity}</td>
-                        <td className="p-2 border-r border-black text-right">₹{it.price}</td>
-                        <td className="p-2 text-right font-bold">₹{it.subtotal}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-
-                {/* Financial Summary */}
-                <div className="flex justify-end mb-4">
-                  <div className="w-64 border border-black p-2 bg-gray-50 space-y-1 text-[11px]">
-                    <div className="flex justify-between text-gray-700">
-                      <span>Merchandise Subtotal:</span>
-                      <span>₹{slip.subtotal}</span>
-                    </div>
-                    {slip.discountAmount > 0 && (
-                      <div className="flex justify-between text-rose-700">
-                        <span>Promotional Discount:</span>
-                        <span>-₹{slip.discountAmount}</span>
+                    <div className="space-y-4 text-xs">
+                      <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-lg">
+                        <h3 className="font-bold text-emerald-900 mb-1 flex items-center gap-1.5">
+                          <CheckCircle2 size={14} /> Four Verified & Active Documents Implemented:
+                        </h3>
+                        <ol className="list-decimal list-inside space-y-1 text-emerald-800 text-[11px]">
+                          <li><strong>Shipping Slip:</strong> Warehouse packing checklist, SKU breakdown, consignee delivery details (Seq: <span className="font-mono">TRN-SHIP-YYYY-XXXXX</span>).</li>
+                          <li><strong>Customer Invoice:</strong> Statutory sales/tax invoice with HSN 121190, CGST/SGST 2.5%, amount in words (Seq: <span className="font-mono">TRN-INV-YYYY-XXXXX</span>).</li>
+                          <li><strong>Delivery Challan:</strong> Goods movement document under Rule 55 of CGST Rules 2017 with consignee acknowledgement (Seq: <span className="font-mono">TRN-DC-YYYY-XXXXX</span>).</li>
+                          <li><strong>Parcel Sticker:</strong> 4"x6" thermal label format with bold recipient PIN, COD collect callout, barcode (Seq: <span className="font-mono">TRN-LBL-YYYY-XXXXX</span>).</li>
+                        </ol>
                       </div>
-                    )}
-                    <div className="flex justify-between text-gray-700">
-                      <span>Shipping Charges:</span>
-                      <span>{slip.shippingFee === 0 ? "FREE" : `₹${slip.shippingFee}`}</span>
-                    </div>
-                    <div className="flex justify-between font-bold border-t border-black pt-1 text-xs text-black">
-                      <span>Total Payable Amount:</span>
-                      <span>₹{slip.total}</span>
-                    </div>
-                  </div>
-                </div>
 
-                {/* Footer and Signatory */}
-                <div className="border-t border-dashed border-gray-400 pt-3 text-[10px] text-gray-600 flex justify-between items-end">
-                  <div>
-                    <p className="font-semibold text-black">Sender & Return Address:</p>
-                    <p>TRINAYAA Botanical Enterprises, Main Road, Erode, Tamil Nadu 638001</p>
-                    <p className="italic text-[9px] text-gray-500 mt-1">Thank you for choosing pure TRINAYAA botanicals.</p>
+                      <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                        <h3 className="font-bold text-amber-900 mb-1 flex items-center gap-1.5">
+                          <AlertTriangle size={14} /> Fifth Document Status — No Assumed Invention:
+                        </h3>
+                        <p className="text-amber-800 text-[11px] leading-relaxed">
+                          In strict accordance with Phase 5 instructions (<em>"Do not invent the fifth document. Inspect available client reference materials... If it cannot be identified, document the gap and request clarification"</em>), the 5th document slot has been intentionally left open.
+                        </p>
+                        <div className="mt-2 text-amber-900 font-semibold text-[11px]">Candidate Options for Client Confirmation:</div>
+                        <ul className="list-disc list-inside space-y-1 text-amber-800 text-[11px] mt-1">
+                          <li><strong>Option A: Transporter / Courier Manifest</strong> (Multi-order batch handover sheet for courier pickup).</li>
+                          <li><strong>Option B: Warehouse Picking / Bin List</strong> (Order picking slip with inventory bin locations).</li>
+                          <li><strong>Option C: Customer Return & Exchange Form</strong> (Enclosed return instructions & policy slip).</li>
+                        </ul>
+                      </div>
+                    </div>
                   </div>
-                  <div className="text-right">
-                    <p className="font-semibold text-black">Authorized Signatory</p>
-                    <div className="h-6"></div>
-                    <p className="font-mono text-[9px] text-gray-700">TRINAYAA DISPATCH UNIT</p>
-                  </div>
-                </div>
+                )}
               </div>
             )}
           </div>
@@ -3762,3 +4289,6 @@ function ShippingSlipModal({
     </>
   );
 }
+
+// Backward-compatible alias for existing callers
+export const ShippingSlipModal = OrderDocumentStudioModal;

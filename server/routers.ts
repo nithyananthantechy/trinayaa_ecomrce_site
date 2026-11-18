@@ -1440,6 +1440,27 @@ addresses: router({
         }
         return order;
       }),
+
+    getMyInvoice: protectedProcedure
+      .input(z.object({ orderNumber: z.string() }))
+      .query(async ({ input, ctx }) => {
+        const invoice = db.ordersRepo.getCustomerInvoice(input.orderNumber);
+        if (!invoice) {
+          throw new TRPCError({ code: "NOT_FOUND", message: `Invoice for order ${input.orderNumber} not found.` });
+        }
+        const role = (ctx.user.role || "").toUpperCase();
+        const isAdmin = role === "ADMIN" || role === "SUPER_ADMIN" || role === "STORE_ADMIN";
+        const isOwner =
+          invoice.buyerDetails?.customerId === String(ctx.user.id) ||
+          invoice.orderId === String(ctx.user.id) ||
+          (ctx.user.email && invoice.buyerDetails?.customerEmail?.toLowerCase() === ctx.user.email.toLowerCase()) ||
+          (ctx.user.phone && invoice.buyerDetails?.customerPhone === ctx.user.phone);
+
+        if (!isAdmin && !isOwner) {
+          throw new TRPCError({ code: "FORBIDDEN", message: "You are not authorized to view this invoice." });
+        }
+        return invoice;
+      }),
   }),
 
   // ==========================================
@@ -2102,16 +2123,82 @@ addresses: router({
       getShippingSlip: adminProcedure
         .input(z.object({ orderNumber: z.string() }))
         .query(async ({ input, ctx }) => {
-          const slip = db.ordersRepo.getShippingSlip(input.orderNumber);
+          const slip = db.ordersRepo.getShippingSlip(input.orderNumber, ctx.user?.name || "Admin");
           if (!slip) {
             throw new TRPCError({ code: "NOT_FOUND", message: `Order ${input.orderNumber} not found` });
           }
           db.auditLogsRepo.log(
             ctx.user?.name || "Admin",
             "SHIPPING_SLIP_VIEW",
-            `Viewed shipping slip for ${slip.orderNumber}`
+            `Viewed shipping slip for ${slip.orderNumber} (${slip.documentNumber})`
           );
           return slip;
+        }),
+
+      getInvoice: adminProcedure
+        .input(z.object({ orderNumber: z.string() }))
+        .query(async ({ input, ctx }) => {
+          const invoice = db.ordersRepo.getCustomerInvoice(input.orderNumber, ctx.user?.name || "Admin");
+          if (!invoice) {
+            throw new TRPCError({ code: "NOT_FOUND", message: `Order ${input.orderNumber} not found` });
+          }
+          db.auditLogsRepo.log(
+            ctx.user?.name || "Admin",
+            "INVOICE_VIEW",
+            `Viewed customer invoice for ${invoice.orderNumber} (${invoice.invoiceNumber})`
+          );
+          return invoice;
+        }),
+
+      getDeliveryChallan: adminProcedure
+        .input(z.object({ orderNumber: z.string() }))
+        .query(async ({ input, ctx }) => {
+          const challan = db.ordersRepo.getDeliveryChallan(input.orderNumber, ctx.user?.name || "Admin");
+          if (!challan) {
+            throw new TRPCError({ code: "NOT_FOUND", message: `Order ${input.orderNumber} not found` });
+          }
+          db.auditLogsRepo.log(
+            ctx.user?.name || "Admin",
+            "DELIVERY_CHALLAN_VIEW",
+            `Viewed delivery challan for ${challan.orderNumber} (${challan.challanNumber})`
+          );
+          return challan;
+        }),
+
+      getPackingSticker: adminProcedure
+        .input(z.object({ orderNumber: z.string() }))
+        .query(async ({ input, ctx }) => {
+          const sticker = db.ordersRepo.getPackingSticker(input.orderNumber, ctx.user?.name || "Admin");
+          if (!sticker) {
+            throw new TRPCError({ code: "NOT_FOUND", message: `Order ${input.orderNumber} not found` });
+          }
+          db.auditLogsRepo.log(
+            ctx.user?.name || "Admin",
+            "PACKING_STICKER_VIEW",
+            `Viewed packing sticker for ${sticker.orderNumber} (${sticker.stickerNumber})`
+          );
+          return sticker;
+        }),
+
+      getAllDocuments: adminProcedure
+        .input(z.object({ orderNumber: z.string() }))
+        .query(async ({ input, ctx }) => {
+          const bundle = db.ordersRepo.getAllDocuments(input.orderNumber, ctx.user?.name || "Admin");
+          if (!bundle) {
+            throw new TRPCError({ code: "NOT_FOUND", message: `Order ${input.orderNumber} not found` });
+          }
+          db.auditLogsRepo.log(
+            ctx.user?.name || "Admin",
+            "ALL_DOCUMENTS_VIEW",
+            `Viewed complete fulfilment document bundle for ${bundle.orderNumber}`
+          );
+          return bundle;
+        }),
+
+      listDocuments: adminProcedure
+        .input(z.object({ orderNumber: z.string() }))
+        .query(async ({ input }) => {
+          return db.orderDocumentsRepo.listByOrder(input.orderNumber);
         }),
     }),
 
