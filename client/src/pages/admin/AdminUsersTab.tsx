@@ -19,14 +19,17 @@ import {
   Phone,
   Mail,
   Calendar,
+  Store,
+  MapPin,
 } from "lucide-react";
 
 export default function AdminUsersTab() {
   const { data: admins = [], refetch, isLoading } = trpc.admin.adminUsers.list.useQuery();
   const { data: currentUser } = trpc.auth.me.useQuery();
+  const { data: branches = [] } = trpc.admin.retail.branches.list.useQuery();
 
   const [searchTerm, setSearchTerm] = useState("");
-  const [roleFilter, setRoleFilter] = useState<"ALL" | "SUPER_ADMIN" | "ADMIN">("ALL");
+  const [roleFilter, setRoleFilter] = useState<"ALL" | "SUPER_ADMIN" | "ADMIN" | "RETAIL_SHOP_HANDLER">("ALL");
 
   // Modals state
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -38,7 +41,8 @@ export default function AdminUsersTab() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [phone, setPhone] = useState("");
-  const [role, setRole] = useState<"ADMIN" | "SUPER_ADMIN">("ADMIN");
+  const [role, setRole] = useState<"ADMIN" | "SUPER_ADMIN" | "RETAIL_SHOP_HANDLER">("ADMIN");
+  const [selectedBranchId, setSelectedBranchId] = useState<string>("brn_erode_hq");
 
   // Form state for password reset
   const [newPassword, setNewPassword] = useState("");
@@ -248,10 +252,21 @@ export default function AdminUsersTab() {
                       </td>
 
                       <td className="py-3 px-4">
-                        {isSuperAdmin ? (
+                        {adm.role === "SUPER_ADMIN" ? (
                           <span className="inline-flex items-center gap-1 text-[10px] bg-emerald-100 text-emerald-800 border border-emerald-300 font-bold px-2 py-0.5 rounded-full">
                             <Crown size={11} className="text-emerald-700" /> SUPER ADMIN (FOUNDER)
                           </span>
+                        ) : adm.role === "RETAIL_SHOP_HANDLER" ? (
+                          <div className="space-y-0.5">
+                            <span className="inline-flex items-center gap-1 text-[10px] bg-amber-100 text-amber-900 border border-amber-300 font-bold px-2 py-0.5 rounded-full">
+                              <Store size={11} className="text-amber-800" /> RETAIL SHOP HANDLER
+                            </span>
+                            {adm.branchName && (
+                              <div className="text-[10px] text-[#64748B] font-medium flex items-center gap-1">
+                                <MapPin size={10} /> {adm.branchName}
+                              </div>
+                            )}
+                          </div>
                         ) : (
                           <span className="inline-flex items-center gap-1 text-[10px] bg-blue-100 text-blue-800 border border-blue-300 font-bold px-2 py-0.5 rounded-full">
                             <Building size={11} className="text-blue-700" /> STORE ADMIN
@@ -309,6 +324,7 @@ export default function AdminUsersTab() {
                           >
                             <option value="SUPER_ADMIN">Super Admin</option>
                             <option value="ADMIN">Standard Admin</option>
+                            <option value="RETAIL_SHOP_HANDLER">Retail Shop Handler</option>
                           </select>
 
                           {/* Reset Password Button */}
@@ -401,6 +417,7 @@ export default function AdminUsersTab() {
                   password,
                   role,
                   phone: phone.trim() || undefined,
+                  branchId: role === "RETAIL_SHOP_HANDLER" ? selectedBranchId : undefined,
                 });
               }}
               className="space-y-4 text-xs"
@@ -418,7 +435,7 @@ export default function AdminUsersTab() {
               </div>
 
               <div>
-                <label className="block font-semibold text-[#123D28] mb-1">Admin Email Address *</label>
+                <label className="block font-semibold text-[#123D28] mb-1">Staff / Admin Email Address *</label>
                 <input
                   type="email"
                   required
@@ -428,7 +445,7 @@ export default function AdminUsersTab() {
                   className="w-full px-3 py-2 border border-[#DEDFD5] rounded-lg bg-[#FBF8F0] focus:outline-none focus:ring-1 focus:ring-[#123D28]"
                 />
                 <span className="text-[10px] text-[#6C7167] mt-0.5 block">
-                  Used to sign into the TRINAYAA Admin Console at <code className="bg-slate-100 px-1 py-0.2 rounded font-mono">/admin/login</code>
+                  Used to sign into the TRINAYAA Admin Console at <code className="bg-slate-100 px-1 py-0.2 rounded font-mono">/admin/login</code> or Retail POS at <code className="bg-slate-100 px-1 py-0.2 rounded font-mono">/retail/login</code>
                 </span>
               </div>
 
@@ -467,7 +484,7 @@ export default function AdminUsersTab() {
 
               <div>
                 <label className="block font-semibold text-[#123D28] mb-1.5">Administrative Role &amp; Permissions *</label>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
                   <div
                     onClick={() => setRole("ADMIN")}
                     className={`p-3 rounded-xl border cursor-pointer transition-all ${
@@ -499,8 +516,47 @@ export default function AdminUsersTab() {
                       Full executive privileges: Staff management, policies, settings, and finances.
                     </p>
                   </div>
+
+                  <div
+                    onClick={() => setRole("RETAIL_SHOP_HANDLER")}
+                    className={`p-3 rounded-xl border cursor-pointer transition-all ${
+                      role === "RETAIL_SHOP_HANDLER"
+                        ? "border-amber-700 bg-amber-50/60 shadow-xs"
+                        : "border-[#DEDFD5] bg-white hover:bg-[#FAF8F2]"
+                    }`}
+                  >
+                    <div className="flex items-center gap-1.5 font-bold text-amber-950">
+                      <Store size={14} className="text-amber-800" /> Retail Handler
+                    </div>
+                    <p className="text-[10px] text-[#6C7167] mt-1">
+                      Physical branch POS billing, offline receipts, and branch inventory.
+                    </p>
+                  </div>
                 </div>
               </div>
+
+              {role === "RETAIL_SHOP_HANDLER" && (
+                <div className="p-3 bg-amber-50/60 border border-amber-200 rounded-xl space-y-1.5 animate-in fade-in duration-200">
+                  <label className="block font-bold text-amber-950">
+                    <MapPin size={13} className="inline mr-1 text-amber-800" />
+                    Assign to Physical Retail Branch *
+                  </label>
+                  <select
+                    value={selectedBranchId}
+                    onChange={(e) => setSelectedBranchId(e.target.value)}
+                    className="w-full p-2 bg-white border border-amber-300 rounded-md font-semibold text-xs text-[#0F172A] focus:outline-none focus:border-[#123D28]"
+                  >
+                    {branches.map((b: any) => (
+                      <option key={b.id} value={b.id}>
+                        {b.name} ({b.code}) - {b.city}
+                      </option>
+                    ))}
+                  </select>
+                  <span className="text-[10px] text-amber-900 block">
+                    The handler will be restricted to billing and checking stock for this physical outlet.
+                  </span>
+                </div>
+              )}
 
               <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-[#DEDFD5]">
                 <button

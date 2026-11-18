@@ -13,6 +13,8 @@ import About from "./pages/About";
 import Contact from "./pages/Contact";
 import AdminLogin from "./pages/admin/AdminLogin";
 import AdminDashboard from "./pages/admin/AdminDashboard";
+import RetailLogin from "./pages/retail/RetailLogin";
+import RetailPortal from "./pages/retail/RetailPortal";
 import BulkEnquiryPage from "./pages/BulkEnquiryPage";
 import CustomerAccountPage from "./pages/CustomerAccountPage";
 import ProductEnquiryPage from "./pages/ProductEnquiryPage";
@@ -37,6 +39,9 @@ function Router() {
       <Route path="/admin/login" component={AdminLogin} />
       <Route path="/admin" component={AdminDashboard} />
       <Route path="/admin/:sub*" component={AdminDashboard} />
+      <Route path="/retail/login" component={RetailLogin} />
+      <Route path="/retail" component={RetailPortal} />
+      <Route path="/retail/:sub*" component={RetailPortal} />
       <Route path="/404" component={NotFound} />
       <Route component={NotFound} />
     </Switch>

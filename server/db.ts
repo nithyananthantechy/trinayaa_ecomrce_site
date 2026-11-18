@@ -372,6 +372,121 @@ function initTables(db: any) {
     CREATE INDEX IF NOT EXISTS idx_product_enquiries_num ON product_enquiries(enquiry_number);
     CREATE INDEX IF NOT EXISTS idx_product_enquiries_status ON product_enquiries(status);
     CREATE INDEX IF NOT EXISTS idx_product_enquiries_created ON product_enquiries(created_at);
+
+    -- ==========================================
+    -- RETAIL BRANCHES & WAREHOUSES (PHASE 4)
+    -- ==========================================
+    CREATE TABLE IF NOT EXISTS retail_branches (
+      id TEXT PRIMARY KEY,
+      code TEXT UNIQUE NOT NULL,
+      name TEXT NOT NULL,
+      address TEXT NOT NULL,
+      city TEXT NOT NULL,
+      state TEXT NOT NULL DEFAULT 'Tamil Nadu',
+      pin_code TEXT NOT NULL,
+      phone TEXT NOT NULL,
+      email TEXT,
+      is_active INTEGER NOT NULL DEFAULT 1,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS retail_branch_stock (
+      id TEXT PRIMARY KEY,
+      branch_id TEXT NOT NULL,
+      product_id TEXT NOT NULL,
+      variant_id TEXT,
+      sku TEXT NOT NULL,
+      stock_quantity INTEGER NOT NULL DEFAULT 50,
+      low_stock_threshold INTEGER NOT NULL DEFAULT 10,
+      updated_at TEXT NOT NULL,
+      FOREIGN KEY (branch_id) REFERENCES retail_branches(id) ON DELETE CASCADE,
+      FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE,
+      UNIQUE(branch_id, product_id, sku)
+    );
+
+    CREATE TABLE IF NOT EXISTS retail_stock_movements (
+      id TEXT PRIMARY KEY,
+      branch_id TEXT NOT NULL,
+      product_id TEXT NOT NULL,
+      sku TEXT NOT NULL,
+      change_type TEXT NOT NULL,
+      delta INTEGER NOT NULL,
+      previous_stock INTEGER NOT NULL,
+      new_stock INTEGER NOT NULL,
+      reference_id TEXT,
+      reason TEXT,
+      performed_by TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      FOREIGN KEY (branch_id) REFERENCES retail_branches(id) ON DELETE CASCADE,
+      FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE
+    );
+
+    CREATE TABLE IF NOT EXISTS retail_stock_adjustments (
+      id TEXT PRIMARY KEY,
+      adjustment_number TEXT UNIQUE NOT NULL,
+      branch_id TEXT NOT NULL,
+      product_id TEXT NOT NULL,
+      sku TEXT NOT NULL,
+      requested_delta INTEGER NOT NULL,
+      reason TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'PENDING',
+      requested_by TEXT NOT NULL,
+      reviewed_by TEXT,
+      reviewed_at TEXT,
+      admin_notes TEXT,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      FOREIGN KEY (branch_id) REFERENCES retail_branches(id) ON DELETE CASCADE,
+      FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE
+    );
+
+    CREATE TABLE IF NOT EXISTS retail_sales (
+      id TEXT PRIMARY KEY,
+      invoice_number TEXT UNIQUE NOT NULL,
+      branch_id TEXT NOT NULL,
+      handler_id TEXT NOT NULL,
+      handler_name TEXT NOT NULL,
+      customer_name TEXT NOT NULL DEFAULT 'Walk-in Customer',
+      customer_phone TEXT,
+      customer_email TEXT,
+      subtotal REAL NOT NULL,
+      discount_amount REAL NOT NULL DEFAULT 0,
+      discount_reason TEXT,
+      tax_amount REAL NOT NULL DEFAULT 0,
+      total REAL NOT NULL,
+      payment_method TEXT NOT NULL,
+      payment_status TEXT NOT NULL DEFAULT 'PAID',
+      sale_status TEXT NOT NULL DEFAULT 'COMPLETED',
+      notes TEXT,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      FOREIGN KEY (branch_id) REFERENCES retail_branches(id),
+      FOREIGN KEY (handler_id) REFERENCES users(id)
+    );
+
+    CREATE TABLE IF NOT EXISTS retail_sale_items (
+      id TEXT PRIMARY KEY,
+      sale_id TEXT NOT NULL,
+      product_id TEXT NOT NULL,
+      product_name TEXT NOT NULL,
+      sku TEXT NOT NULL,
+      pack_size TEXT NOT NULL,
+      unit_price REAL NOT NULL,
+      quantity INTEGER NOT NULL,
+      total_price REAL NOT NULL,
+      created_at TEXT NOT NULL,
+      FOREIGN KEY (sale_id) REFERENCES retail_sales(id) ON DELETE CASCADE,
+      FOREIGN KEY (product_id) REFERENCES products(id)
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_retail_stock_branch ON retail_branch_stock(branch_id);
+    CREATE INDEX IF NOT EXISTS idx_retail_stock_prod ON retail_branch_stock(product_id);
+    CREATE INDEX IF NOT EXISTS idx_retail_sales_branch ON retail_sales(branch_id);
+    CREATE INDEX IF NOT EXISTS idx_retail_sales_inv ON retail_sales(invoice_number);
+    CREATE INDEX IF NOT EXISTS idx_retail_sales_created ON retail_sales(created_at);
+    CREATE INDEX IF NOT EXISTS idx_retail_movements_branch ON retail_stock_movements(branch_id, created_at);
+    CREATE INDEX IF NOT EXISTS idx_retail_adj_branch ON retail_stock_adjustments(branch_id, status);
   `);
 
   // Safe schema migrations for existing database tables
@@ -382,6 +497,8 @@ function initTables(db: any) {
       // Column or index already exists
     }
   };
+
+  safeAlter("ALTER TABLE users ADD COLUMN branchId TEXT;");
 
   safeAlter("ALTER TABLE customer_addresses ADD COLUMN addressLine1 TEXT;");
   safeAlter("ALTER TABLE customer_addresses ADD COLUMN addressLine2 TEXT;");
@@ -988,10 +1105,10 @@ export const usersRepo = {
 
   getById(id: string) {
     const db = getDatabase();
-    return db.prepare("SELECT id, email, name, phone, role, status, adminNotes, telegramId, createdAt, updatedAt FROM users WHERE id = ?").get(id) as any;
+    return db.prepare("SELECT id, email, name, phone, role, status, branchId, adminNotes, telegramId, createdAt, updatedAt FROM users WHERE id = ?").get(id) as any;
   },
 
-  create(data: { email: string; password: string; name: string; phone?: string; role?: string }) {
+  create(data: { email: string; password: string; name: string; phone?: string; role?: string; branchId?: string }) {
     const db = getDatabase();
     const id = "usr_" + Date.now() + "_" + Math.floor(Math.random() * 1000);
     const hash = hashPassword(data.password);
@@ -999,9 +1116,9 @@ export const usersRepo = {
     const email = data.email.toLowerCase().trim();
 
     db.prepare(`
-      INSERT INTO users (id, email, passwordHash, name, phone, role, status, createdAt, updatedAt)
-      VALUES (?, ?, ?, ?, ?, ?, 'ACTIVE', ?, ?)
-    `).run(id, email, hash, data.name, data.phone || "", data.role || "CUSTOMER", now, now);
+      INSERT INTO users (id, email, passwordHash, name, phone, role, status, branchId, createdAt, updatedAt)
+      VALUES (?, ?, ?, ?, ?, ?, 'ACTIVE', ?, ?, ?)
+    `).run(id, email, hash, data.name, data.phone || "", data.role || "CUSTOMER", data.branchId || null, now, now);
 
     return this.getById(id);
   },
@@ -1009,49 +1126,73 @@ export const usersRepo = {
   listAdmins() {
     const db = getDatabase();
     return db.prepare(`
-      SELECT id, email, name, phone, role, status, adminNotes, telegramId, createdAt, updatedAt
-      FROM users
-      WHERE role IN ('ADMIN', 'SUPER_ADMIN')
-      ORDER BY CASE role WHEN 'SUPER_ADMIN' THEN 1 ELSE 2 END, createdAt ASC
+      SELECT u.id, u.email, u.name, u.phone, u.role, u.status, u.branchId, u.adminNotes, u.telegramId, u.createdAt, u.updatedAt,
+             b.name as branchName, b.code as branchCode
+      FROM users u
+      LEFT JOIN retail_branches b ON u.branchId = b.id
+      WHERE u.role IN ('ADMIN', 'SUPER_ADMIN', 'RETAIL_SHOP_HANDLER')
+      ORDER BY CASE u.role WHEN 'SUPER_ADMIN' THEN 1 WHEN 'ADMIN' THEN 2 ELSE 3 END, u.createdAt ASC
     `).all() as any[];
   },
 
-  createAdminUser(data: { email: string; password: string; name: string; phone?: string; role?: string }) {
+  listRetailHandlers(branchId?: string) {
+    const db = getDatabase();
+    let sql = `
+      SELECT u.id, u.email, u.name, u.phone, u.role, u.status, u.branchId, u.createdAt, u.updatedAt,
+             b.name as branchName, b.code as branchCode
+      FROM users u
+      LEFT JOIN retail_branches b ON u.branchId = b.id
+      WHERE u.role = 'RETAIL_SHOP_HANDLER'
+    `;
+    const params: any[] = [];
+    if (branchId) {
+      sql += " AND u.branchId = ?";
+      params.push(branchId);
+    }
+    sql += " ORDER BY u.name ASC";
+    return db.prepare(sql).all(...params) as any[];
+  },
+
+  createAdminUser(data: { email: string; password: string; name: string; phone?: string; role?: string; branchId?: string }) {
     const db = getDatabase();
     const existing = this.getByEmail(data.email);
     if (existing) {
       throw new Error(`User with email "${data.email}" already exists`);
     }
-    const id = "usr_admin_" + Date.now() + "_" + Math.floor(Math.random() * 1000);
+    const id = "usr_staff_" + Date.now() + "_" + Math.floor(Math.random() * 1000);
     const hash = hashPassword(data.password);
     const now = new Date().toISOString();
     const email = data.email.toLowerCase().trim();
-    const role = (data.role || "").toUpperCase() === "SUPER_ADMIN" ? "SUPER_ADMIN" : "ADMIN";
+    let role = "ADMIN";
+    const reqRole = (data.role || "").toUpperCase();
+    if (reqRole === "SUPER_ADMIN") role = "SUPER_ADMIN";
+    else if (reqRole === "RETAIL_SHOP_HANDLER") role = "RETAIL_SHOP_HANDLER";
 
     db.prepare(`
-      INSERT INTO users (id, email, passwordHash, name, phone, role, status, createdAt, updatedAt)
-      VALUES (?, ?, ?, ?, ?, ?, 'ACTIVE', ?, ?)
-    `).run(id, email, hash, data.name.trim(), data.phone || "", role, now, now);
+      INSERT INTO users (id, email, passwordHash, name, phone, role, status, branchId, createdAt, updatedAt)
+      VALUES (?, ?, ?, ?, ?, ?, 'ACTIVE', ?, ?, ?)
+    `).run(id, email, hash, data.name.trim(), data.phone || "", role, data.branchId || null, now, now);
 
     return this.getById(id);
   },
 
-  updateAdminUser(id: string, data: { name?: string; phone?: string; role?: string; status?: string; newPassword?: string }) {
+  updateAdminUser(id: string, data: { name?: string; phone?: string; role?: string; status?: string; branchId?: string | null; newPassword?: string }) {
     const db = getDatabase();
     const existing = this.getById(id);
-    if (!existing) throw new Error("Administrator account not found");
+    if (!existing) throw new Error("Staff account not found");
 
     const now = new Date().toISOString();
     const name = data.name !== undefined ? data.name.trim() : existing.name;
     const phone = data.phone !== undefined ? data.phone : existing.phone;
     const role = data.role !== undefined ? data.role : existing.role;
     const status = data.status !== undefined ? data.status : existing.status;
+    const branchId = data.branchId !== undefined ? data.branchId : existing.branchId;
 
     db.prepare(`
       UPDATE users
-      SET name = ?, phone = ?, role = ?, status = ?, updatedAt = ?
+      SET name = ?, phone = ?, role = ?, status = ?, branchId = ?, updatedAt = ?
       WHERE id = ?
-    `).run(name, phone, role, status, now, id);
+    `).run(name, phone, role, status, branchId, now, id);
 
     if (data.newPassword && data.newPassword.trim().length >= 8) {
       const hash = hashPassword(data.newPassword.trim());
@@ -1063,7 +1204,7 @@ export const usersRepo = {
 
   deleteAdminUser(id: string) {
     const db = getDatabase();
-    const res = db.prepare("DELETE FROM users WHERE id = ? AND role IN ('ADMIN', 'SUPER_ADMIN')").run(id);
+    const res = db.prepare("DELETE FROM users WHERE id = ? AND role IN ('ADMIN', 'SUPER_ADMIN', 'RETAIL_SHOP_HANDLER')").run(id);
     return res.changes > 0;
   },
 
@@ -1848,7 +1989,16 @@ export const ordersRepo = {
   create(orderData: any, items: any[]) {
     const db = getDatabase();
     const id = "ord_" + Date.now() + "_" + Math.floor(Math.random() * 1000);
-    const orderNumber = orderData.orderNumber || "TRN-" + Math.floor(10000 + Math.random() * 90000);
+    let orderNumber = orderData.orderNumber;
+    if (!orderNumber) {
+      let candidate = "TRN-" + Math.floor(10000 + Math.random() * 90000);
+      let attempts = 0;
+      while (db.prepare("SELECT id FROM orders WHERE orderNumber = ?").get(candidate) && attempts < 20) {
+        candidate = "TRN-" + Math.floor(10000 + Math.random() * 90000);
+        attempts++;
+      }
+      orderNumber = candidate;
+    }
     const now = new Date().toISOString();
 
     db.prepare(`
@@ -5135,3 +5285,559 @@ export const productEnquiriesRepo = {
     return this.getById(id);
   },
 };
+
+// ==========================================
+// RETAIL OPERATIONS REPOSITORIES (PHASE 4)
+// ==========================================
+
+function formatBranch(row: any) {
+  if (!row) return null;
+  return {
+    id: row.id,
+    code: row.code,
+    name: row.name,
+    address: row.address,
+    city: row.city,
+    state: row.state,
+    pinCode: row.pin_code,
+    phone: row.phone,
+    email: row.email,
+    isActive: Boolean(row.is_active),
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
+
+export const retailBranchesRepo = {
+  getAll(includeInactive = false) {
+    const db = getDatabase();
+    const sql = includeInactive
+      ? "SELECT * FROM retail_branches ORDER BY name ASC"
+      : "SELECT * FROM retail_branches WHERE is_active = 1 ORDER BY name ASC";
+    const rows = db.prepare(sql).all() as any[];
+    return rows.map(formatBranch);
+  },
+
+  getById(id: string) {
+    const db = getDatabase();
+    const row = db.prepare("SELECT * FROM retail_branches WHERE id = ?").get(id) as any;
+    return row ? formatBranch(row) : null;
+  },
+
+  getByCode(code: string) {
+    const db = getDatabase();
+    const row = db.prepare("SELECT * FROM retail_branches WHERE UPPER(code) = ?").get(code.toUpperCase().trim()) as any;
+    return row ? formatBranch(row) : null;
+  },
+
+  create(data: { code: string; name: string; address: string; city: string; state?: string; pinCode: string; phone: string; email?: string }) {
+    const db = getDatabase();
+    const id = "brn_" + Date.now() + "_" + Math.floor(Math.random() * 1000);
+    const now = new Date().toISOString();
+    const code = data.code.toUpperCase().trim();
+    const existing = this.getByCode(code);
+    if (existing) {
+      throw new Error(`Branch with code "${code}" already exists`);
+    }
+    db.prepare(`
+      INSERT INTO retail_branches (id, code, name, address, city, state, pin_code, phone, email, is_active, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)
+    `).run(id, code, data.name.trim(), data.address.trim(), data.city.trim(), data.state || "Tamil Nadu", data.pinCode.trim(), data.phone.trim(), data.email?.trim() || null, now, now);
+
+    // Automatically seed all existing products into this new branch with initial stock
+    const prods = db.prepare("SELECT id, sku FROM products WHERE status != 'Archived'").all() as any[];
+    for (const p of prods) {
+      db.prepare(`
+        INSERT INTO retail_branch_stock (id, branch_id, product_id, sku, stock_quantity, low_stock_threshold, updated_at)
+        VALUES (?, ?, ?, ?, 50, 10, ?)
+        ON CONFLICT(branch_id, product_id, sku) DO NOTHING
+      `).run(`rbs_${id}_${p.id}`, id, p.id, p.sku, now);
+    }
+    return this.getById(id);
+  },
+
+  update(id: string, data: { name?: string; address?: string; city?: string; state?: string; pinCode?: string; phone?: string; email?: string; isActive?: number }) {
+    const db = getDatabase();
+    const existing = this.getById(id);
+    if (!existing) throw new Error("Branch not found");
+    const now = new Date().toISOString();
+    const fields: string[] = [];
+    const values: any[] = [];
+    if (data.name !== undefined) { fields.push("name = ?"); values.push(data.name.trim()); }
+    if (data.address !== undefined) { fields.push("address = ?"); values.push(data.address.trim()); }
+    if (data.city !== undefined) { fields.push("city = ?"); values.push(data.city.trim()); }
+    if (data.state !== undefined) { fields.push("state = ?"); values.push(data.state.trim()); }
+    if (data.pinCode !== undefined) { fields.push("pin_code = ?"); values.push(data.pinCode.trim()); }
+    if (data.phone !== undefined) { fields.push("phone = ?"); values.push(data.phone.trim()); }
+    if (data.email !== undefined) { fields.push("email = ?"); values.push(data.email?.trim() || null); }
+    if (data.isActive !== undefined) { fields.push("is_active = ?"); values.push(data.isActive); }
+    fields.push("updated_at = ?");
+    values.push(now);
+    values.push(id);
+    db.prepare(`UPDATE retail_branches SET ${fields.join(", ")} WHERE id = ?`).run(...values);
+    return this.getById(id);
+  }
+};
+
+export const retailStockRepo = {
+  getBranchStock(branchId: string, options: { search?: string; status?: string; limit?: number; offset?: number } = {}) {
+    const db = getDatabase();
+    let sql = `
+      SELECT s.id, s.branch_id as branchId, s.product_id as productId, s.sku, s.stock_quantity as stockQuantity,
+             s.low_stock_threshold as lowStockThreshold, s.updated_at as updatedAt,
+             p.nameEn, p.nameTa, p.sellingPrice, p.mrp, p.primaryImage, p.productType,
+             c.name as categoryName
+      FROM retail_branch_stock s
+      JOIN products p ON s.product_id = p.id
+      LEFT JOIN categories c ON p.categoryId = c.id
+      WHERE s.branch_id = ? AND p.status != 'Archived'
+    `;
+    const params: any[] = [branchId];
+    if (options.search && options.search.trim()) {
+      const term = `%${options.search.trim()}%`;
+      sql += " AND (p.nameEn LIKE ? OR p.nameTa LIKE ? OR s.sku LIKE ? OR c.name LIKE ?)";
+      params.push(term, term, term, term);
+    }
+    if (options.status === "in_stock") {
+      sql += " AND s.stock_quantity > s.low_stock_threshold";
+    } else if (options.status === "low_stock") {
+      sql += " AND s.stock_quantity > 0 AND s.stock_quantity <= s.low_stock_threshold";
+    } else if (options.status === "out_of_stock") {
+      sql += " AND s.stock_quantity <= 0";
+    }
+    sql += " ORDER BY s.stock_quantity ASC, p.nameEn ASC LIMIT ? OFFSET ?";
+    params.push(options.limit || 200, options.offset || 0);
+
+    const rows = db.prepare(sql).all(...params) as any[];
+    return rows.map((r: any) => {
+      let stockStatus = "In Stock";
+      if (r.stockQuantity <= 0) stockStatus = "Out of Stock";
+      else if (r.stockQuantity <= r.lowStockThreshold) stockStatus = "Low Stock";
+      return {
+        ...r,
+        stockStatus,
+      };
+    });
+  },
+
+  getItemStock(branchId: string, productId: string, sku?: string) {
+    const db = getDatabase();
+    let sql = "SELECT * FROM retail_branch_stock WHERE branch_id = ? AND product_id = ?";
+    const params: any[] = [branchId, productId];
+    if (sku) {
+      sql += " AND sku = ?";
+      params.push(sku);
+    }
+    return db.prepare(sql).get(...params) as any;
+  },
+
+  adjustBranchStock(branchId: string, productId: string, sku: string, delta: number, changeType: string, referenceId: string | null, reason: string, actor: string) {
+    const db = getDatabase();
+    const item = db.prepare("SELECT * FROM retail_branch_stock WHERE branch_id = ? AND product_id = ?").get(branchId, productId) as any;
+    if (!item) {
+      throw new Error(`Product not found in branch stock`);
+    }
+    const previousStock = item.stock_quantity;
+    const newStock = previousStock + delta;
+    if (newStock < 0) {
+      throw new Error(`Insufficient stock. Current: ${previousStock}, cannot deduct ${Math.abs(delta)}`);
+    }
+    const now = new Date().toISOString();
+    db.prepare("UPDATE retail_branch_stock SET stock_quantity = ?, updated_at = ? WHERE id = ?").run(newStock, now, item.id);
+
+    const movId = "mov_" + Date.now() + "_" + Math.floor(Math.random() * 1000);
+    db.prepare(`
+      INSERT INTO retail_stock_movements (id, branch_id, product_id, sku, change_type, delta, previous_stock, new_stock, reference_id, reason, performed_by, created_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(movId, branchId, productId, sku, changeType, delta, previousStock, newStock, referenceId, reason, actor, now);
+
+    return { previousStock, newStock, delta };
+  },
+
+  requestAdjustment(data: { branchId: string; productId: string; sku: string; requestedDelta: number; reason: string; requestedBy: string }) {
+    const db = getDatabase();
+    const id = "adj_" + Date.now() + "_" + Math.floor(Math.random() * 1000);
+    const count = (db.prepare("SELECT COUNT(*) as count FROM retail_stock_adjustments").get() as any)?.count || 0;
+    const adjustmentNumber = `TRN-ADJ-${new Date().getFullYear()}-${String(count + 1).padStart(5, "0")}`;
+    const now = new Date().toISOString();
+
+    db.prepare(`
+      INSERT INTO retail_stock_adjustments (id, adjustment_number, branch_id, product_id, sku, requested_delta, reason, status, requested_by, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, 'PENDING', ?, ?, ?)
+    `).run(id, adjustmentNumber, data.branchId, data.productId, data.sku, data.requestedDelta, data.reason, data.requestedBy, now, now);
+
+    return db.prepare("SELECT * FROM retail_stock_adjustments WHERE id = ?").get(id);
+  },
+
+  listAdjustments(branchId?: string, status?: string) {
+    const db = getDatabase();
+    let sql = `
+      SELECT a.*, p.nameEn as productName, b.name as branchName
+      FROM retail_stock_adjustments a
+      JOIN products p ON a.product_id = p.id
+      JOIN retail_branches b ON a.branch_id = b.id
+      WHERE 1=1
+    `;
+    const params: any[] = [];
+    if (branchId) {
+      sql += " AND a.branch_id = ?";
+      params.push(branchId);
+    }
+    if (status && status !== "ALL") {
+      sql += " AND a.status = ?";
+      params.push(status);
+    }
+    sql += " ORDER BY a.created_at DESC";
+    return db.prepare(sql).all(...params) as any[];
+  },
+
+  reviewAdjustment(id: string, status: "APPROVED" | "REJECTED", reviewedBy: string, adminNotes?: string) {
+    const db = getDatabase();
+    const adj = db.prepare("SELECT * FROM retail_stock_adjustments WHERE id = ?").get(id) as any;
+    if (!adj) throw new Error("Adjustment request not found");
+    if (adj.status !== "PENDING") throw new Error(`Adjustment already ${adj.status.toLowerCase()}`);
+
+    const now = new Date().toISOString();
+    if (status === "APPROVED") {
+      this.adjustBranchStock(
+        adj.branch_id,
+        adj.product_id,
+        adj.sku,
+        adj.requested_delta,
+        "ADJUSTMENT",
+        adj.adjustment_number,
+        adj.reason + (adminNotes ? ` (Admin: ${adminNotes})` : ""),
+        reviewedBy
+      );
+    }
+
+    db.prepare(`
+      UPDATE retail_stock_adjustments
+      SET status = ?, reviewed_by = ?, reviewed_at = ?, admin_notes = ?, updated_at = ?
+      WHERE id = ?
+    `).run(status, reviewedBy, now, adminNotes || null, now, id);
+
+    return db.prepare("SELECT * FROM retail_stock_adjustments WHERE id = ?").get(id);
+  },
+
+  getMovements(branchId: string, limit = 50) {
+    const db = getDatabase();
+    return db.prepare(`
+      SELECT m.*, p.nameEn as productName
+      FROM retail_stock_movements m
+      JOIN products p ON m.product_id = p.id
+      WHERE m.branch_id = ?
+      ORDER BY m.created_at DESC
+      LIMIT ?
+    `).all(branchId, limit) as any[];
+  }
+};
+
+export const retailSalesRepo = {
+  generateInvoiceNumber() {
+    const db = getDatabase();
+    const year = new Date().getFullYear();
+    const count = (db.prepare("SELECT COUNT(*) as count FROM retail_sales").get() as any)?.count || 0;
+    return `TRN-RET-${year}-${String(count + 1).padStart(5, "0")}`;
+  },
+
+  processSale(
+    saleData: {
+      branchId: string;
+      handlerId: string;
+      handlerName: string;
+      customerName?: string;
+      customerPhone?: string;
+      customerEmail?: string;
+      discountAmount?: number;
+      discountReason?: string;
+      taxAmount?: number;
+      paymentMethod: "CASH" | "UPI" | "CARD";
+      notes?: string;
+    },
+    items: Array<{ productId: string; sku?: string; packSize: string; unitPrice: number; quantity: number }>
+  ) {
+    if (!items || items.length === 0) {
+      throw new Error("Cannot process a sale with an empty cart");
+    }
+    const db = getDatabase();
+    const branch = retailBranchesRepo.getById(saleData.branchId);
+    if (!branch) throw new Error("Branch not found");
+
+    // Begin database transaction for atomic validation & stock deduction
+    db.exec("BEGIN IMMEDIATE;");
+    try {
+      let subtotal = 0;
+      const verifiedItems: any[] = [];
+
+      // 1. Validate stock availability for all items
+      for (const item of items) {
+        if (!item.quantity || item.quantity <= 0) {
+          throw new Error("Quantity must be greater than zero");
+        }
+        const prod = db.prepare("SELECT * FROM products WHERE id = ?").get(item.productId) as any;
+        if (!prod) throw new Error(`Product not found (ID: ${item.productId})`);
+
+        const sku = item.sku || prod.sku;
+        const stockRow = db.prepare("SELECT * FROM retail_branch_stock WHERE branch_id = ? AND product_id = ?").get(saleData.branchId, item.productId) as any;
+        const availableStock = stockRow ? stockRow.stock_quantity : 0;
+
+        if (availableStock < item.quantity) {
+          throw new Error(`Insufficient branch stock for "${prod.nameEn}". Requested: ${item.quantity}, Available: ${availableStock}`);
+        }
+
+        const totalPrice = item.unitPrice * item.quantity;
+        subtotal += totalPrice;
+        verifiedItems.push({
+          productId: prod.id,
+          productName: prod.nameEn,
+          sku,
+          packSize: item.packSize || "Standard",
+          unitPrice: item.unitPrice,
+          quantity: item.quantity,
+          totalPrice,
+          availableStock,
+          stockRowId: stockRow.id,
+        });
+      }
+
+      const discountAmount = Math.max(0, saleData.discountAmount || 0);
+      const taxAmount = Math.max(0, saleData.taxAmount || 0);
+      const total = Math.max(0, subtotal - discountAmount + taxAmount);
+
+      const saleId = "sale_" + Date.now() + "_" + Math.floor(Math.random() * 1000);
+      const invoiceNumber = this.generateInvoiceNumber();
+      const now = new Date().toISOString();
+
+      // 2. Insert Retail Sale
+      db.prepare(`
+        INSERT INTO retail_sales (
+          id, invoice_number, branch_id, handler_id, handler_name, customer_name,
+          customer_phone, customer_email, subtotal, discount_amount, discount_reason,
+          tax_amount, total, payment_method, payment_status, sale_status, notes,
+          created_at, updated_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'PAID', 'COMPLETED', ?, ?, ?)
+      `).run(
+        saleId,
+        invoiceNumber,
+        saleData.branchId,
+        saleData.handlerId,
+        saleData.handlerName,
+        saleData.customerName?.trim() || "Walk-in Customer",
+        saleData.customerPhone?.trim() || null,
+        saleData.customerEmail?.trim() || null,
+        subtotal,
+        discountAmount,
+        saleData.discountReason || null,
+        taxAmount,
+        total,
+        saleData.paymentMethod,
+        saleData.notes || null,
+        now,
+        now
+      );
+
+      // 3. Insert Line Items and Deduct Branch Stock atomically
+      for (const item of verifiedItems) {
+        const itemId = "item_" + Date.now() + "_" + Math.floor(Math.random() * 10000);
+        db.prepare(`
+          INSERT INTO retail_sale_items (
+            id, sale_id, product_id, product_name, sku, pack_size, unit_price, quantity, total_price, created_at
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `).run(
+          itemId,
+          saleId,
+          item.productId,
+          item.productName,
+          item.sku,
+          item.packSize,
+          item.unitPrice,
+          item.quantity,
+          item.totalPrice,
+          now
+        );
+
+        // Deduct branch stock
+        const newStock = item.availableStock - item.quantity;
+        db.prepare("UPDATE retail_branch_stock SET stock_quantity = ?, updated_at = ? WHERE id = ?")
+          .run(newStock, now, item.stockRowId);
+
+        // Record stock movement
+        const movId = "mov_" + Date.now() + "_" + Math.floor(Math.random() * 1000);
+        db.prepare(`
+          INSERT INTO retail_stock_movements (
+            id, branch_id, product_id, sku, change_type, delta, previous_stock, new_stock, reference_id, reason, performed_by, created_at
+          ) VALUES (?, ?, ?, ?, 'SALE', ?, ?, ?, ?, 'Retail Sale POS', ?, ?)
+        `).run(
+          movId,
+          saleData.branchId,
+          item.productId,
+          item.sku,
+          -item.quantity,
+          item.availableStock,
+          newStock,
+          invoiceNumber,
+          saleData.handlerName,
+          now
+        );
+      }
+
+      db.exec("COMMIT;");
+      return this.getSaleById(saleId);
+    } catch (err) {
+      try {
+        db.exec("ROLLBACK;");
+      } catch {}
+      throw err;
+    }
+  },
+
+  getSaleById(id: string) {
+    const db = getDatabase();
+    const sale = db.prepare(`
+      SELECT s.*, b.name as branchName, b.code as branchCode, b.address as branchAddress,
+             b.city as branchCity, b.state as branchState, b.pin_code as branchPinCode,
+             b.phone as branchPhone, b.email as branchEmail
+      FROM retail_sales s
+      JOIN retail_branches b ON s.branch_id = b.id
+      WHERE s.id = ?
+    `).get(id) as any;
+    if (!sale) return null;
+
+    const items = db.prepare("SELECT * FROM retail_sale_items WHERE sale_id = ? ORDER BY created_at ASC").all(id) as any[];
+    return { ...sale, items };
+  },
+
+  getSaleByInvoice(invoiceNumber: string) {
+    const db = getDatabase();
+    const sale = db.prepare(`
+      SELECT s.*, b.name as branchName, b.code as branchCode, b.address as branchAddress,
+             b.city as branchCity, b.state as branchState, b.pin_code as branchPinCode,
+             b.phone as branchPhone, b.email as branchEmail
+      FROM retail_sales s
+      JOIN retail_branches b ON s.branch_id = b.id
+      WHERE s.invoice_number = ?
+    `).get(invoiceNumber) as any;
+    if (!sale) return null;
+
+    const items = db.prepare("SELECT * FROM retail_sale_items WHERE sale_id = ? ORDER BY created_at ASC").all(sale.id) as any[];
+    return { ...sale, items };
+  },
+
+  listSales(options: {
+    branchId?: string;
+    search?: string;
+    paymentMethod?: string;
+    saleStatus?: string;
+    limit?: number;
+    offset?: number;
+  } = {}) {
+    const db = getDatabase();
+    let sql = `
+      SELECT s.*, b.name as branchName, b.code as branchCode,
+             (SELECT COUNT(*) FROM retail_sale_items WHERE sale_id = s.id) as itemCount
+      FROM retail_sales s
+      JOIN retail_branches b ON s.branch_id = b.id
+      WHERE 1=1
+    `;
+    const params: any[] = [];
+    if (options.branchId) {
+      sql += " AND s.branch_id = ?";
+      params.push(options.branchId);
+    }
+    if (options.paymentMethod && options.paymentMethod !== "ALL") {
+      sql += " AND s.payment_method = ?";
+      params.push(options.paymentMethod);
+    }
+    if (options.saleStatus && options.saleStatus !== "ALL") {
+      sql += " AND s.sale_status = ?";
+      params.push(options.saleStatus);
+    }
+    if (options.search && options.search.trim()) {
+      const term = `%${options.search.trim()}%`;
+      sql += " AND (s.invoice_number LIKE ? OR s.customer_name LIKE ? OR s.customer_phone LIKE ?)";
+      params.push(term, term, term);
+    }
+    sql += " ORDER BY s.created_at DESC LIMIT ? OFFSET ?";
+    params.push(options.limit || 50, options.offset || 0);
+
+    return db.prepare(sql).all(...params) as any[];
+  },
+
+  cancelOrRefundSale(saleId: string, reason: string, actor: string) {
+    const db = getDatabase();
+    const sale = this.getSaleById(saleId);
+    if (!sale) throw new Error("Sale not found");
+    if (sale.sale_status === "CANCELLED") throw new Error("Sale has already been cancelled");
+
+    db.exec("BEGIN IMMEDIATE;");
+    try {
+      const now = new Date().toISOString();
+      db.prepare(`
+        UPDATE retail_sales
+        SET sale_status = 'CANCELLED', payment_status = 'REFUNDED', notes = COALESCE(notes || ' | ', '') || ?, updated_at = ?
+        WHERE id = ?
+      `).run(`Cancelled by ${actor}: ${reason}`, now, saleId);
+
+      // Reverse branch stock
+      for (const item of sale.items) {
+        const stockRow = db.prepare("SELECT * FROM retail_branch_stock WHERE branch_id = ? AND product_id = ?").get(sale.branch_id, item.product_id) as any;
+        if (stockRow) {
+          const newStock = stockRow.stock_quantity + item.quantity;
+          db.prepare("UPDATE retail_branch_stock SET stock_quantity = ?, updated_at = ? WHERE id = ?").run(newStock, now, stockRow.id);
+
+          const movId = "mov_" + Date.now() + "_" + Math.floor(Math.random() * 1000);
+          db.prepare(`
+            INSERT INTO retail_stock_movements (
+              id, branch_id, product_id, sku, change_type, delta, previous_stock, new_stock, reference_id, reason, performed_by, created_at
+            ) VALUES (?, ?, ?, ?, 'RETURN', ?, ?, ?, ?, ?, ?, ?)
+          `).run(
+            movId,
+            sale.branch_id,
+            item.product_id,
+            item.sku,
+            item.quantity,
+            stockRow.stock_quantity,
+            newStock,
+            sale.invoice_number,
+            `Sale Cancellation: ${reason}`,
+            actor,
+            now
+          );
+        }
+      }
+      db.exec("COMMIT;");
+      return this.getSaleById(saleId);
+    } catch (err) {
+      try { db.exec("ROLLBACK;"); } catch {}
+      throw err;
+    }
+  },
+
+  getSalesMetrics(branchId?: string) {
+    const db = getDatabase();
+    const today = new Date().toISOString().slice(0, 10);
+    let todaySql = "SELECT COUNT(*) as count, COALESCE(SUM(total), 0) as revenue FROM retail_sales WHERE sale_status = 'COMPLETED' AND created_at LIKE ?";
+    let overallSql = "SELECT COUNT(*) as count, COALESCE(SUM(total), 0) as revenue FROM retail_sales WHERE sale_status = 'COMPLETED'";
+    const todayParams: any[] = [`${today}%`];
+    const overallParams: any[] = [];
+
+    if (branchId) {
+      todaySql += " AND branch_id = ?";
+      todayParams.push(branchId);
+      overallSql += " AND branch_id = ?";
+      overallParams.push(branchId);
+    }
+
+    const todayStats = db.prepare(todaySql).get(...todayParams) as any;
+    const overallStats = db.prepare(overallSql).get(...overallParams) as any;
+
+    return {
+      todayCount: todayStats?.count || 0,
+      todayRevenue: todayStats?.revenue || 0,
+      totalCount: overallStats?.count || 0,
+      totalRevenue: overallStats?.revenue || 0,
+    };
+  }
+};
+

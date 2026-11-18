@@ -47,12 +47,14 @@ import {
   SlidersHorizontal,
   Building2,
   LifeBuoy,
-  Star
+  Star,
+  Store
 } from "lucide-react";
 import EnquiriesTab from "./EnquiriesTab";
 import RewardsTab from "./RewardsTab";
 import PolicyCmsTab from "./PolicyCmsTab";
 import AdminUsersTab from "./AdminUsersTab";
+import RetailOpsTab from "./RetailOpsTab";
 import { Award } from "lucide-react";
 
 type AdminTab =
@@ -72,6 +74,7 @@ type AdminTab =
   | "content"
   | "settings"
   | "admins"
+  | "retail_ops"
   | "telegram"
   | "ai_image";
 
@@ -96,6 +99,7 @@ export default function AdminDashboard() {
     if (location.startsWith("/admin/content")) return "content";
     if (location.startsWith("/admin/settings")) return "settings";
     if (location.startsWith("/admin/admins") || location.startsWith("/admin/users")) return "admins";
+    if (location.startsWith("/admin/retail") || location.startsWith("/admin/branches")) return "retail_ops";
     if (location.startsWith("/admin/telegram")) return "telegram";
     if (location.startsWith("/admin/ai_image") || location.startsWith("/admin/generate-image") || location.startsWith("/admin/ai-image")) return "ai_image";
     return "overview";
@@ -104,6 +108,8 @@ export default function AdminDashboard() {
   const navigateToTab = (tab: AdminTab) => {
     if (tab === "overview") {
       setLocation("/admin/dashboard");
+    } else if (tab === "retail_ops") {
+      setLocation("/admin/retail");
     } else {
       setLocation(`/admin/${tab}`);
     }
@@ -646,6 +652,7 @@ export default function AdminDashboard() {
     {
       groupTitle: "Operations",
       items: [
+        { id: "retail_ops" as AdminTab, label: "Retail & Branches", icon: Store, badge: "POS" },
         { id: "telegram" as AdminTab, label: "Telegram Bot", icon: Bot },
         { id: "ai_image" as AdminTab, label: "AI Product Studio", icon: Sparkles, badge: "AI" },
       ],
@@ -686,6 +693,8 @@ export default function AdminDashboard() {
         return { group: "Content & Settings", title: "Store Settings & Social Links" };
       case "admins":
         return { group: "Content & Settings", title: "Administrator Accounts & Staff Roles" };
+      case "retail_ops":
+        return { group: "Operations", title: "Retail Outlets & Branch Operations" };
       case "telegram":
         return { group: "Operations", title: "Telegram Administration Bot" };
       case "ai_image":
@@ -697,6 +706,10 @@ export default function AdminDashboard() {
 
   // Redirect if not logged in as Admin
   if (!userLoading && (!currentUser || (currentUser.role !== "ADMIN" && currentUser.role !== "SUPER_ADMIN"))) {
+    if (currentUser?.role === "RETAIL_SHOP_HANDLER") {
+      setLocation("/retail");
+      return null;
+    }
     return (
       <div className="min-h-screen bg-[#FBF8F0] flex flex-col items-center justify-center p-6 text-center">
         <div className="w-16 h-16 rounded-full bg-red-100 text-red-700 flex items-center justify-center mb-4">
@@ -2361,6 +2374,7 @@ export default function AdminDashboard() {
           {activeTab === "rewards" && <RewardsTab />}
           {activeTab === "policies" && <PolicyCmsTab />}
           {activeTab === "admins" && <AdminUsersTab />}
+          {activeTab === "retail_ops" && <RetailOpsTab />}
 
           {/* ========================================== */}
           {activeTab === "telegram" && (

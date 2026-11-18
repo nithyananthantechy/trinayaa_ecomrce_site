@@ -44,3 +44,40 @@ export const adminProcedure = t.procedure.use(
     });
   }),
 );
+
+export const superAdminProcedure = t.procedure.use(
+  t.middleware(async opts => {
+    const { ctx, next } = opts;
+
+    const role = (ctx.user?.role || "").toLowerCase();
+    if (!ctx.user || role !== 'super_admin') {
+      throw new TRPCError({ code: "FORBIDDEN", message: "Super Administrator privileges required." });
+    }
+
+    return next({
+      ctx: {
+        ...ctx,
+        user: ctx.user,
+      },
+    });
+  }),
+);
+
+export const retailProcedure = t.procedure.use(
+  t.middleware(async opts => {
+    const { ctx, next } = opts;
+
+    const role = (ctx.user?.role || "").toLowerCase();
+    if (!ctx.user || (role !== 'retail_shop_handler' && role !== 'super_admin')) {
+      throw new TRPCError({ code: "FORBIDDEN", message: "Retail staff privileges required." });
+    }
+
+    return next({
+      ctx: {
+        ...ctx,
+        user: ctx.user,
+      },
+    });
+  }),
+);
+

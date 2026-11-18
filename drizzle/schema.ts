@@ -9,8 +9,9 @@ export const users = mysqlTable("users", {
   passwordHash: text("passwordHash").notNull(),
   name: varchar("name", { length: 255 }).notNull(),
   phone: varchar("phone", { length: 32 }),
-  role: varchar("role", { length: 32 }).default("CUSTOMER").notNull(), // 'CUSTOMER' | 'ADMIN' | 'SUPER_ADMIN'
+  role: varchar("role", { length: 32 }).default("CUSTOMER").notNull(), // 'CUSTOMER' | 'ADMIN' | 'SUPER_ADMIN' | 'RETAIL_SHOP_HANDLER'
   status: varchar("status", { length: 32 }).default("ACTIVE").notNull(),
+  branchId: varchar("branchId", { length: 64 }),
   telegramId: varchar("telegramId", { length: 64 }),
   adminNotes: text("adminNotes"),
   createdAt: text("createdAt").notNull(),
@@ -592,6 +593,136 @@ export const productEnquiries = mysqlTable("product_enquiries", {
 
 export type ProductEnquiry = typeof productEnquiries.$inferSelect;
 export type InsertProductEnquiry = typeof productEnquiries.$inferInsert;
+
+// ==========================================
+// 24. RETAIL BRANCHES & WAREHOUSES (PHASE 4)
+// ==========================================
+export const retailBranches = mysqlTable("retail_branches", {
+  id: varchar("id", { length: 64 }).primaryKey(),
+  code: varchar("code", { length: 32 }).notNull().unique(), // e.g. ERODE-HQ, CBE-01
+  name: varchar("name", { length: 255 }).notNull(),
+  address: text("address").notNull(),
+  city: varchar("city", { length: 128 }).notNull(),
+  state: varchar("state", { length: 128 }).default("Tamil Nadu").notNull(),
+  pinCode: varchar("pin_code", { length: 16 }).notNull(),
+  phone: varchar("phone", { length: 32 }).notNull(),
+  email: varchar("email", { length: 320 }),
+  isActive: int("is_active").default(1).notNull(),
+  createdAt: text("created_at").notNull(),
+  updatedAt: text("updated_at").notNull(),
+});
+
+export type RetailBranch = typeof retailBranches.$inferSelect;
+export type InsertRetailBranch = typeof retailBranches.$inferInsert;
+
+// ==========================================
+// 25. RETAIL BRANCH STOCK (PHASE 4)
+// ==========================================
+export const retailBranchStock = mysqlTable("retail_branch_stock", {
+  id: varchar("id", { length: 64 }).primaryKey(),
+  branchId: varchar("branch_id", { length: 64 }).notNull(),
+  productId: varchar("product_id", { length: 64 }).notNull(),
+  variantId: varchar("variant_id", { length: 64 }),
+  sku: varchar("sku", { length: 64 }).notNull(),
+  stockQuantity: int("stock_quantity").default(50).notNull(),
+  lowStockThreshold: int("low_stock_threshold").default(10).notNull(),
+  updatedAt: text("updated_at").notNull(),
+});
+
+export type RetailBranchStock = typeof retailBranchStock.$inferSelect;
+export type InsertRetailBranchStock = typeof retailBranchStock.$inferInsert;
+
+// ==========================================
+// 26. RETAIL STOCK MOVEMENTS (PHASE 4)
+// ==========================================
+export const retailStockMovements = mysqlTable("retail_stock_movements", {
+  id: varchar("id", { length: 64 }).primaryKey(),
+  branchId: varchar("branch_id", { length: 64 }).notNull(),
+  productId: varchar("product_id", { length: 64 }).notNull(),
+  sku: varchar("sku", { length: 64 }).notNull(),
+  changeType: varchar("change_type", { length: 32 }).notNull(), // 'SALE' | 'RESTOCK' | 'ADJUSTMENT' | 'RETURN' | 'TRANSFER'
+  delta: int("delta").notNull(),
+  previousStock: int("previous_stock").notNull(),
+  newStock: int("new_stock").notNull(),
+  referenceId: varchar("reference_id", { length: 128 }),
+  reason: text("reason"),
+  performedBy: varchar("performed_by", { length: 255 }).notNull(),
+  createdAt: text("created_at").notNull(),
+});
+
+export type RetailStockMovement = typeof retailStockMovements.$inferSelect;
+export type InsertRetailStockMovement = typeof retailStockMovements.$inferInsert;
+
+// ==========================================
+// 27. RETAIL STOCK ADJUSTMENTS (PHASE 4)
+// ==========================================
+export const retailStockAdjustments = mysqlTable("retail_stock_adjustments", {
+  id: varchar("id", { length: 64 }).primaryKey(),
+  adjustmentNumber: varchar("adjustment_number", { length: 64 }).notNull().unique(), // e.g. TRN-ADJ-2026-00001
+  branchId: varchar("branch_id", { length: 64 }).notNull(),
+  productId: varchar("product_id", { length: 64 }).notNull(),
+  sku: varchar("sku", { length: 64 }).notNull(),
+  requestedDelta: int("requested_delta").notNull(),
+  reason: text("reason").notNull(),
+  status: varchar("status", { length: 32 }).default("PENDING").notNull(), // 'PENDING' | 'APPROVED' | 'REJECTED'
+  requestedBy: varchar("requested_by", { length: 255 }).notNull(),
+  reviewedBy: varchar("reviewed_by", { length: 255 }),
+  reviewedAt: text("reviewed_at"),
+  adminNotes: text("admin_notes"),
+  createdAt: text("created_at").notNull(),
+  updatedAt: text("updated_at").notNull(),
+});
+
+export type RetailStockAdjustment = typeof retailStockAdjustments.$inferSelect;
+export type InsertRetailStockAdjustment = typeof retailStockAdjustments.$inferInsert;
+
+// ==========================================
+// 28. RETAIL SALES & OFFLINE BILLING (PHASE 4)
+// ==========================================
+export const retailSales = mysqlTable("retail_sales", {
+  id: varchar("id", { length: 64 }).primaryKey(),
+  invoiceNumber: varchar("invoice_number", { length: 64 }).notNull().unique(), // e.g. TRN-RET-2026-00001
+  branchId: varchar("branch_id", { length: 64 }).notNull(),
+  handlerId: varchar("handler_id", { length: 64 }).notNull(),
+  handlerName: varchar("handler_name", { length: 255 }).notNull(),
+  customerName: varchar("customer_name", { length: 255 }).default("Walk-in Customer").notNull(),
+  customerPhone: varchar("customer_phone", { length: 32 }),
+  customerEmail: varchar("customer_email", { length: 320 }),
+  subtotal: double("subtotal").notNull(),
+  discountAmount: double("discount_amount").default(0).notNull(),
+  discountReason: text("discount_reason"),
+  taxAmount: double("tax_amount").default(0).notNull(),
+  total: double("total").notNull(),
+  paymentMethod: varchar("payment_method", { length: 32 }).notNull(), // 'CASH' | 'UPI' | 'CARD'
+  paymentStatus: varchar("payment_status", { length: 32 }).default("PAID").notNull(), // 'PAID' | 'REFUNDED' | 'CANCELLED'
+  saleStatus: varchar("sale_status", { length: 32 }).default("COMPLETED").notNull(), // 'COMPLETED' | 'CANCELLED' | 'REFUNDED'
+  notes: text("notes"),
+  createdAt: text("created_at").notNull(),
+  updatedAt: text("updated_at").notNull(),
+});
+
+export type RetailSale = typeof retailSales.$inferSelect;
+export type InsertRetailSale = typeof retailSales.$inferInsert;
+
+// ==========================================
+// 29. RETAIL SALE ITEMS (PHASE 4)
+// ==========================================
+export const retailSaleItems = mysqlTable("retail_sale_items", {
+  id: varchar("id", { length: 64 }).primaryKey(),
+  saleId: varchar("sale_id", { length: 64 }).notNull(),
+  productId: varchar("product_id", { length: 64 }).notNull(),
+  productName: varchar("product_name", { length: 255 }).notNull(),
+  sku: varchar("sku", { length: 64 }).notNull(),
+  packSize: varchar("pack_size", { length: 64 }).notNull(),
+  unitPrice: double("unit_price").notNull(),
+  quantity: int("quantity").notNull(),
+  totalPrice: double("total_price").notNull(),
+  createdAt: text("created_at").notNull(),
+});
+
+export type RetailSaleItem = typeof retailSaleItems.$inferSelect;
+export type InsertRetailSaleItem = typeof retailSaleItems.$inferInsert;
+
 
 
 

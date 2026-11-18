@@ -2,7 +2,7 @@ import { notifySupportTicketCreated, notifySupportTicketReply, notifyProductEnqu
 import { COOKIE_NAME } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
-import { adminProcedure, protectedProcedure, publicProcedure, router } from "./_core/trpc";
+import { adminProcedure, protectedProcedure, publicProcedure, router, retailProcedure, superAdminProcedure } from "./_core/trpc";
 import { sdk } from "./_core/sdk";
 import { ENV } from "./_core/env";
 import * as db from "./db";
@@ -61,6 +61,7 @@ export const appRouter = router({
         phone: user.phone,
         role: user.role,
         status: user.status,
+        branchId: user.branchId || null,
       };
     }),
 
@@ -626,6 +627,77 @@ export const appRouter = router({
             email: user.email,
             name: user.name,
             role: user.role,
+          },
+          token,
+        };
+      }),
+
+    retailLogin: publicProcedure
+      .input(
+        z.object({
+          email: z.string().min(3, "Please enter your email or phone"),
+          password: z.string().min(1, "Please enter your password"),
+        })
+      )
+      .mutation(async ({ input, ctx }) => {
+        let user: any = null;
+        if (input.email.includes("@")) {
+          user = db.usersRepo.getByEmail(input.email);
+        } else {
+          user = db.usersRepo.getByPhone(input.email);
+        }
+
+        if (!user) {
+          throw new TRPCError({
+            code: "UNAUTHORIZED",
+            message: "Invalid credentials.",
+          });
+        }
+
+        if (user.status !== "ACTIVE") {
+          throw new TRPCError({
+            code: "FORBIDDEN",
+            message: "Your staff account has been deactivated. Please contact your administrator.",
+          });
+        }
+
+        const valid = db.verifyPassword(input.password, user.passwordHash);
+        if (!valid) {
+          throw new TRPCError({
+            code: "UNAUTHORIZED",
+            message: "Invalid credentials.",
+          });
+        }
+
+        const role = (user.role || "").toUpperCase();
+        if (role !== "RETAIL_SHOP_HANDLER" && role !== "SUPER_ADMIN") {
+          throw new TRPCError({
+            code: "FORBIDDEN",
+            message: "Access denied. Retail Shop Handler or Super Admin privileges required.",
+          });
+        }
+
+        // Issue session JWT
+        const token = await sdk.signSession({
+          openId: user.id,
+          appId: ENV.appId,
+          name: user.name,
+        });
+
+        const cookieOptions = getSessionCookieOptions(ctx.req);
+        ctx.res.cookie(COOKIE_NAME, token, {
+          ...cookieOptions,
+          maxAge: 24 * 60 * 60 * 1000,
+        });
+
+        return {
+          user: {
+            id: user.id,
+            email: user.email,
+            name: user.name,
+            phone: user.phone,
+            role: user.role,
+            branchId: user.branchId,
           },
           token,
         };
@@ -2550,8 +2622,9 @@ addresses: router({
             name: z.string().min(2, "Name must be at least 2 characters"),
             email: z.string().email("Please enter a valid email address"),
             password: z.string().min(8, "Password must be at least 8 characters"),
-            role: z.enum(["ADMIN", "SUPER_ADMIN"]).default("ADMIN"),
+            role: z.enum(["ADMIN", "SUPER_ADMIN", "RETAIL_SHOP_HANDLER"]).default("ADMIN"),
             phone: z.string().optional(),
+            branchId: z.string().optional(),
           })
         )
         .mutation(async ({ input, ctx }) => {
@@ -2559,14 +2632,14 @@ addresses: router({
             const user = db.usersRepo.createAdminUser(input);
             db.auditLogsRepo.log(
               ctx.user.name || "Admin",
-              "CREATE_ADMIN_USER",
-              `Created administrator ${user.name} (${user.email}) with role ${user.role}`
+              "CREATE_STAFF_USER",
+              `Created staff user ${user.name} (${user.email}) with role ${user.role}${input.branchId ? ` at branch ${input.branchId}` : ""}`
             );
             return { success: true, user };
           } catch (err: any) {
             throw new TRPCError({
               code: "BAD_REQUEST",
-              message: err.message || "Failed to create administrator account",
+              message: err.message || "Failed to create user account",
             });
           }
         }),
@@ -2577,7 +2650,8 @@ addresses: router({
             id: z.string(),
             name: z.string().min(2).optional(),
             phone: z.string().optional(),
-            role: z.enum(["ADMIN", "SUPER_ADMIN"]).optional(),
+            role: z.enum(["ADMIN", "SUPER_ADMIN", "RETAIL_SHOP_HANDLER"]).optional(),
+            branchId: z.string().nullable().optional(),
             status: z.enum(["ACTIVE", "SUSPENDED"]).optional(),
             newPassword: z.string().min(8).optional(),
           })
@@ -2587,7 +2661,7 @@ addresses: router({
             if (input.status === "SUSPENDED") {
               throw new TRPCError({
                 code: "BAD_REQUEST",
-                message: "You cannot suspend your own administrator account.",
+                message: "You cannot suspend your own account.",
               });
             }
           }
@@ -2595,14 +2669,14 @@ addresses: router({
             const user = db.usersRepo.updateAdminUser(input.id, input);
             db.auditLogsRepo.log(
               ctx.user.name || "Admin",
-              "UPDATE_ADMIN_USER",
-              `Updated administrator ${user.name} (${user.email}) - role: ${user.role}, status: ${user.status}`
+              "UPDATE_STAFF_USER",
+              `Updated staff user ${user.name} (${user.email}) - role: ${user.role}, status: ${user.status}${input.branchId !== undefined ? `, branch: ${input.branchId}` : ""}`
             );
             return { success: true, user };
           } catch (err: any) {
             throw new TRPCError({
               code: "BAD_REQUEST",
-              message: err.message || "Failed to update administrator",
+              message: err.message || "Failed to update staff member",
             });
           }
         }),
@@ -2703,6 +2777,150 @@ addresses: router({
         )
         .mutation(async ({ input, ctx }) => {
           return assignAiImageToProduct(input.productId, input.imageUrl, ctx.user.name || "Admin");
+        }),
+    }),
+
+    // --- SUPER ADMIN RETAIL & BRANCH OVERSIGHT (PHASE 4) ---
+    retail: router({
+      branches: router({
+        list: adminProcedure.query(async () => {
+          return db.retailBranchesRepo.getAll(true);
+        }),
+        getById: adminProcedure
+          .input(z.object({ id: z.string() }))
+          .query(async ({ input }) => {
+            return db.retailBranchesRepo.getById(input.id);
+          }),
+        create: superAdminProcedure
+          .input(
+            z.object({
+              code: z.string().min(2),
+              name: z.string().min(2),
+              address: z.string().min(3),
+              city: z.string().min(2),
+              state: z.string().optional().default("Tamil Nadu"),
+              pinCode: z.string().min(6),
+              phone: z.string().min(10),
+              email: z.string().email().optional(),
+            })
+          )
+          .mutation(async ({ input, ctx }) => {
+            const branch = db.retailBranchesRepo.create(input);
+            db.auditLogsRepo.log(
+              ctx.user.name || "Admin",
+              "CREATE_RETAIL_BRANCH",
+              `Created physical branch ${branch?.name} (${branch?.code})`
+            );
+            return branch;
+          }),
+        update: superAdminProcedure
+          .input(
+            z.object({
+              id: z.string(),
+              name: z.string().optional(),
+              address: z.string().optional(),
+              city: z.string().optional(),
+              state: z.string().optional(),
+              pinCode: z.string().optional(),
+              phone: z.string().optional(),
+              email: z.string().optional(),
+              isActive: z.number().optional(),
+            })
+          )
+          .mutation(async ({ input, ctx }) => {
+            const branch = db.retailBranchesRepo.update(input.id, input);
+            db.auditLogsRepo.log(
+              ctx.user.name || "Admin",
+              "UPDATE_RETAIL_BRANCH",
+              `Updated physical branch ${branch?.name} (${branch?.code})`
+            );
+            return branch;
+          }),
+      }),
+
+      handlers: router({
+        list: adminProcedure
+          .input(z.object({ branchId: z.string().optional() }).optional())
+          .query(async ({ input }) => {
+            return db.usersRepo.listRetailHandlers(input?.branchId);
+          }),
+      }),
+
+      allSales: adminProcedure
+        .input(
+          z.object({
+            branchId: z.string().optional(),
+            search: z.string().optional(),
+            paymentMethod: z.string().optional(),
+            saleStatus: z.string().optional(),
+            limit: z.number().optional().default(50),
+            offset: z.number().optional().default(0),
+          }).optional()
+        )
+        .query(async ({ input }) => {
+          return db.retailSalesRepo.listSales(input || {});
+        }),
+
+      allAdjustments: adminProcedure
+        .input(z.object({ branchId: z.string().optional(), status: z.string().optional() }).optional())
+        .query(async ({ input }) => {
+          return db.retailStockRepo.listAdjustments(input?.branchId, input?.status);
+        }),
+
+      reviewAdjustment: adminProcedure
+        .input(
+          z.object({
+            id: z.string(),
+            status: z.enum(["APPROVED", "REJECTED"]),
+            adminNotes: z.string().optional(),
+          })
+        )
+        .mutation(async ({ input, ctx }) => {
+          const adj = db.retailStockRepo.reviewAdjustment(
+            input.id,
+            input.status,
+            ctx.user.name || "Admin",
+            input.adminNotes
+          );
+          db.auditLogsRepo.log(
+            ctx.user.name || "Admin",
+            `RETAIL_STOCK_ADJUSTMENT_${input.status}`,
+            `${input.status} adjustment ${adj.adjustment_number} for product ${adj.sku}`
+          );
+          return adj;
+        }),
+
+      cancelSale: adminProcedure
+        .input(
+          z.object({
+            saleId: z.string(),
+            reason: z.string().min(3, "Please provide a reason for cancelling this sale"),
+          })
+        )
+        .mutation(async ({ input, ctx }) => {
+          const sale = db.retailSalesRepo.cancelOrRefundSale(
+            input.saleId,
+            input.reason,
+            ctx.user.name || "Admin"
+          );
+          db.auditLogsRepo.log(
+            ctx.user.name || "Admin",
+            "RETAIL_SALE_CANCELLED",
+            `Cancelled invoice ${sale.invoice_number} and refunded ₹${sale.total}. Reason: ${input.reason}`
+          );
+          return sale;
+        }),
+
+      branchStockOverview: adminProcedure
+        .input(
+          z.object({
+            branchId: z.string(),
+            search: z.string().optional(),
+            status: z.enum(["all", "in_stock", "low_stock", "out_of_stock"]).optional(),
+          })
+        )
+        .query(async ({ input }) => {
+          return db.retailStockRepo.getBranchStock(input.branchId, input);
         }),
     }),
   }),
@@ -3253,6 +3471,229 @@ addresses: router({
           adminName
         );
       }),
+  }),
+
+  // ==========================================
+  // 20. RETAIL OPERATIONS & BILLING PORTAL (PHASE 4)
+  // ==========================================
+  retail: router({
+    myBranch: retailProcedure.query(async ({ ctx }) => {
+      const user = db.usersRepo.getById(String(ctx.user.id));
+      const branchId = user?.branchId || "brn_erode_hq";
+      const branch = db.retailBranchesRepo.getById(branchId);
+      if (!branch) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Assigned branch not found." });
+      }
+      return branch;
+    }),
+
+    branchStock: retailProcedure
+      .input(
+        z.object({
+          branchId: z.string().optional(),
+          search: z.string().optional(),
+          status: z.enum(["all", "in_stock", "low_stock", "out_of_stock"]).optional(),
+          limit: z.number().optional().default(100),
+          offset: z.number().optional().default(0),
+        }).optional().default({ limit: 100, offset: 0 })
+      )
+      .query(async ({ input, ctx }) => {
+        const user = db.usersRepo.getById(String(ctx.user.id));
+        const role = (user?.role || "").toUpperCase();
+        let effectiveBranchId = user?.branchId || "brn_erode_hq";
+        if (role === "SUPER_ADMIN" && input.branchId) {
+          effectiveBranchId = input.branchId;
+        } else if (input.branchId && input.branchId !== user?.branchId && role !== "SUPER_ADMIN") {
+          throw new TRPCError({
+            code: "FORBIDDEN",
+            message: "Unauthorized: You may only access your assigned branch stock.",
+          });
+        }
+        return db.retailStockRepo.getBranchStock(effectiveBranchId, input);
+      }),
+
+    searchProducts: retailProcedure
+      .input(
+        z.object({
+          query: z.string().min(1, "Search term required"),
+          branchId: z.string().optional(),
+        })
+      )
+      .query(async ({ input, ctx }) => {
+        const user = db.usersRepo.getById(String(ctx.user.id));
+        const effectiveBranchId = (user?.role === "SUPER_ADMIN" && input.branchId) ? input.branchId : (user?.branchId || "brn_erode_hq");
+        const items = db.retailStockRepo.getBranchStock(effectiveBranchId, { search: input.query, limit: 30 });
+        return items;
+      }),
+
+    createSale: retailProcedure
+      .input(
+        z.object({
+          customerName: z.string().optional().default("Walk-in Customer"),
+          customerPhone: z.string().optional(),
+          customerEmail: z.string().optional(),
+          discountAmount: z.number().min(0).optional().default(0),
+          discountReason: z.string().optional(),
+          taxAmount: z.number().min(0).optional().default(0),
+          paymentMethod: z.enum(["CASH", "UPI", "CARD"]),
+          notes: z.string().optional(),
+          items: z.array(
+            z.object({
+              productId: z.string(),
+              sku: z.string().optional(),
+              packSize: z.string().optional().default("Standard"),
+              unitPrice: z.number().min(0),
+              quantity: z.number().int().min(1),
+            })
+          ).min(1, "At least one item is required in the cart"),
+        })
+      )
+      .mutation(async ({ input, ctx }) => {
+        const user = db.usersRepo.getById(String(ctx.user.id));
+        const branchId = user?.branchId || "brn_erode_hq";
+
+        try {
+          const sale = db.retailSalesRepo.processSale(
+            {
+              branchId,
+              handlerId: String(ctx.user.id),
+              handlerName: ctx.user.name || "Retail Handler",
+              customerName: input.customerName,
+              customerPhone: input.customerPhone,
+              customerEmail: input.customerEmail,
+              discountAmount: input.discountAmount,
+              discountReason: input.discountReason,
+              taxAmount: input.taxAmount,
+              paymentMethod: input.paymentMethod,
+              notes: input.notes,
+            },
+            input.items
+          );
+
+          db.auditLogsRepo.log(
+            ctx.user.name || "Retail Handler",
+            "RETAIL_SALE_COMPLETED",
+            `Invoice ${sale.invoice_number} completed at branch ${branchId}. Total: ₹${sale.total} via ${input.paymentMethod}`
+          );
+
+          return sale;
+        } catch (err: any) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: err.message || "Failed to process retail sale.",
+          });
+        }
+      }),
+
+    getInvoice: retailProcedure
+      .input(
+        z.object({
+          id: z.string().optional(),
+          invoiceNumber: z.string().optional(),
+        })
+      )
+      .query(async ({ input, ctx }) => {
+        let sale: any = null;
+        if (input.invoiceNumber) {
+          sale = db.retailSalesRepo.getSaleByInvoice(input.invoiceNumber);
+        } else if (input.id) {
+          sale = db.retailSalesRepo.getSaleById(input.id);
+        } else {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "Invoice identifier required." });
+        }
+
+        if (!sale) {
+          throw new TRPCError({ code: "NOT_FOUND", message: "Retail invoice not found." });
+        }
+
+        const user = db.usersRepo.getById(String(ctx.user.id));
+        const role = (user?.role || "").toUpperCase();
+        if (role !== "SUPER_ADMIN" && user?.branchId && sale.branch_id !== user.branchId) {
+          throw new TRPCError({ code: "FORBIDDEN", message: "Access denied: invoice belongs to another branch." });
+        }
+
+        return sale;
+      }),
+
+    salesHistory: retailProcedure
+      .input(
+        z.object({
+          search: z.string().optional(),
+          paymentMethod: z.string().optional(),
+          saleStatus: z.string().optional(),
+          limit: z.number().optional().default(50),
+          offset: z.number().optional().default(0),
+        }).optional().default({ limit: 50, offset: 0 })
+      )
+      .query(async ({ input, ctx }) => {
+        const user = db.usersRepo.getById(String(ctx.user.id));
+        const branchId = user?.branchId || "brn_erode_hq";
+        return db.retailSalesRepo.listSales({
+          ...input,
+          branchId: user?.role === "SUPER_ADMIN" ? undefined : branchId,
+        });
+      }),
+
+    requestStockAdjustment: retailProcedure
+      .input(
+        z.object({
+          productId: z.string(),
+          sku: z.string(),
+          requestedDelta: z.number().int().refine((val) => val !== 0, "Adjustment delta cannot be zero"),
+          reason: z.string().min(3, "Please provide a reason for the adjustment"),
+        })
+      )
+      .mutation(async ({ input, ctx }) => {
+        const user = db.usersRepo.getById(String(ctx.user.id));
+        const branchId = user?.branchId || "brn_erode_hq";
+
+        const adj = db.retailStockRepo.requestAdjustment({
+          branchId,
+          productId: input.productId,
+          sku: input.sku,
+          requestedDelta: input.requestedDelta,
+          reason: input.reason,
+          requestedBy: ctx.user.name || "Retail Handler",
+        });
+
+        db.auditLogsRepo.log(
+          ctx.user.name || "Retail Handler",
+          "RETAIL_STOCK_ADJUSTMENT_REQUESTED",
+          `Adjustment request created for ${input.sku} (${input.requestedDelta > 0 ? "+" : ""}${input.requestedDelta}) at branch ${branchId}. Reason: ${input.reason}`
+        );
+
+        return adj;
+      }),
+
+    myAdjustments: retailProcedure.query(async ({ ctx }) => {
+      const user = db.usersRepo.getById(String(ctx.user.id));
+      const branchId = user?.branchId || "brn_erode_hq";
+      return db.retailStockRepo.listAdjustments(user?.role === "SUPER_ADMIN" ? undefined : branchId);
+    }),
+
+    stockMovements: retailProcedure
+      .input(z.object({ limit: z.number().optional().default(50) }))
+      .query(async ({ input, ctx }) => {
+        const user = db.usersRepo.getById(String(ctx.user.id));
+        const branchId = user?.branchId || "brn_erode_hq";
+        return db.retailStockRepo.getMovements(branchId, input.limit);
+      }),
+
+    dashboardMetrics: retailProcedure.query(async ({ ctx }) => {
+      const user = db.usersRepo.getById(String(ctx.user.id));
+      const branchId = user?.branchId || "brn_erode_hq";
+      const branch = db.retailBranchesRepo.getById(branchId);
+      const metrics = db.retailSalesRepo.getSalesMetrics(user?.role === "SUPER_ADMIN" ? undefined : branchId);
+      const stockItems = db.retailStockRepo.getBranchStock(branchId, { limit: 500 });
+      const lowStockCount = stockItems.filter((i: any) => i.stockQuantity <= i.lowStockThreshold).length;
+
+      return {
+        branch,
+        ...metrics,
+        totalProducts: stockItems.length,
+        lowStockCount,
+      };
+    }),
   }),
 });
 
