@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import BrandMark from "@/components/BrandMark";
 import AuthModal from "@/components/AuthModal";
 import {
+  RotateCcw,
   User,
   MapPin,
   ShoppingBag,
@@ -38,7 +39,7 @@ import {
   PackageSearch,
 } from "lucide-react";
 
-type AccountTab = "profile" | "addresses" | "orders" | "wishlist" | "tickets" | "feedback" | "rewards" | "enquiries" | "security";
+type AccountTab = "profile" | "addresses" | "orders" | "returns" | "wishlist" | "tickets" | "feedback" | "rewards" | "enquiries" | "security";
 
 export default function CustomerAccountPage() {
   const [, setLocation] = useLocation();
@@ -112,6 +113,35 @@ export default function CustomerAccountPage() {
     },
     onError: (err: any) => {
       toast.error(err.message || "Failed to redeem free product");
+    },
+  });
+
+  // Phase 6: Returns & RMA State
+  const { data: myReturns = [], refetch: refetchMyReturns } = trpc.returns.myReturns.useQuery(undefined, {
+    enabled: Boolean(currentUser),
+  });
+
+  const [returnModalOpen, setReturnModalOpen] = useState(false);
+  const [returnOrder, setReturnOrder] = useState<any>(null);
+  const [returnItemId, setReturnItemId] = useState("");
+  const [returnQuantity, setReturnQuantity] = useState(1);
+  const [returnReason, setReturnReason] = useState("Damaged or Broken Seal");
+  const [returnDescription, setReturnDescription] = useState("");
+  const [pickupInstructions, setPickupInstructions] = useState("");
+
+  const submitReturnMutation = trpc.returns.request.useMutation({
+    onSuccess: (res: any) => {
+      toast.success(`Return request submitted successfully! RMA: ${res.returnNumber}`);
+      setReturnModalOpen(false);
+      setReturnOrder(null);
+      setReturnItemId("");
+      setReturnQuantity(1);
+      setReturnDescription("");
+      setPickupInstructions("");
+      refetchMyReturns();
+    },
+    onError: (err: any) => {
+      toast.error(err.message || "Failed to submit return request");
     },
   });
 
@@ -437,6 +467,139 @@ export default function CustomerAccountPage() {
         </main>
 
         
+            {/* Phase 6: Customer Return Request Modal */}
+      {returnModalOpen && returnOrder && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs">
+          <div className="bg-white rounded-3xl border border-[#DEDFD5] max-w-lg w-full p-6 shadow-xl space-y-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between pb-3 border-b border-[#F2ECE0]">
+              <div>
+                <h3 className="font-serif text-lg font-bold text-[#123D28] flex items-center gap-1.5">
+                  <RotateCcw size={16} className="text-[#8E5E28]" />
+                  Request Return / Refund
+                </h3>
+                <span className="text-xs text-[#6C7167]">Order: {returnOrder.orderNumber}</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setReturnModalOpen(false)}
+                className="p-1 rounded-full text-gray-400 hover:text-gray-600 cursor-pointer"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                const matchedItem = returnOrder.items?.find((it: any) => it.id === returnItemId) || returnOrder.items?.[0];
+                if (!matchedItem) {
+                  toast.error("Please select an item to return");
+                  return;
+                }
+                submitReturnMutation.mutate({
+                  orderId: returnOrder.id,
+                  orderNumber: returnOrder.orderNumber,
+                  orderItemId: matchedItem.id,
+                  productId: matchedItem.productId,
+                  quantityRequested: Number(returnQuantity),
+                  returnReason,
+                  description: returnDescription,
+                  pickupInstructions: pickupInstructions || undefined,
+                });
+              }}
+              className="space-y-3 text-xs"
+            >
+              <div>
+                <label className="block font-semibold text-[#123D28] mb-1">Select Item to Return</label>
+                <select
+                  value={returnItemId}
+                  onChange={(e) => setReturnItemId(e.target.value)}
+                  className="w-full p-2 border border-[#DEDFD5] rounded-lg bg-[#FAF8F2] text-[#123D28]"
+                  required
+                >
+                  {returnOrder.items?.map((it: any) => (
+                    <option key={it.id} value={it.id}>
+                      {it.productNameEn} ({it.packSize}) – Qty: {it.quantity} (₹{it.price} each)
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block font-semibold text-[#123D28] mb-1">Quantity to Return</label>
+                <input
+                  type="number"
+                  min={1}
+                  max={returnOrder.items?.find((it: any) => it.id === returnItemId)?.quantity || 1}
+                  value={returnQuantity}
+                  onChange={(e) => setReturnQuantity(Number(e.target.value))}
+                  className="w-full p-2 border border-[#DEDFD5] rounded-lg bg-white"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block font-semibold text-[#123D28] mb-1">Reason for Return</label>
+                <select
+                  value={returnReason}
+                  onChange={(e) => setReturnReason(e.target.value)}
+                  className="w-full p-2 border border-[#DEDFD5] rounded-lg bg-[#FAF8F2]"
+                  required
+                >
+                  <option value="Damaged or Broken Seal">Damaged or Broken Seal</option>
+                  <option value="Wrong Item Delivered">Wrong Item Delivered</option>
+                  <option value="Quality / Aroma Issue">Quality / Aroma Issue</option>
+                  <option value="Expired or Near Expiry">Expired or Near Expiry</option>
+                  <option value="Not as Described">Not as Described</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block font-semibold text-[#123D28] mb-1">Detailed Description (Min 5 chars)</label>
+                <textarea
+                  rows={3}
+                  minLength={5}
+                  value={returnDescription}
+                  onChange={(e) => setReturnDescription(e.target.value)}
+                  placeholder="Please describe the issue in detail..."
+                  className="w-full p-2 border border-[#DEDFD5] rounded-lg bg-white"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block font-semibold text-[#123D28] mb-1">Pickup Instructions (Optional)</label>
+                <input
+                  type="text"
+                  value={pickupInstructions}
+                  onChange={(e) => setPickupInstructions(e.target.value)}
+                  placeholder="e.g. Available weekdays 10am to 2pm"
+                  className="w-full p-2 border border-[#DEDFD5] rounded-lg bg-white"
+                />
+              </div>
+
+              <div className="pt-2 flex items-center justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setReturnModalOpen(false)}
+                  className="py-2 px-4 rounded-xl border border-[#DEDFD5] text-[#6C7167] font-semibold hover:bg-gray-50 cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={submitReturnMutation.isPending}
+                  className="py-2 px-5 rounded-xl bg-[#123D28] hover:bg-[#1A4D33] text-white font-bold transition-colors cursor-pointer shadow-2xs"
+                >
+                  {submitReturnMutation.isPending ? "Submitting..." : "Submit Return Request"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       <AuthModal
           open={authModalOpen}
           onClose={() => setAuthModalOpen(false)}
@@ -519,6 +682,7 @@ export default function CustomerAccountPage() {
             { id: "profile" as AccountTab, label: "My Profile", icon: User },
             { id: "addresses" as AccountTab, label: `Saved Addresses (${addresses.length})`, icon: MapPin },
             { id: "orders" as AccountTab, label: `My Orders (${orders.length})`, icon: ShoppingBag },
+            { id: "returns" as AccountTab, label: `Returns & RMAs (${myReturns.length})`, icon: RotateCcw },
             { id: "wishlist" as AccountTab, label: `My Wishlist (${wishlistItems.length})`, icon: Heart },
             { id: "tickets" as AccountTab, label: `Support Helpdesk (${myTickets.length})`, icon: LifeBuoy },
             { id: "feedback" as AccountTab, label: "Feedback & Reviews", icon: Star },
@@ -752,6 +916,121 @@ export default function CustomerAccountPage() {
         )}
 
         {/* ======================================================== */}
+        {/* TAB 3B: RETURNS & RMA MANAGEMENT (Phase 6) */}
+        {/* ======================================================== */}
+        {activeTab === "returns" && (
+          <div className="space-y-6">
+            <div className="bg-white p-5 rounded-2xl border border-[#DEDFD5] shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <h2 className="font-serif text-lg font-bold text-[#123D28]">Customer Returns & RMA Requests</h2>
+                <p className="text-xs text-[#6C7167] mt-0.5">
+                  Track return requests, courier pickups, quality inspections, and refund status.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setActiveTab("orders")}
+                className="py-2 px-3.5 bg-[#123D28] text-white rounded-xl text-xs font-bold hover:bg-[#1A4D33] transition-colors self-start sm:self-auto flex items-center gap-1.5 shadow-2xs"
+              >
+                <ShoppingBag size={13} />
+                <span>Select Order to Return</span>
+              </button>
+            </div>
+
+            {myReturns.length === 0 ? (
+              <div className="bg-white rounded-3xl border border-[#DEDFD5] p-12 text-center space-y-3">
+                <RotateCcw size={36} className="mx-auto text-slate-300" />
+                <h3 className="font-serif text-lg font-bold text-[#123D28]">No Return Requests</h3>
+                <p className="text-xs text-[#6C7167] max-w-sm mx-auto">
+                  You have not submitted any return requests. Returns can be initiated for delivered orders within eligible return windows.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {myReturns.map((ret: any) => {
+                  const getStatusBadge = (st: string) => {
+                    switch (st) {
+                      case "REQUESTED": return "bg-amber-100 text-amber-800";
+                      case "UNDER_REVIEW": return "bg-blue-100 text-blue-800";
+                      case "APPROVED": return "bg-purple-100 text-purple-800";
+                      case "REJECTED": return "bg-red-100 text-red-800";
+                      case "PICKUP_SCHEDULED": return "bg-indigo-100 text-indigo-800";
+                      case "ITEM_RECEIVED": return "bg-cyan-100 text-cyan-800";
+                      case "INSPECTED": return "bg-teal-100 text-teal-800";
+                      case "REFUND_PENDING": return "bg-yellow-100 text-yellow-800";
+                      case "REFUNDED": return "bg-emerald-100 text-emerald-800 font-bold";
+                      case "CLOSED": return "bg-gray-100 text-gray-800";
+                      default: return "bg-slate-100 text-slate-800";
+                    }
+                  };
+
+                  return (
+                    <div key={ret.id} className="bg-white rounded-2xl border border-[#DEDFD5] p-5 shadow-2xs space-y-4">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-[#F2ECE0]">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-mono font-bold text-sm text-[#123D28]">{ret.returnNumber}</span>
+                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${getStatusBadge(ret.status)}`}>
+                            {ret.status.replace(/_/g, " ")}
+                          </span>
+                          <span className="text-[11px] text-[#6C7167]">
+                            Order: <strong>{ret.orderNumber}</strong>
+                          </span>
+                        </div>
+                        <div className="text-right">
+                          <span className="text-[11px] text-[#6C7167] block">Refund Amount</span>
+                          <strong className="text-sm font-serif text-[#123D28]">₹{ret.refundAmount}</strong>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs bg-[#FAF8F2] p-3 rounded-xl border border-[#EFECE4]">
+                        <div>
+                          <span className="text-[#6C7167] block text-[10px] uppercase font-bold tracking-wider">Item Details</span>
+                          <strong className="text-[#123D28] block">{ret.productName}</strong>
+                          <span className="text-[#6C7167]">Pack: {ret.packSize} · Qty to Return: {ret.quantityRequested}</span>
+                        </div>
+                        <div>
+                          <span className="text-[#6C7167] block text-[10px] uppercase font-bold tracking-wider">Reason for Return</span>
+                          <span className="font-semibold text-[#8E5E28] block">{ret.returnReason}</span>
+                          <p className="text-[11px] text-[#6C7167] mt-0.5">"{ret.description}"</p>
+                        </div>
+                      </div>
+
+                      {/* Refund & Stock Disposition info if processed */}
+                      {(ret.status === "REFUNDED" || ret.refundReference) && (
+                        <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-xs text-emerald-900 flex items-center justify-between">
+                          <div>
+                            <span className="font-bold block">✓ Refund Processed: ₹{ret.refundAmount}</span>
+                            <span className="text-[11px]">Method: {ret.refundMethod || "Payment Source / COD"} · Ref: {ret.refundReference}</span>
+                          </div>
+                          {ret.refundedAt && (
+                            <span className="text-[10px] text-emerald-700">
+                              {new Date(ret.refundedAt).toLocaleDateString()}
+                            </span>
+                          )}
+                        </div>
+                      )}
+
+                      {/* History timeline */}
+                      {ret.history && ret.history.length > 0 && (
+                        <div className="pt-2 border-t border-[#F2ECE0] text-[11px] text-[#6C7167] space-y-1">
+                          <span className="font-bold text-[#123D28] block">Activity Log:</span>
+                          {ret.history.map((h: any) => (
+                            <div key={h.id} className="flex items-center justify-between">
+                              <span>• {h.note || h.action}</span>
+                              <span className="text-[10px] text-gray-400">{new Date(h.createdAt).toLocaleDateString()}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ======================================================== */}
         {/* TAB 3: ORDER HISTORY */}
         {/* ======================================================== */}
         {activeTab === "orders" && (
@@ -852,21 +1131,81 @@ export default function CustomerAccountPage() {
                         </div>
                       </div>
 
-                      {/* Delivery Address Snapshot */}
-                      <div className="bg-[#FAF8F2] p-3 rounded-xl border border-[#EFECE4] text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                      {/* Phase 6: Gift Order Badge & Message */}
+                      {Boolean(order.isGiftOrder) && (
+                        <div className="p-3 bg-amber-50/80 border border-amber-200/80 rounded-xl text-xs flex items-start gap-2.5">
+                          <Gift size={16} className="text-[#8E5E28] shrink-0 mt-0.5" />
+                          <div>
+                            <span className="font-bold text-[#8E5E28] block">🎁 Gift Delivery Order</span>
+                            {order.giftMessage && (
+                              <p className="text-[#6C7167] italic mt-0.5">"{order.giftMessage}"</p>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Phase 6: Distinct Ship To & Bill To Address Snapshots */}
+                      <div className="bg-[#FAF8F2] p-3.5 rounded-xl border border-[#EFECE4] text-xs grid grid-cols-1 md:grid-cols-2 gap-3">
                         <div>
                           <span className="text-[#6C7167] block text-[10px] uppercase font-bold tracking-wider">
-                            Delivered To:
+                            Ship To (Delivery Recipient):
                           </span>
+                          <strong className="text-[#123D28] block">
+                            {order.recipientName || parsedAddress.recipientName || order.customerName}
+                          </strong>
                           <span className="text-[#2C382A]">
                             {parsedAddress.street || parsedAddress.addressLine1},{" "}
                             {parsedAddress.city}, {parsedAddress.state} – {parsedAddress.pinCode}
                           </span>
+                          {order.recipientPhone && (
+                            <span className="text-[11px] text-[#6C7167] block">Phone: {order.recipientPhone}</span>
+                          )}
                         </div>
-                        {order.trackingNumber && (
-                          <div className="text-[11px] text-[#123D28] font-mono font-bold">
-                            AWB: {order.trackingNumber} ({order.carrier || "Delivery Partner"})
-                          </div>
+
+                        <div>
+                          <span className="text-[#6C7167] block text-[10px] uppercase font-bold tracking-wider">
+                            Bill To (Purchaser / Invoiced):
+                          </span>
+                          <strong className="text-[#123D28] block">
+                            {order.billingName || order.customerName}
+                          </strong>
+                          <span className="text-[#2C382A]">
+                            {order.isSameAddress
+                              ? "Same as delivery address"
+                              : typeof order.billingAddress === "string"
+                              ? order.billingAddress
+                              : `${order.billingAddress?.street || ""}, ${order.billingAddress?.city || ""}`}
+                          </span>
+                          {order.billingPhone && (
+                            <span className="text-[11px] text-[#6C7167] block">Phone: {order.billingPhone}</span>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Phase 6: Actions - Return Request & Tracking */}
+                      <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-[#F2ECE0]">
+                        <div className="flex items-center gap-2">
+                          {order.trackingNumber && (
+                            <span className="text-[11px] text-[#123D28] font-mono font-bold bg-[#EAF2ED] px-2 py-0.5 rounded">
+                              AWB: {order.trackingNumber} ({order.carrier || "Express Courier"})
+                            </span>
+                          )}
+                        </div>
+
+                        {(order.orderStatus === "Delivered" || order.orderStatus === "Completed") && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setReturnOrder(order);
+                              setReturnItemId(order.items?.[0]?.id || "");
+                              setReturnQuantity(1);
+                              setReturnModalOpen(true);
+                            }}
+                            className="py-1 px-3 bg-[#FBF8F0] hover:bg-[#F2ECE0] border border-[#DEDFD5] text-[#123D28] rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
+                          >
+                            <RotateCcw size={13} className="text-[#8E5E28]" />
+                            <span>Request Return / Refund</span>
+                          </button>
                         )}
                       </div>
                     </div>

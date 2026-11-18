@@ -140,6 +140,17 @@ function initTables(db: any) {
       customerEmail TEXT NOT NULL,
       customerPhone TEXT NOT NULL,
       shippingAddress TEXT NOT NULL,
+      billingAddress TEXT,
+      billingName TEXT,
+      billingPhone TEXT,
+      billingEmail TEXT,
+      recipientName TEXT,
+      recipientPhone TEXT,
+      recipientEmail TEXT,
+      isSameAddress INTEGER NOT NULL DEFAULT 1,
+      isGiftOrder INTEGER NOT NULL DEFAULT 0,
+      giftMessage TEXT,
+      deliveryInstructions TEXT,
       subtotal REAL NOT NULL,
       discountAmount REAL NOT NULL DEFAULT 0,
       shippingFee REAL NOT NULL DEFAULT 0,
@@ -193,6 +204,62 @@ function initTables(db: any) {
       createdAt TEXT NOT NULL,
       FOREIGN KEY (orderId) REFERENCES orders(id) ON DELETE CASCADE
     );
+
+    CREATE TABLE IF NOT EXISTS order_returns (
+      id TEXT PRIMARY KEY,
+      return_number TEXT UNIQUE NOT NULL,
+      order_id TEXT NOT NULL,
+      order_number TEXT NOT NULL,
+      customer_id TEXT NOT NULL,
+      customer_name TEXT NOT NULL,
+      customer_email TEXT NOT NULL,
+      customer_phone TEXT NOT NULL,
+      order_item_id TEXT,
+      product_id TEXT NOT NULL,
+      product_name TEXT NOT NULL,
+      sku TEXT NOT NULL,
+      pack_size TEXT NOT NULL,
+      quantity_requested INTEGER NOT NULL,
+      quantity_received INTEGER NOT NULL DEFAULT 0,
+      quantity_inspected INTEGER NOT NULL DEFAULT 0,
+      item_price REAL NOT NULL,
+      refund_amount REAL NOT NULL,
+      return_reason TEXT NOT NULL,
+      description TEXT NOT NULL,
+      supporting_image TEXT,
+      pickup_instructions TEXT,
+      status TEXT NOT NULL DEFAULT 'REQUESTED',
+      stock_disposition TEXT NOT NULL DEFAULT 'NONE',
+      restocked_quantity INTEGER NOT NULL DEFAULT 0,
+      refund_method TEXT,
+      refund_reference TEXT,
+      refunded_at TEXT,
+      admin_notes TEXT,
+      reviewed_by TEXT,
+      reviewed_at TEXT,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE,
+      FOREIGN KEY (customer_id) REFERENCES users(id) ON DELETE CASCADE
+    );
+    CREATE INDEX IF NOT EXISTS idx_returns_order ON order_returns(order_id);
+    CREATE INDEX IF NOT EXISTS idx_returns_order_number ON order_returns(order_number);
+    CREATE INDEX IF NOT EXISTS idx_returns_customer ON order_returns(customer_id);
+    CREATE INDEX IF NOT EXISTS idx_returns_number ON order_returns(return_number);
+    CREATE INDEX IF NOT EXISTS idx_returns_status ON order_returns(status);
+
+    CREATE TABLE IF NOT EXISTS order_return_history (
+      id TEXT PRIMARY KEY,
+      return_id TEXT NOT NULL,
+      from_status TEXT,
+      to_status TEXT NOT NULL,
+      action TEXT NOT NULL,
+      actor TEXT NOT NULL,
+      note TEXT,
+      created_at TEXT NOT NULL,
+      FOREIGN KEY (return_id) REFERENCES order_returns(id) ON DELETE CASCADE
+    );
+    CREATE INDEX IF NOT EXISTS idx_return_history_ret ON order_return_history(return_id);
 
     CREATE TABLE IF NOT EXISTS payments (
       id TEXT PRIMARY KEY,
@@ -2087,28 +2154,41 @@ export const orderDocumentsRepo = {
       };
     }
 
-    // 2. Generate sequential number: TRN-[TYPE]-YYYY-XXXXX
+    // 2. Generate sequential number: TRN-[TYPE]-YYYY-XXXXX with collision retry for concurrent workers
     const year = new Date().getFullYear();
-    const seq = this.getNextSequence(docType, year);
-    const docNumber = `${this.getDocPrefix(docType)}-${year}-${String(seq).padStart(5, "0")}`;
-    const id = "doc_" + Date.now() + "_" + Math.floor(Math.random() * 10000);
-    const now = new Date().toISOString();
+    const prefix = this.getDocPrefix(docType);
+    let attempts = 0;
+    while (attempts < 10) {
+      const seq = this.getNextSequence(docType, year);
+      const docNumber = `${prefix}-${year}-${String(seq).padStart(5, "0")}`;
+      const id = "doc_" + Date.now() + "_" + Math.floor(Math.random() * 100000);
+      const now = new Date().toISOString();
 
-    db.prepare(`
-      INSERT INTO order_documents (id, order_id, order_number, document_type, document_number, generated_by, metadata, created_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(id, orderId, orderNumber, docType, docNumber, generatedBy, JSON.stringify(metadata || {}), now);
+      try {
+        db.prepare(`
+          INSERT INTO order_documents (id, order_id, order_number, document_type, document_number, generated_by, metadata, created_at)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        `).run(id, orderId, orderNumber, docType, docNumber, generatedBy, JSON.stringify(metadata || {}), now);
 
-    return {
-      id,
-      order_id: orderId,
-      order_number: orderNumber,
-      document_type: docType,
-      document_number: docNumber,
-      generated_by: generatedBy,
-      metadata,
-      created_at: now
-    };
+        return {
+          id,
+          order_id: orderId,
+          order_number: orderNumber,
+          document_type: docType,
+          document_number: docNumber,
+          generated_by: generatedBy,
+          metadata,
+          created_at: now
+        };
+      } catch (err: any) {
+        if (err?.message?.includes("UNIQUE constraint failed: order_documents.document_number")) {
+          attempts++;
+          continue;
+        }
+        throw err;
+      }
+    }
+    throw new Error(`Failed to generate unique document number for ${docType} after 10 attempts`);
   },
 
   listByOrder(orderIdentifier: string) {
@@ -2150,13 +2230,32 @@ export const ordersRepo = {
     }
     const now = new Date().toISOString();
 
+    const isSameAddress = orderData.isSameAddress === false ? 0 : 1;
+    const shippingAddressStr = typeof orderData.shippingAddress === "string"
+      ? orderData.shippingAddress
+      : JSON.stringify(orderData.shippingAddress);
+    const billingAddressStr = isSameAddress
+      ? shippingAddressStr
+      : (typeof orderData.billingAddress === "string" ? orderData.billingAddress : (orderData.billingAddress ? JSON.stringify(orderData.billingAddress) : shippingAddressStr));
+    const billingName = orderData.billingName || orderData.customerName;
+    const billingPhone = orderData.billingPhone || orderData.customerPhone;
+    const billingEmail = orderData.billingEmail || orderData.customerEmail;
+    const recipientName = orderData.recipientName || orderData.customerName;
+    const recipientPhone = orderData.recipientPhone || orderData.customerPhone;
+    const recipientEmail = orderData.recipientEmail || orderData.customerEmail;
+    const isGiftOrder = orderData.isGiftOrder ? 1 : 0;
+    const giftMessage = orderData.giftMessage || null;
+    const deliveryInstructions = orderData.deliveryInstructions || null;
+
     db.prepare(`
       INSERT INTO orders (
         id, orderNumber, customerId, customerName, customerEmail, customerPhone,
-        shippingAddress, subtotal, discountAmount, shippingFee, total,
+        shippingAddress, billingAddress, billingName, billingPhone, billingEmail,
+        recipientName, recipientPhone, recipientEmail, isSameAddress, isGiftOrder,
+        giftMessage, deliveryInstructions, subtotal, discountAmount, shippingFee, total,
         paymentMethod, paymentStatus, razorpayOrderId, razorpayPaymentId,
         orderStatus, internalNotes, couponCode, trackingNumber, carrier, createdAt, updatedAt
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
       id,
       orderNumber,
@@ -2164,7 +2263,18 @@ export const ordersRepo = {
       orderData.customerName,
       orderData.customerEmail,
       orderData.customerPhone,
-      typeof orderData.shippingAddress === "string" ? orderData.shippingAddress : JSON.stringify(orderData.shippingAddress),
+      shippingAddressStr,
+      billingAddressStr,
+      billingName,
+      billingPhone,
+      billingEmail,
+      recipientName,
+      recipientPhone,
+      recipientEmail,
+      isSameAddress,
+      isGiftOrder,
+      giftMessage,
+      deliveryInstructions,
       orderData.subtotal,
       orderData.discountAmount || 0,
       orderData.shippingFee || 0,
@@ -2623,13 +2733,39 @@ export const ordersRepo = {
     const db = getDatabase();
     const items = db.prepare("SELECT * FROM order_items WHERE orderId = ?").all(order.id) as any[];
     const history = db.prepare("SELECT * FROM order_status_history WHERE orderId = ? ORDER BY createdAt ASC").all(order.id) as any[];
-    let shippingAddress = {};
+    let shippingAddress: any = {};
     try {
       shippingAddress = JSON.parse(order.shippingAddress);
     } catch {
       shippingAddress = { street: order.shippingAddress };
     }
-    return { ...order, items, history, shippingAddress };
+    let billingAddress: any = null;
+    if (order.billingAddress) {
+      try {
+        billingAddress = JSON.parse(order.billingAddress);
+      } catch {
+        billingAddress = { street: order.billingAddress };
+      }
+    } else {
+      billingAddress = shippingAddress;
+    }
+    return {
+      ...order,
+      items,
+      history,
+      shippingAddress,
+      billingAddress,
+      isSameAddress: Boolean(order.isSameAddress ?? 1),
+      isGiftOrder: Boolean(order.isGiftOrder ?? 0),
+      billingName: order.billingName || order.customerName,
+      billingPhone: order.billingPhone || order.customerPhone,
+      billingEmail: order.billingEmail || order.customerEmail,
+      recipientName: order.recipientName || order.customerName,
+      recipientPhone: order.recipientPhone || order.customerPhone,
+      recipientEmail: order.recipientEmail || order.customerEmail,
+      giftMessage: order.giftMessage || null,
+      deliveryInstructions: order.deliveryInstructions || null,
+    };
   },
 
   exportCsv(): string {
@@ -2706,8 +2842,12 @@ export const ordersRepo = {
       }
     }
 
+    const recipientName = enriched.recipientName || parsedAddress?.recipientName || enriched.customerName;
+    const recipientPhone = enriched.recipientPhone || parsedAddress?.recipientPhone || enriched.customerPhone;
+    const recipientEmail = enriched.recipientEmail || enriched.customerEmail;
+
     const addressLines = [
-      parsedAddress?.recipientName ? `Attn: ${parsedAddress.recipientName}` : null,
+      recipientName ? `Attn: ${recipientName}` : null,
       parsedAddress?.addressLine1 || parsedAddress?.street,
       parsedAddress?.addressLine2,
       parsedAddress?.landmark ? `Landmark: ${parsedAddress.landmark}` : null,
@@ -2737,9 +2877,19 @@ export const ordersRepo = {
         month: "short",
         day: "numeric",
       }),
-      customerName: enriched.customerName,
-      customerPhone: enriched.customerPhone,
-      customerEmail: enriched.customerEmail,
+      customerName: recipientName,
+      customerPhone: recipientPhone,
+      customerEmail: recipientEmail,
+      recipientName,
+      recipientPhone,
+      recipientEmail,
+      purchaserName: enriched.billingName || enriched.customerName,
+      purchaserPhone: enriched.billingPhone || enriched.customerPhone,
+      purchaserEmail: enriched.billingEmail || enriched.customerEmail,
+      isSameAddress: enriched.isSameAddress,
+      isGiftOrder: enriched.isGiftOrder,
+      giftMessage: enriched.giftMessage,
+      deliveryInstructions: enriched.deliveryInstructions,
       shippingAddress: parsedAddress,
       formattedAddress: addressLines.join(", "),
       items: (enriched.items || []).map((it: any, idx: number) => ({
@@ -2776,24 +2926,38 @@ export const ordersRepo = {
     if (!order) return null;
     const enriched = this.enrichOrder(order);
 
-    let parsedAddress = enriched.shippingAddress;
-    if (typeof parsedAddress === "string") {
+    let parsedShipping = enriched.shippingAddress;
+    if (typeof parsedShipping === "string") {
       try {
-        parsedAddress = JSON.parse(parsedAddress);
+        parsedShipping = JSON.parse(parsedShipping);
       } catch {
-        parsedAddress = { street: parsedAddress, city: "", state: "Tamil Nadu", pinCode: "" };
+        parsedShipping = { street: parsedShipping, city: "", state: "Tamil Nadu", pinCode: "" };
       }
     }
+    let parsedBilling = enriched.billingAddress;
+    if (typeof parsedBilling === "string") {
+      try {
+        parsedBilling = JSON.parse(parsedBilling);
+      } catch {
+        parsedBilling = { street: parsedBilling, city: "", state: "Tamil Nadu", pinCode: "" };
+      }
+    }
+    if (!parsedBilling) {
+      parsedBilling = parsedShipping;
+    }
 
-    const addressLines = [
-      parsedAddress?.recipientName ? `Attn: ${parsedAddress.recipientName}` : null,
-      parsedAddress?.addressLine1 || parsedAddress?.street,
-      parsedAddress?.addressLine2,
-      parsedAddress?.landmark ? `Landmark: ${parsedAddress.landmark}` : null,
-      parsedAddress?.district,
-      parsedAddress?.city,
-      parsedAddress?.state ? `${parsedAddress.state} - ${parsedAddress?.pinCode || ""}` : parsedAddress?.pinCode,
+    const formatAddressLines = (addr: any) => [
+      addr?.recipientName ? `Attn: ${addr.recipientName}` : null,
+      addr?.addressLine1 || addr?.street,
+      addr?.addressLine2,
+      addr?.landmark ? `Landmark: ${addr.landmark}` : null,
+      addr?.district,
+      addr?.city,
+      addr?.state ? `${addr.state} - ${addr?.pinCode || ""}` : addr?.pinCode,
     ].filter(Boolean);
+
+    const shippingLines = formatAddressLines(parsedShipping);
+    const billingLines = formatAddressLines(parsedBilling);
 
     // Document numbering sequence: TRN-INV-YYYY-XXXXX
     const docRecord = orderDocumentsRepo.getOrGenerate(
@@ -2867,13 +3031,24 @@ export const ordersRepo = {
       },
       buyerDetails: {
         customerId: enriched.customerId || null,
-        customerName: enriched.customerName,
-        customerEmail: enriched.customerEmail,
-        customerPhone: enriched.customerPhone,
-        shippingAddress: parsedAddress,
-        billingAddress: parsedAddress,
-        formattedAddress: addressLines.join(", "),
-        placeOfSupply: parsedAddress?.state ? `${parsedAddress.state} (${parsedAddress.state.toLowerCase() === "tamil nadu" ? "33" : "OS"})` : "Tamil Nadu (33)",
+        customerName: enriched.billingName || enriched.customerName,
+        customerEmail: enriched.billingEmail || enriched.customerEmail,
+        customerPhone: enriched.billingPhone || enriched.customerPhone,
+        billingName: enriched.billingName || enriched.customerName,
+        billingEmail: enriched.billingEmail || enriched.customerEmail,
+        billingPhone: enriched.billingPhone || enriched.customerPhone,
+        billingAddress: parsedBilling,
+        formattedBillingAddress: billingLines.join(", "),
+        recipientName: enriched.recipientName || enriched.customerName,
+        recipientPhone: enriched.recipientPhone || enriched.customerPhone,
+        recipientEmail: enriched.recipientEmail || enriched.customerEmail,
+        shippingAddress: parsedShipping,
+        formattedShippingAddress: shippingLines.join(", "),
+        formattedAddress: billingLines.join(", ") || shippingLines.join(", "),
+        isSameAddress: enriched.isSameAddress,
+        isGiftOrder: enriched.isGiftOrder,
+        giftMessage: enriched.giftMessage,
+        placeOfSupply: parsedShipping?.state ? `${parsedShipping.state} (${parsedShipping.state.toLowerCase() === "tamil nadu" ? "33" : "OS"})` : "Tamil Nadu (33)",
       },
       items,
       subtotal: enriched.subtotal,
@@ -2890,6 +3065,8 @@ export const ordersRepo = {
       paymentStatus: enriched.paymentStatus,
       paymentRef: enriched.razorpayPaymentId || (enriched.paymentMethod === "COD" ? "Cash on Delivery" : "Prepaid Online"),
       orderStatus: enriched.orderStatus,
+      isGiftOrder: enriched.isGiftOrder,
+      giftMessage: enriched.giftMessage,
       termsAndConditions: [
         "All products sold are natural botanicals and wellness commodities.",
         "Computer-generated invoice. No physical signature required under Section 10A of IT Act 2000.",
@@ -2914,8 +3091,12 @@ export const ordersRepo = {
       }
     }
 
+    const recipientName = enriched.recipientName || parsedAddress?.recipientName || enriched.customerName;
+    const recipientPhone = enriched.recipientPhone || parsedAddress?.recipientPhone || enriched.customerPhone;
+    const recipientEmail = enriched.recipientEmail || enriched.customerEmail;
+
     const addressLines = [
-      parsedAddress?.recipientName ? `Attn: ${parsedAddress.recipientName}` : null,
+      recipientName ? `Attn: ${recipientName}` : null,
       parsedAddress?.addressLine1 || parsedAddress?.street,
       parsedAddress?.addressLine2,
       parsedAddress?.landmark ? `Landmark: ${parsedAddress.landmark}` : null,
@@ -2978,9 +3159,9 @@ export const ordersRepo = {
         phone: "+91 94422 18990",
       },
       consignee: {
-        name: enriched.customerName,
-        phone: enriched.customerPhone,
-        email: enriched.customerEmail,
+        name: recipientName,
+        phone: recipientPhone,
+        email: recipientEmail,
         shippingAddress: parsedAddress,
         formattedAddress: addressLines.join(", "),
         city: parsedAddress?.city || "",
@@ -3002,6 +3183,8 @@ export const ordersRepo = {
       shippingFee: enriched.shippingFee || 0,
       total: enriched.total,
       totalInWords: numberToIndianWords(enriched.total),
+      isGiftOrder: enriched.isGiftOrder,
+      giftMessage: enriched.giftMessage,
       declaration: "Certified that the particulars given above are true and correct and the goods described are being transported for delivery to customer against confirmed e-commerce order under Section 31(7) and Rule 55 of the CGST Rules, 2017.",
       dispatchedBy: "TRINAYAA Warehouse Dispatch HQ",
       receivedBy: "Consignee Signature & Date",
@@ -3023,8 +3206,11 @@ export const ordersRepo = {
       }
     }
 
+    const recipientName = enriched.recipientName || parsedAddress?.recipientName || enriched.customerName;
+    const recipientPhone = enriched.recipientPhone || parsedAddress?.recipientPhone || enriched.customerPhone;
+
     const addressLines = [
-      parsedAddress?.recipientName ? `Attn: ${parsedAddress.recipientName}` : null,
+      recipientName ? `Attn: ${recipientName}` : null,
       parsedAddress?.addressLine1 || parsedAddress?.street,
       parsedAddress?.addressLine2,
       parsedAddress?.landmark ? `Landmark: ${parsedAddress.landmark}` : null,
@@ -3064,8 +3250,8 @@ export const ordersRepo = {
         originHub: "ED-01 (Erode Dispatch HQ)",
       },
       to: {
-        name: enriched.customerName,
-        phone: enriched.customerPhone,
+        name: recipientName,
+        phone: recipientPhone,
         pinCode: parsedAddress?.pinCode || "638001",
         city: parsedAddress?.city || "",
         district: parsedAddress?.district || "",
@@ -3073,15 +3259,18 @@ export const ordersRepo = {
         formattedAddress: addressLines.join(", "),
         addressLines,
       },
+      isGiftOrder: enriched.isGiftOrder,
+      giftMessage: enriched.giftMessage,
       routing: {
+        originHub: "ED-01 (Erode Dispatch HQ)",
         destinationPin: parsedAddress?.pinCode || "638001",
         carrier: enriched.carrier || "Express Logistics",
         trackingNumber: enriched.trackingNumber || `AWB-${enriched.orderNumber}`,
-        serviceType: isCod ? "COD EXPRESS" : "PREPAID SURFACE",
+        serviceType: isCod ? "COD EXPRESS" : (enriched.isGiftOrder ? "PREPAID GIFT PARCEL" : "PREPAID SURFACE"),
       },
       payment: {
         isCod,
-        badgeText: isCod ? "CASH ON DELIVERY (COD)" : "PREPAID ORDER",
+        badgeText: isCod ? "CASH ON DELIVERY (COD)" : (enriched.isGiftOrder ? "PREPAID GIFT PARCEL" : "PREPAID ORDER"),
         badgeColor: isCod ? "amber" : "emerald",
         collectAmount: isCod ? enriched.total : 0,
         collectDisplay: isCod ? `COLLECT CASH: ₹${enriched.total}` : "DO NOT COLLECT CASH",
@@ -3106,7 +3295,6 @@ export const ordersRepo = {
       securityNotice: "TAMPER-EVIDENT BOTANICAL PACK • DO NOT ACCEPT IF SEAL IS BROKEN",
     };
   },
-
   getAllDocuments(orderIdentifier: string, generatedBy: string = "Admin") {
     const shippingSlip = this.getShippingSlip(orderIdentifier, generatedBy);
     const customerInvoice = this.getCustomerInvoice(orderIdentifier, generatedBy);
@@ -6364,3 +6552,384 @@ export const retailSalesRepo = {
   }
 };
 
+
+
+// ==========================================
+// 30. ORDER RETURNS & RMA REPOSITORY (Phase 6)
+// ==========================================
+export const orderReturnsRepo = {
+  getNextRmaNumber(year: number): string {
+    const db = getDatabase();
+    const prefix = `TRN-RMA-${year}-%`;
+    const row = db.prepare(
+      "SELECT MAX(CAST(SUBSTR(return_number, -5) AS INTEGER)) as maxSeq FROM order_returns WHERE return_number LIKE ?"
+    ).get(prefix) as any;
+    const nextSeq = (row?.maxSeq || 0) + 1;
+    return `TRN-RMA-${year}-${String(nextSeq).padStart(5, "0")}`;
+  },
+
+  createReturn(input: {
+    orderId?: string;
+    orderNumber?: string;
+    customerId: string;
+    orderItemId?: string;
+    productId?: string;
+    quantityRequested: number;
+    returnReason: string;
+    description: string;
+    supportingImage?: string | null;
+    pickupInstructions?: string | null;
+  }) {
+    const db = getDatabase();
+
+    // 1. Fetch order
+    let order: any = null;
+    if (input.orderId) {
+      order = ordersRepo.getById(input.orderId);
+    } else if (input.orderNumber) {
+      order = ordersRepo.getByOrderNumber(input.orderNumber);
+    }
+    if (!order) {
+      throw new Error("Order not found");
+    }
+
+    // 2. Verify ownership
+    if (order.customerId && order.customerId !== input.customerId) {
+      throw new Error("Unauthorized: Order does not belong to this customer");
+    }
+
+    // 3. Verify order status is Delivered
+    const orderStatusNorm = (order.orderStatus || "").trim().toLowerCase();
+    if (orderStatusNorm !== "delivered" && orderStatusNorm !== "completed") {
+      throw new Error("Return requests can only be initiated for delivered orders.");
+    }
+
+    // 4. Match order item
+    const items = order.items || [];
+    let matchedItem = null;
+    if (input.orderItemId) {
+      matchedItem = items.find((it: any) => it.id === input.orderItemId);
+    }
+    if (!matchedItem && input.productId) {
+      matchedItem = items.find((it: any) => it.productId === input.productId);
+    }
+    if (!matchedItem && items.length === 1) {
+      matchedItem = items[0];
+    }
+    if (!matchedItem) {
+      throw new Error("Item not found in order");
+    }
+
+    // 5. Validate quantity requested
+    const qty = Number(input.quantityRequested);
+    if (!qty || qty < 1) {
+      throw new Error("Quantity requested must be at least 1");
+    }
+    if (qty > matchedItem.quantity) {
+      throw new Error(`Return quantity cannot exceed delivered quantity (maximum allowed: ${matchedItem.quantity})`);
+    }
+
+    // 6. Check duplicate active return
+    const activeReturn = db.prepare(`
+      SELECT * FROM order_returns
+      WHERE order_id = ? AND product_id = ? AND status NOT IN ('REJECTED', 'CLOSED')
+    `).get(order.id, matchedItem.productId) as any;
+    if (activeReturn) {
+      throw new Error(`A return request (${activeReturn.return_number}) is already active for this item.`);
+    }
+
+    // 7. Calculate authoritative refund amount
+    const unitPrice = Number(matchedItem.price || matchedItem.unitPrice || 0);
+    const refundAmount = Math.round(unitPrice * qty * 100) / 100;
+
+    // 8. Generate RMA number with retry on race condition
+    const year = new Date().getFullYear();
+    let attempts = 0;
+    while (attempts < 10) {
+      const returnNumber = this.getNextRmaNumber(year);
+      const returnId = "ret_" + Date.now() + "_" + Math.floor(Math.random() * 100000);
+      const now = new Date().toISOString();
+
+      try {
+        db.prepare(`
+          INSERT INTO order_returns (
+            id, return_number, order_id, order_number, customer_id, customer_name,
+            customer_email, customer_phone, order_item_id, product_id, product_name,
+            sku, pack_size, quantity_requested, quantity_received, quantity_inspected,
+            item_price, refund_amount, return_reason, description, supporting_image,
+            pickup_instructions, status, stock_disposition, restocked_quantity,
+            created_at, updated_at
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, ?, ?, ?, ?, ?, ?, 'REQUESTED', 'NONE', 0, ?, ?)
+        `).run(
+          returnId,
+          returnNumber,
+          order.id,
+          order.orderNumber,
+          order.customerId || input.customerId,
+          order.customerName,
+          order.customerEmail,
+          order.customerPhone,
+          matchedItem.id || null,
+          matchedItem.productId,
+          matchedItem.productNameEn || matchedItem.name,
+          matchedItem.sku || `TRN-${matchedItem.productId}`,
+          matchedItem.packSize || "100g",
+          qty,
+          unitPrice,
+          refundAmount,
+          input.returnReason,
+          input.description,
+          input.supportingImage || null,
+          input.pickupInstructions || null,
+          now,
+          now
+        );
+
+        // Initial history record
+        const histId = "rh_" + Date.now() + "_" + Math.floor(Math.random() * 100000);
+        db.prepare(`
+          INSERT INTO order_return_history (
+            id, return_id, from_status, to_status, action, actor, note, created_at
+          ) VALUES (?, ?, NULL, 'REQUESTED', 'RETURN_REQUESTED', ?, ?, ?)
+        `).run(
+          histId,
+          returnId,
+          order.customerName || order.customerId || "Customer",
+          `Customer initiated return request for ${qty}x ${matchedItem.productNameEn || matchedItem.name}. Reason: ${input.returnReason}`,
+          now
+        );
+
+        return this.getById(returnId);
+      } catch (err: any) {
+        if (err?.message?.includes("UNIQUE constraint failed: order_returns.return_number")) {
+          attempts++;
+          continue;
+        }
+        throw err;
+      }
+    }
+    throw new Error("Failed to generate unique RMA number after 10 attempts");
+  },
+
+  getById(idOrNumber: string) {
+    const db = getDatabase();
+    const row = db.prepare(`
+      SELECT * FROM order_returns WHERE id = ? OR return_number = ?
+    `).get(idOrNumber, idOrNumber) as any;
+    if (!row) return null;
+    return this.enrichReturn(row);
+  },
+
+  listByCustomer(customerId: string) {
+    const db = getDatabase();
+    const rows = db.prepare(`
+      SELECT * FROM order_returns WHERE customer_id = ? ORDER BY created_at DESC
+    `).all(customerId) as any[];
+    return rows.map((r) => this.enrichReturn(r));
+  },
+
+  listAll(options: { search?: string; status?: string; limit?: number; offset?: number } = {}) {
+    const db = getDatabase();
+    let query = "SELECT * FROM order_returns WHERE 1=1";
+    const params: any[] = [];
+    if (options.status && options.status !== "ALL") {
+      query += " AND status = ?";
+      params.push(options.status);
+    }
+    if (options.search) {
+      query += " AND (return_number LIKE ? OR order_number LIKE ? OR customer_name LIKE ? OR product_name LIKE ?)";
+      const term = `%${options.search}%`;
+      params.push(term, term, term, term);
+    }
+    query += " ORDER BY created_at DESC LIMIT ? OFFSET ?";
+    params.push(options.limit || 100, options.offset || 0);
+
+    const rows = db.prepare(query).all(...params) as any[];
+    return rows.map((r) => this.enrichReturn(r));
+  },
+
+  enrichReturn(row: any) {
+    const db = getDatabase();
+    const history = db.prepare(`
+      SELECT * FROM order_return_history WHERE return_id = ? ORDER BY created_at ASC
+    `).all(row.id) as any[];
+
+    return {
+      id: row.id,
+      returnNumber: row.return_number,
+      orderId: row.order_id,
+      orderNumber: row.order_number,
+      customerId: row.customer_id,
+      customerName: row.customer_name,
+      customerEmail: row.customer_email,
+      customerPhone: row.customer_phone,
+      orderItemId: row.order_item_id,
+      productId: row.product_id,
+      productName: row.product_name,
+      sku: row.sku,
+      packSize: row.pack_size,
+      quantityRequested: row.quantity_requested,
+      quantityReceived: row.quantity_received,
+      quantityInspected: row.quantity_inspected,
+      itemPrice: row.item_price,
+      refundAmount: row.refund_amount,
+      returnReason: row.return_reason,
+      description: row.description,
+      supportingImage: row.supporting_image,
+      pickupInstructions: row.pickup_instructions,
+      status: row.status,
+      stockDisposition: row.stock_disposition,
+      restockedQuantity: row.restocked_quantity,
+      refundMethod: row.refund_method,
+      refundReference: row.refund_reference,
+      refundedAt: row.refunded_at,
+      adminNotes: row.admin_notes,
+      reviewedBy: row.reviewed_by,
+      reviewedAt: row.reviewed_at,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+      history: history.map((h: any) => ({
+        id: h.id,
+        returnId: h.return_id,
+        fromStatus: h.from_status,
+        toStatus: h.to_status,
+        action: h.action,
+        actor: h.actor,
+        note: h.note,
+        createdAt: h.created_at,
+      })),
+    };
+  },
+
+  updateStatus(id: string, input: {
+    status: string;
+    adminNotes?: string;
+    actor?: string;
+    quantityReceived?: number;
+    quantityInspected?: number;
+    stockDisposition?: string;
+    restockedQuantity?: number;
+    refundMethod?: string;
+    refundReference?: string;
+  }) {
+    const db = getDatabase();
+    const ret = db.prepare("SELECT * FROM order_returns WHERE id = ? OR return_number = ?").get(id, id) as any;
+    if (!ret) throw new Error("Return request not found");
+
+    const validStatuses = [
+      "REQUESTED",
+      "UNDER_REVIEW",
+      "APPROVED",
+      "REJECTED",
+      "PICKUP_SCHEDULED",
+      "ITEM_RECEIVED",
+      "INSPECTED",
+      "REFUND_PENDING",
+      "REFUNDED",
+      "CLOSED"
+    ];
+
+    const newStatus = (input.status || "").trim().toUpperCase();
+    if (!validStatuses.includes(newStatus)) {
+      throw new Error(`Invalid status: ${input.status}. Must be one of: ${validStatuses.join(", ")}`);
+    }
+
+    const currentStatus = ret.status;
+    const now = new Date().toISOString();
+    const actor = input.actor || "Admin";
+
+    // Validate invalid backwards transitions from terminal states
+    if (currentStatus === "CLOSED" && newStatus !== "CLOSED") {
+      throw new Error("Cannot alter status of a closed return request");
+    }
+    if (currentStatus === "REJECTED" && newStatus !== "REJECTED" && newStatus !== "CLOSED") {
+      throw new Error("Cannot change status of a rejected return request");
+    }
+
+    // Stock disposition handling
+    let newDisposition = input.stockDisposition || ret.stock_disposition || "NONE";
+    let restockedQty = ret.restocked_quantity || 0;
+
+    // Safety: If stockDisposition is RESTOCKED, restock inventory exactly once!
+    if (newDisposition === "RESTOCKED" && restockedQty === 0) {
+      const qtyToRestock = Number(input.restockedQuantity || input.quantityInspected || ret.quantity_requested || 1);
+      if (qtyToRestock > 0) {
+        inventoryRepo.adjustStock(
+          ret.product_id,
+          null,
+          qtyToRestock,
+          "RETURN_RESTOCK",
+          ret.return_number,
+          `Restocked from return inspection for RMA ${ret.return_number}`,
+          actor
+        );
+        restockedQty = qtyToRestock;
+      }
+    }
+
+    // Refund fields handling
+    let refundMethod = ret.refund_method;
+    let refundReference = ret.refund_reference;
+    let refundedAt = ret.refunded_at;
+
+    if (newStatus === "REFUNDED") {
+      refundMethod = input.refundMethod || ret.refund_method || "MANUAL_COD_RECORD";
+      refundReference = input.refundReference || ret.refund_reference || `REF-${ret.return_number}-${Date.now()}`;
+      refundedAt = ret.refunded_at || now;
+    }
+
+    const qtyRecv = input.quantityReceived !== undefined ? input.quantityReceived : ret.quantity_received;
+    const qtyInsp = input.quantityInspected !== undefined ? input.quantityInspected : ret.quantity_inspected;
+    const adminNotes = input.adminNotes !== undefined ? input.adminNotes : ret.admin_notes;
+
+    db.prepare(`
+      UPDATE order_returns
+      SET status = ?,
+          stock_disposition = ?,
+          restocked_quantity = ?,
+          quantity_received = ?,
+          quantity_inspected = ?,
+          refund_method = ?,
+          refund_reference = ?,
+          refunded_at = ?,
+          admin_notes = ?,
+          reviewed_by = ?,
+          reviewed_at = ?,
+          updated_at = ?
+      WHERE id = ?
+    `).run(
+      newStatus,
+      newDisposition,
+      restockedQty,
+      qtyRecv,
+      qtyInsp,
+      refundMethod,
+      refundReference,
+      refundedAt,
+      adminNotes,
+      actor,
+      now,
+      now,
+      ret.id
+    );
+
+    // Insert history
+    const histId = "rh_" + Date.now() + "_" + Math.floor(Math.random() * 1000);
+    db.prepare(`
+      INSERT INTO order_return_history (
+        id, return_id, from_status, to_status, action, actor, note, created_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(
+      histId,
+      ret.id,
+      currentStatus,
+      newStatus,
+      `STATUS_CHANGE_${newStatus}`,
+      actor,
+      input.adminNotes || `Status updated from ${currentStatus} to ${newStatus}`,
+      now
+    );
+
+    return this.getById(ret.id);
+  }
+};

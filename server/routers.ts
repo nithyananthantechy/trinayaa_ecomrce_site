@@ -1267,6 +1267,27 @@ addresses: router({
             addressType: z.string().optional().default("Home"),
             deliveryInstructions: z.string().optional(),
           }),
+          billingAddress: z.object({
+            addressLine1: z.string().optional(),
+            addressLine2: z.string().optional(),
+            landmark: z.string().optional(),
+            street: z.string().optional(),
+            city: z.string().optional(),
+            state: z.string().optional(),
+            pinCode: z.string().optional(),
+            district: z.string().optional(),
+            addressType: z.string().optional(),
+          }).optional(),
+          billingName: z.string().optional(),
+          billingPhone: z.string().optional(),
+          billingEmail: z.string().optional(),
+          recipientName: z.string().optional(),
+          recipientPhone: z.string().optional(),
+          recipientEmail: z.string().optional(),
+          isSameAddress: z.boolean().optional().default(true),
+          isGiftOrder: z.boolean().optional().default(false),
+          giftMessage: z.string().max(500).optional(),
+          deliveryInstructions: z.string().max(500).optional(),
           items: z.array(
             z.object({
               productId: z.string(),
@@ -1341,7 +1362,7 @@ addresses: router({
           }
         }
 
-        // 4. Create Order with snapshot data
+        // 4. Create Order with snapshot data (Phase 6: Billing snapshot, Recipient & Gift Order)
         const order = db.ordersRepo.create(
           {
             customerId: String(ctx.user.id),
@@ -1349,6 +1370,17 @@ addresses: router({
             customerEmail: input.customerEmail,
             customerPhone: input.customerPhone,
             shippingAddress: input.shippingAddress,
+            billingAddress: input.billingAddress,
+            billingName: input.billingName || input.customerName,
+            billingPhone: input.billingPhone || input.customerPhone,
+            billingEmail: input.billingEmail || input.customerEmail,
+            recipientName: input.recipientName || input.customerName,
+            recipientPhone: input.recipientPhone || input.customerPhone,
+            recipientEmail: input.recipientEmail || input.customerEmail,
+            isSameAddress: input.isSameAddress,
+            isGiftOrder: input.isGiftOrder,
+            giftMessage: input.giftMessage,
+            deliveryInstructions: input.deliveryInstructions || input.shippingAddress.deliveryInstructions,
             subtotal,
             discountAmount,
             shippingFee,
@@ -1460,6 +1492,56 @@ addresses: router({
           throw new TRPCError({ code: "FORBIDDEN", message: "You are not authorized to view this invoice." });
         }
         return invoice;
+      }),
+  }),
+
+  // ==========================================
+  // CUSTOMER RETURNS & RMA ROUTER (Phase 6)
+  // ==========================================
+  returns: router({
+    request: protectedProcedure
+      .input(
+        z.object({
+          orderId: z.string().optional(),
+          orderNumber: z.string().optional(),
+          orderItemId: z.string().optional(),
+          productId: z.string().optional(),
+          quantityRequested: z.number().min(1, "Quantity must be at least 1"),
+          returnReason: z.string().min(2, "Return reason is required"),
+          description: z.string().min(5, "Detailed description is required"),
+          supportingImage: z.string().optional().nullable(),
+          pickupInstructions: z.string().optional().nullable(),
+        })
+      )
+      .mutation(async ({ input, ctx }) => {
+        try {
+          return db.orderReturnsRepo.createReturn({
+            ...input,
+            customerId: String(ctx.user.id),
+          });
+        } catch (err: any) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: err.message || "Failed to submit return request",
+          });
+        }
+      }),
+
+    myReturns: protectedProcedure.query(async ({ ctx }) => {
+      return db.orderReturnsRepo.listByCustomer(String(ctx.user.id));
+    }),
+
+    getById: protectedProcedure
+      .input(z.object({ id: z.string() }))
+      .query(async ({ input, ctx }) => {
+        const item = db.orderReturnsRepo.getById(input.id);
+        if (!item) {
+          throw new TRPCError({ code: "NOT_FOUND", message: "Return request not found" });
+        }
+        if (item.customerId !== String(ctx.user.id) && ctx.user.role !== "ADMIN" && ctx.user.role !== "SUPER_ADMIN") {
+          throw new TRPCError({ code: "FORBIDDEN", message: "Access denied" });
+        }
+        return item;
       }),
   }),
 
@@ -2199,6 +2281,60 @@ addresses: router({
         .input(z.object({ orderNumber: z.string() }))
         .query(async ({ input }) => {
           return db.orderDocumentsRepo.listByOrder(input.orderNumber);
+        }),
+    }),
+
+    // --- RETURNS & RMA MANAGEMENT (Phase 6) ---
+    returns: router({
+      list: adminProcedure
+        .input(
+          z
+            .object({
+              status: z.string().optional(),
+              search: z.string().optional(),
+              limit: z.number().optional().default(100),
+              offset: z.number().optional().default(0),
+            })
+            .optional()
+        )
+        .query(async ({ input }) => {
+          return db.orderReturnsRepo.listAll(input || {});
+        }),
+
+      getById: adminProcedure
+        .input(z.object({ id: z.string() }))
+        .query(async ({ input }) => {
+          const item = db.orderReturnsRepo.getById(input.id);
+          if (!item) throw new TRPCError({ code: "NOT_FOUND", message: "Return request not found" });
+          return item;
+        }),
+
+      updateStatus: adminProcedure
+        .input(
+          z.object({
+            id: z.string(),
+            status: z.string(),
+            adminNotes: z.string().optional(),
+            quantityReceived: z.number().optional(),
+            quantityInspected: z.number().optional(),
+            stockDisposition: z.enum(["NONE", "RESTOCKED", "DAMAGED_DISCARD", "RETAINED_SAMPLE"]).optional(),
+            restockedQuantity: z.number().optional(),
+            refundMethod: z.string().optional(),
+            refundReference: z.string().optional(),
+          })
+        )
+        .mutation(async ({ input, ctx }) => {
+          try {
+            return db.orderReturnsRepo.updateStatus(input.id, {
+              ...input,
+              actor: ctx.user.name || "Administrator",
+            });
+          } catch (err: any) {
+            throw new TRPCError({
+              code: "BAD_REQUEST",
+              message: err.message || "Failed to update return status",
+            });
+          }
         }),
     }),
 

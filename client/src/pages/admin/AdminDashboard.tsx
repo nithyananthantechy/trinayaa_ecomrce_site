@@ -8,6 +8,7 @@ import { useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 import {
+  RotateCcw,
   Menu,
   ShieldCheck,
   LayoutDashboard,
@@ -178,6 +179,40 @@ export default function AdminDashboard() {
     },
     { enabled: Boolean(currentUser) }
   );
+
+  // Phase 6: Admin Returns & RMA State
+  const [orderSubTab, setOrderSubTab] = useState<"orders" | "returns">("orders");
+  const [returnSearch, setReturnSearch] = useState("");
+  const [returnStatusFilter, setReturnStatusFilter] = useState("ALL");
+  const { data: adminReturns = [], refetch: refetchAdminReturns } = trpc.admin.returns.list.useQuery(
+    {
+      search: returnSearch || undefined,
+      status: returnStatusFilter === "ALL" ? undefined : returnStatusFilter,
+      limit: 100,
+    },
+    { enabled: Boolean(currentUser && activeTab === "orders") }
+  );
+
+  const [selectedReturn, setSelectedReturn] = useState<any>(null);
+  const [returnActionModalOpen, setReturnActionModalOpen] = useState(false);
+  const [actionStatus, setActionStatus] = useState("UNDER_REVIEW");
+  const [actionNotes, setActionNotes] = useState("");
+  const [actionDisposition, setActionDisposition] = useState<"NONE" | "RESTOCKED" | "DAMAGED_DISCARD" | "RETAINED_SAMPLE">("NONE");
+  const [actionRestockQty, setActionRestockQty] = useState(0);
+  const [actionRefundMethod, setActionRefundMethod] = useState("MANUAL_COD_RECORD");
+  const [actionRefundRef, setActionRefundRef] = useState("");
+
+  const updateReturnStatusMutation = trpc.admin.returns.updateStatus.useMutation({
+    onSuccess: (res: any) => {
+      toast.success(`Return ${res.returnNumber} updated to ${res.status}`);
+      setReturnActionModalOpen(false);
+      setSelectedReturn(null);
+      refetchAdminReturns();
+    },
+    onError: (err: any) => {
+      toast.error(err.message || "Failed to update return status");
+    },
+  });
 
   const { data: campaigns = [], refetch: refetchCampaigns } = trpc.admin.campaigns.list.useQuery(undefined, {
     enabled: Boolean(currentUser) }
@@ -1656,10 +1691,166 @@ export default function AdminDashboard() {
           )}
 
           {/* ========================================== */}
-          {/* 5. ORDERS MANAGEMENT */}
+          {/* 5. ORDERS MANAGEMENT (Phase 6: Orders & Returns) */}
           {/* ========================================== */}
           {activeTab === "orders" && (
             <div className="space-y-4">
+              {/* Phase 6 Sub-Tab Bar: Orders vs Returns */}
+              <div className="flex items-center gap-2 border-b border-[#DEDFD5] pb-2">
+                <button
+                  type="button"
+                  onClick={() => setOrderSubTab("orders")}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                    orderSubTab === "orders"
+                      ? "bg-[#123D28] text-white shadow-2xs"
+                      : "bg-[#FBF8F0] text-[#6C7167] hover:text-[#123D28] border border-[#DEDFD5]"
+                  }`}
+                >
+                  <ShoppingBag size={13} />
+                  <span>Online Orders ({orders.length})</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setOrderSubTab("returns")}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                    orderSubTab === "returns"
+                      ? "bg-[#123D28] text-white shadow-2xs"
+                      : "bg-[#FBF8F0] text-[#6C7167] hover:text-[#123D28] border border-[#DEDFD5]"
+                  }`}
+                >
+                  <RotateCcw size={13} />
+                  <span>Customer Returns & RMAs ({adminReturns.length})</span>
+                </button>
+              </div>
+
+              {orderSubTab === "returns" ? (
+                /* Phase 6: Returns Management View */
+                <div className="space-y-4">
+                  <div className="bg-[#FFFDF8] border border-[#DEDFD5] p-4 rounded-xl flex flex-wrap items-center gap-3 shadow-xs">
+                    <div className="relative flex-1 min-w-[240px]">
+                      <Search className="absolute left-3 top-2.5 text-[#6C7167]" size={15} />
+                      <input
+                        type="text"
+                        placeholder="Search by RMA #, order #, customer, or product..."
+                        value={returnSearch}
+                        onChange={(e) => setReturnSearch(e.target.value)}
+                        className="w-full pl-9 pr-3 py-2 text-xs bg-[#FBF8F0] border border-[#DEDFD5] rounded-md focus:outline-none focus:border-[#123D28]"
+                      />
+                    </div>
+                    <select
+                      value={returnStatusFilter}
+                      onChange={(e) => setReturnStatusFilter(e.target.value)}
+                      className="text-xs py-2 px-3 bg-[#FBF8F0] border border-[#DEDFD5] rounded-md focus:outline-none focus:border-[#123D28]"
+                    >
+                      <option value="ALL">All Return Statuses ({adminReturns.length})</option>
+                      <option value="REQUESTED">REQUESTED</option>
+                      <option value="UNDER_REVIEW">UNDER REVIEW</option>
+                      <option value="APPROVED">APPROVED</option>
+                      <option value="REJECTED">REJECTED</option>
+                      <option value="PICKUP_SCHEDULED">PICKUP SCHEDULED</option>
+                      <option value="ITEM_RECEIVED">ITEM RECEIVED</option>
+                      <option value="INSPECTED">INSPECTED</option>
+                      <option value="REFUND_PENDING">REFUND PENDING</option>
+                      <option value="REFUNDED">REFUNDED</option>
+                      <option value="CLOSED">CLOSED</option>
+                    </select>
+                  </div>
+
+                  <div className="bg-white border border-slate-200/90 rounded-2xl shadow-xs overflow-hidden">
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left text-xs border-collapse">
+                        <thead className="bg-[#FBF8F0] border-b border-[#DEDFD5] text-[#6C7167] font-semibold">
+                          <tr>
+                            <th className="py-3 px-3">RMA Number</th>
+                            <th className="py-3 px-3">Order #</th>
+                            <th className="py-3 px-3">Customer</th>
+                            <th className="py-3 px-3">Product & Pack</th>
+                            <th className="py-3 px-3">Qty</th>
+                            <th className="py-3 px-3">Refund Amt</th>
+                            <th className="py-3 px-3">Status</th>
+                            <th className="py-3 px-3">Disposition</th>
+                            <th className="py-3 px-3 text-right">Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-[#DEDFD5]">
+                          {adminReturns.length === 0 ? (
+                            <tr>
+                              <td colSpan={9} className="py-8 text-center text-[#6C7167] italic">
+                                No return requests found.
+                              </td>
+                            </tr>
+                          ) : (
+                            adminReturns.map((ret: any) => {
+                              const getStatusBadge = (st: string) => {
+                                switch (st) {
+                                  case "REQUESTED": return "bg-amber-100 text-amber-800";
+                                  case "UNDER_REVIEW": return "bg-blue-100 text-blue-800";
+                                  case "APPROVED": return "bg-purple-100 text-purple-800";
+                                  case "REJECTED": return "bg-red-100 text-red-800";
+                                  case "PICKUP_SCHEDULED": return "bg-indigo-100 text-indigo-800";
+                                  case "ITEM_RECEIVED": return "bg-cyan-100 text-cyan-800";
+                                  case "INSPECTED": return "bg-teal-100 text-teal-800";
+                                  case "REFUND_PENDING": return "bg-yellow-100 text-yellow-800";
+                                  case "REFUNDED": return "bg-emerald-100 text-emerald-800 font-bold";
+                                  case "CLOSED": return "bg-gray-100 text-gray-800";
+                                  default: return "bg-slate-100 text-slate-800";
+                                }
+                              };
+
+                              return (
+                                <tr key={ret.id} className="hover:bg-[#FBF8F0]/40">
+                                  <td className="py-3 px-3 font-mono font-bold text-[#123D28]">{ret.returnNumber}</td>
+                                  <td className="py-3 px-3 font-mono text-[#6C7167]">{ret.orderNumber}</td>
+                                  <td className="py-3 px-3">
+                                    <div className="font-semibold text-[#123D28]">{ret.customerName}</div>
+                                    <div className="text-[10px] text-[#6C7167]">{ret.customerPhone}</div>
+                                  </td>
+                                  <td className="py-3 px-3">
+                                    <span className="font-medium text-[#123D28]">{ret.productName}</span>
+                                    <span className="text-[10px] text-[#6C7167] block">{ret.packSize}</span>
+                                  </td>
+                                  <td className="py-3 px-3 font-bold">{ret.quantityRequested}</td>
+                                  <td className="py-3 px-3 font-bold text-[#123D28]">₹{ret.refundAmount}</td>
+                                  <td className="py-3 px-3">
+                                    <span className={`inline-block px-2 py-0.5 rounded text-[10px] font-bold ${getStatusBadge(ret.status)}`}>
+                                      {ret.status}
+                                    </span>
+                                  </td>
+                                  <td className="py-3 px-3">
+                                    <span className="text-[11px] font-mono font-semibold text-gray-700">
+                                      {ret.stockDisposition || "NONE"}
+                                    </span>
+                                  </td>
+                                  <td className="py-3 px-3 text-right">
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setSelectedReturn(ret);
+                                        setActionStatus(ret.status);
+                                        setActionDisposition(ret.stockDisposition || "NONE");
+                                        setActionRestockQty(ret.restockedQuantity || ret.quantityRequested);
+                                        setActionRefundMethod(ret.refundMethod || "MANUAL_COD_RECORD");
+                                        setActionRefundRef(ret.refundReference || "");
+                                        setActionNotes(ret.adminNotes || "");
+                                        setReturnActionModalOpen(true);
+                                      }}
+                                      className="py-1 px-2.5 bg-[#FAF8F2] hover:bg-[#EFECE4] border border-[#DEDFD5] text-[#123D28] font-semibold rounded-lg text-xs cursor-pointer shadow-2xs"
+                                    >
+                                      Review & Action
+                                    </button>
+                                  </td>
+                                </tr>
+                              );
+                            })
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                /* Online Orders View */
+                <>
               <div className="bg-[#FFFDF8] border border-[#DEDFD5] p-4 rounded-xl flex flex-wrap items-center gap-3 shadow-xs">
                 <div className="relative flex-1 min-w-[240px]">
                   <Search className="absolute left-3 top-2.5 text-[#6C7167]" size={15} />
@@ -1782,6 +1973,8 @@ export default function AdminDashboard() {
                   </table>
                 </div>
               </div>
+                </>
+              )}
             </div>
           )}
 
@@ -3536,6 +3729,186 @@ export default function AdminDashboard() {
           onClose={() => setShippingSlipOrderNumber(null)}
         />
       )}
+
+      {/* Phase 6: Admin Return & RMA Review Modal */}
+      {returnActionModalOpen && selectedReturn && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs">
+          <div className="bg-white rounded-3xl border border-[#DEDFD5] max-w-xl w-full p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between pb-3 border-b border-[#F2ECE0]">
+              <div>
+                <h3 className="font-serif text-lg font-bold text-[#123D28] flex items-center gap-2">
+                  <RotateCcw size={18} className="text-[#8E5E28]" />
+                  Return Management: {selectedReturn.returnNumber}
+                </h3>
+                <span className="text-xs text-[#6C7167]">Order: {selectedReturn.orderNumber} · Customer: {selectedReturn.customerName}</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setReturnActionModalOpen(false)}
+                className="p-1 rounded-full text-gray-400 hover:text-gray-600 cursor-pointer"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="bg-[#FAF8F2] p-3 rounded-xl border border-[#EFECE4] text-xs space-y-1.5">
+              <div className="flex justify-between">
+                <span className="text-[#6C7167]">Product:</span>
+                <strong className="text-[#123D28]">{selectedReturn.productName} ({selectedReturn.packSize})</strong>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-[#6C7167]">Quantity / Price:</span>
+                <span>{selectedReturn.quantityRequested} units @ ₹{selectedReturn.itemPrice} = <strong>₹{selectedReturn.refundAmount}</strong></span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-[#6C7167]">Return Reason:</span>
+                <span className="font-semibold text-[#8E5E28]">{selectedReturn.returnReason}</span>
+              </div>
+              <div>
+                <span className="text-[#6C7167] block">Customer Description:</span>
+                <p className="italic text-[#2C382A] mt-0.5">"{selectedReturn.description}"</p>
+              </div>
+              {selectedReturn.pickupInstructions && (
+                <div>
+                  <span className="text-[#6C7167] block">Pickup Instructions:</span>
+                  <p className="text-[#2C382A]">{selectedReturn.pickupInstructions}</p>
+                </div>
+              )}
+            </div>
+
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                updateReturnStatusMutation.mutate({
+                  id: selectedReturn.id,
+                  status: actionStatus,
+                  adminNotes: actionNotes,
+                  stockDisposition: actionDisposition,
+                  restockedQuantity: Number(actionRestockQty),
+                  refundMethod: actionStatus === "REFUNDED" ? actionRefundMethod : undefined,
+                  refundReference: actionStatus === "REFUNDED" ? actionRefundRef : undefined,
+                });
+              }}
+              className="space-y-3 text-xs"
+            >
+              <div>
+                <label className="block font-semibold text-[#123D28] mb-1">Update Status</label>
+                <select
+                  value={actionStatus}
+                  onChange={(e) => setActionStatus(e.target.value)}
+                  className="w-full p-2 border border-[#DEDFD5] rounded-lg bg-white font-semibold text-[#123D28]"
+                  required
+                >
+                  <option value="REQUESTED">REQUESTED</option>
+                  <option value="UNDER_REVIEW">UNDER REVIEW</option>
+                  <option value="APPROVED">APPROVED (Pickup to be scheduled)</option>
+                  <option value="REJECTED">REJECTED</option>
+                  <option value="PICKUP_SCHEDULED">PICKUP SCHEDULED</option>
+                  <option value="ITEM_RECEIVED">ITEM RECEIVED AT WAREHOUSE</option>
+                  <option value="INSPECTED">INSPECTED (Quality check completed)</option>
+                  <option value="REFUND_PENDING">REFUND PENDING</option>
+                  <option value="REFUNDED">REFUNDED (Mark financial refund complete)</option>
+                  <option value="CLOSED">CLOSED</option>
+                </select>
+              </div>
+
+              {/* Inspection Stock Disposition */}
+              <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-2">
+                <label className="block font-semibold text-[#123D28]">Stock Disposition (After Quality Inspection)</label>
+                <select
+                  value={actionDisposition}
+                  onChange={(e) => setActionDisposition(e.target.value as any)}
+                  className="w-full p-2 border border-slate-300 rounded-lg bg-white"
+                >
+                  <option value="NONE">NONE (Pending Inspection / No inventory change)</option>
+                  <option value="RESTOCKED">RESTOCKED (Item verified in good condition, restock to inventory)</option>
+                  <option value="DAMAGED_DISCARD">DAMAGED DISCARD (Damaged/broken botanical pack, do not restock)</option>
+                  <option value="RETAINED_SAMPLE">RETAINED SAMPLE (Lab/Quality sample retention)</option>
+                </select>
+
+                {actionDisposition === "RESTOCKED" && (
+                  <div>
+                    <label className="block text-[11px] font-semibold text-emerald-800">Quantity to Add Back to Warehouse Stock</label>
+                    <input
+                      type="number"
+                      min={1}
+                      max={selectedReturn.quantityRequested}
+                      value={actionRestockQty}
+                      onChange={(e) => setActionRestockQty(Number(e.target.value))}
+                      className="w-full p-2 border border-emerald-300 rounded-lg bg-white mt-1"
+                    />
+                    <span className="text-[10px] text-emerald-700 block mt-0.5">
+                      ✓ Will automatically increment available stock for product in inventory.
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              {/* Financial Refund Recording */}
+              {actionStatus === "REFUNDED" && (
+                <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl space-y-2">
+                  <strong className="text-emerald-900 block">Record Financial Refund Details (₹{selectedReturn.refundAmount})</strong>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="block text-[11px] font-semibold text-emerald-800">Refund Method</label>
+                      <select
+                        value={actionRefundMethod}
+                        onChange={(e) => setActionRefundMethod(e.target.value)}
+                        className="w-full p-2 border border-emerald-300 rounded-lg bg-white mt-1 text-xs"
+                      >
+                        <option value="MANUAL_COD_RECORD">MANUAL COD (Cash / Handover)</option>
+                        <option value="BANK_TRANSFER">BANK TRANSFER (NEFT / IMPS)</option>
+                        <option value="UPI">UPI TRANSFER</option>
+                        <option value="ONLINE_ORIGINAL">ORIGINAL PAYMENT GATEWAY</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-semibold text-emerald-800">Refund Reference #</label>
+                      <input
+                        type="text"
+                        value={actionRefundRef}
+                        onChange={(e) => setActionRefundRef(e.target.value)}
+                        placeholder="e.g. UTR123456 or CASH-VCH-01"
+                        className="w-full p-2 border border-emerald-300 rounded-lg bg-white mt-1 text-xs"
+                        required={actionStatus === "REFUNDED"}
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <div>
+                <label className="block font-semibold text-[#123D28] mb-1">Administrative Notes</label>
+                <textarea
+                  rows={2}
+                  value={actionNotes}
+                  onChange={(e) => setActionNotes(e.target.value)}
+                  placeholder="Internal notes regarding this return inspection or customer communication..."
+                  className="w-full p-2 border border-[#DEDFD5] rounded-lg bg-white"
+                />
+              </div>
+
+              <div className="pt-2 flex items-center justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setReturnActionModalOpen(false)}
+                  className="py-2 px-4 rounded-xl border border-[#DEDFD5] text-[#6C7167] font-semibold hover:bg-gray-50 cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={updateReturnStatusMutation.isPending}
+                  className="py-2 px-5 rounded-xl bg-[#123D28] hover:bg-[#1A4D33] text-white font-bold transition-colors cursor-pointer shadow-2xs"
+                >
+                  {updateReturnStatusMutation.isPending ? "Updating..." : "Update Return"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }

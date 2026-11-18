@@ -176,6 +176,17 @@ export const orders = mysqlTable("orders", {
   customerEmail: varchar("customerEmail", { length: 320 }).notNull(),
   customerPhone: varchar("customerPhone", { length: 32 }).notNull(),
   shippingAddress: text("shippingAddress").notNull(), // JSON with street, city, state, pinCode
+  billingAddress: text("billingAddress"), // Phase 6: JSON snapshot for billing address
+  billingName: varchar("billingName", { length: 255 }),
+  billingPhone: varchar("billingPhone", { length: 32 }),
+  billingEmail: varchar("billingEmail", { length: 320 }),
+  recipientName: varchar("recipientName", { length: 255 }),
+  recipientPhone: varchar("recipientPhone", { length: 32 }),
+  recipientEmail: varchar("recipientEmail", { length: 320 }),
+  isSameAddress: int("isSameAddress").default(1).notNull(),
+  isGiftOrder: int("isGiftOrder").default(0).notNull(),
+  giftMessage: text("giftMessage"),
+  deliveryInstructions: text("deliveryInstructions"),
   subtotal: double("subtotal").notNull(),
   discountAmount: double("discountAmount").default(0).notNull(),
   shippingFee: double("shippingFee").default(0).notNull(),
@@ -234,6 +245,59 @@ export const orderDocuments = mysqlTable("order_documents", {
 
 export type OrderDocument = typeof orderDocuments.$inferSelect;
 export type InsertOrderDocument = typeof orderDocuments.$inferInsert;
+
+export const orderReturns = mysqlTable("order_returns", {
+  id: varchar("id", { length: 64 }).primaryKey(),
+  returnNumber: varchar("return_number", { length: 64 }).notNull().unique(), // e.g. TRN-RMA-2026-00001
+  orderId: varchar("order_id", { length: 64 }).notNull(),
+  orderNumber: varchar("order_number", { length: 64 }).notNull(),
+  customerId: varchar("customer_id", { length: 64 }).notNull(),
+  customerName: varchar("customer_name", { length: 255 }).notNull(),
+  customerEmail: varchar("customer_email", { length: 320 }).notNull(),
+  customerPhone: varchar("customer_phone", { length: 32 }).notNull(),
+  orderItemId: varchar("order_item_id", { length: 64 }),
+  productId: varchar("product_id", { length: 64 }).notNull(),
+  productName: varchar("product_name", { length: 255 }).notNull(),
+  sku: varchar("sku", { length: 64 }).notNull(),
+  packSize: varchar("pack_size", { length: 64 }).notNull(),
+  quantityRequested: int("quantity_requested").notNull(),
+  quantityReceived: int("quantity_received").default(0).notNull(),
+  quantityInspected: int("quantity_inspected").default(0).notNull(),
+  itemPrice: double("item_price").notNull(),
+  refundAmount: double("refund_amount").notNull(),
+  returnReason: text("return_reason").notNull(),
+  description: text("description").notNull(),
+  supportingImage: text("supporting_image"),
+  pickupInstructions: text("pickup_instructions"),
+  status: varchar("status", { length: 32 }).default("REQUESTED").notNull(), // 'REQUESTED' | 'UNDER_REVIEW' | 'APPROVED' | 'REJECTED' | 'PICKUP_SCHEDULED' | 'ITEM_RECEIVED' | 'INSPECTED' | 'REFUND_PENDING' | 'REFUNDED' | 'CLOSED'
+  stockDisposition: varchar("stock_disposition", { length: 32 }).default("NONE").notNull(), // 'NONE' | 'RESTOCKED' | 'DAMAGED_DISCARD' | 'EXPIRED_DISCARD' | 'REJECTED_RETURN_TO_CUSTOMER'
+  restockedQuantity: int("restocked_quantity").default(0).notNull(),
+  refundMethod: varchar("refund_method", { length: 32 }), // 'ONLINE_RAZORPAY' | 'COD_MANUAL_CASH' | 'BANK_TRANSFER' | 'STORE_CREDIT'
+  refundReference: varchar("refund_reference", { length: 128 }),
+  refundedAt: text("refunded_at"),
+  adminNotes: text("admin_notes"),
+  reviewedBy: varchar("reviewed_by", { length: 128 }),
+  reviewedAt: text("reviewed_at"),
+  createdAt: text("created_at").notNull(),
+  updatedAt: text("updated_at").notNull(),
+});
+
+export type OrderReturn = typeof orderReturns.$inferSelect;
+export type InsertOrderReturn = typeof orderReturns.$inferInsert;
+
+export const orderReturnHistory = mysqlTable("order_return_history", {
+  id: varchar("id", { length: 64 }).primaryKey(),
+  returnId: varchar("return_id", { length: 64 }).notNull(),
+  fromStatus: varchar("from_status", { length: 32 }),
+  toStatus: varchar("to_status", { length: 32 }).notNull(),
+  action: varchar("action", { length: 64 }).notNull(),
+  actor: varchar("actor", { length: 128 }).notNull(),
+  note: text("note"),
+  createdAt: text("created_at").notNull(),
+});
+
+export type OrderReturnHistory = typeof orderReturnHistory.$inferSelect;
+export type InsertOrderReturnHistory = typeof orderReturnHistory.$inferInsert;
 
 // ==========================================
 // 8. PAYMENTS & TRANSACTIONS

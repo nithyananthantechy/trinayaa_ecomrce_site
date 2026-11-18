@@ -594,7 +594,7 @@ function CheckoutModal({
   const [appliedCoupon, setAppliedCoupon] = useState<any>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Form fields
+  // Form fields (Phase 6: Billing & Shipping Separation, Gift Delivery)
   const [name, setName] = useState(currentUser?.name || "");
   const [phone, setPhone] = useState(currentUser?.phone || "");
   const [email, setEmail] = useState(currentUser?.email || "");
@@ -603,6 +603,22 @@ function CheckoutModal({
   const [pinCode, setPinCode] = useState("638002");
   const [selectedAddressId, setSelectedAddressId] = useState<string>("new");
   const [saveAddressForFuture, setSaveAddressForFuture] = useState(false);
+
+  // Phase 6 State
+  const [isSameAddress, setIsSameAddress] = useState(true);
+  const [billingName, setBillingName] = useState(currentUser?.name || "");
+  const [billingPhone, setBillingPhone] = useState(currentUser?.phone || "");
+  const [billingEmail, setBillingEmail] = useState(currentUser?.email || "");
+  const [billingAddress, setBillingAddress] = useState("");
+  const [billingCity, setBillingCity] = useState("Erode");
+  const [billingState, setBillingState] = useState("Tamil Nadu");
+  const [billingPinCode, setBillingPinCode] = useState("638002");
+  const [recipientName, setRecipientName] = useState("");
+  const [recipientPhone, setRecipientPhone] = useState("");
+  const [recipientEmail, setRecipientEmail] = useState("");
+  const [isGiftOrder, setIsGiftOrder] = useState(false);
+  const [giftMessage, setGiftMessage] = useState("");
+  const [deliveryInstructions, setDeliveryInstructions] = useState("");
 
   const { data: savedAddresses = [], refetch: refetchAddresses } = trpc.addresses.list.useQuery(undefined, {
     enabled: open && Boolean(currentUser),
@@ -748,16 +764,37 @@ function CheckoutModal({
         }
       }
 
-      // 1. Create order on server
+      // 1. Create order on server (Phase 6: Distinct Bill To, Ship To, Gift Delivery)
+      const cleanBillingPhone = (billingPhone || cleanPhone).replace(/[\s-]/g, "");
+      const cleanRecipientPhone = (recipientPhone || cleanPhone).replace(/[\s-]/g, "");
+      const cleanBillingPin = (billingPinCode || cleanPin).trim();
+
       const order = await createOrderMutation.mutateAsync({
-        customerName: name,
-        customerEmail: email,
-        customerPhone: cleanPhone,
+        customerName: isSameAddress ? name : (billingName || name),
+        customerEmail: isSameAddress ? email : (billingEmail || email),
+        customerPhone: isSameAddress ? cleanPhone : cleanBillingPhone,
+        billingName: isSameAddress ? name : (billingName || name),
+        billingPhone: isSameAddress ? cleanPhone : cleanBillingPhone,
+        billingEmail: isSameAddress ? email : (billingEmail || email),
+        recipientName: isSameAddress ? name : (recipientName || name),
+        recipientPhone: isSameAddress ? cleanPhone : cleanRecipientPhone,
+        recipientEmail: isSameAddress ? email : (recipientEmail || email),
+        isSameAddress,
+        isGiftOrder,
+        giftMessage: isGiftOrder ? giftMessage.trim() : undefined,
+        deliveryInstructions: deliveryInstructions.trim() || undefined,
         shippingAddress: {
           street: address,
           city,
           state: "Tamil Nadu",
           pinCode: cleanPin,
+          deliveryInstructions: deliveryInstructions.trim() || undefined,
+        },
+        billingAddress: isSameAddress ? undefined : {
+          street: billingAddress || address,
+          city: billingCity || city,
+          state: billingState || "Tamil Nadu",
+          pinCode: cleanBillingPin,
         },
         items: cart.map((it) => ({
           productId: it.id,
@@ -832,9 +869,16 @@ function CheckoutModal({
                     <label className="full-field">Email address<input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" /></label>
                   </div>
                 </div>
+                {/* Delivery / Shipping Address (Ship To) */}
                 <div className="form-section">
                   <div className="flex items-center justify-between">
-                    <h3>Delivery address</h3>
+                    <div>
+                      <h3 className="flex items-center gap-1.5">
+                        <Truck size={16} className="text-[#123D28]" />
+                        Delivery / Shipping Address (Ship To)
+                      </h3>
+                      <p className="text-[11px] text-[#6C7167]">Where should your parcel be delivered?</p>
+                    </div>
                     {savedAddresses.length > 0 && (
                       <select
                         value={selectedAddressId}
@@ -867,6 +911,7 @@ function CheckoutModal({
                     <label className="full-field">Address<input required value={address} onChange={(e) => setAddress(e.target.value)} placeholder="House / street / area" /></label>
                     <label>City<input required value={city} onChange={(e) => setCity(e.target.value)} placeholder="Erode" /></label>
                     <label>PIN code<input required inputMode="numeric" value={pinCode} onChange={(e) => setPinCode(e.target.value)} placeholder="638000" /></label>
+                    <label className="full-field">Delivery Instructions (Optional)<input value={deliveryInstructions} onChange={(e) => setDeliveryInstructions(e.target.value)} placeholder="e.g. Leave with security, call upon arrival" /></label>
                   </div>
                   {currentUser && selectedAddressId === "new" && (
                     <label className="flex items-center gap-2 mt-2 text-xs text-[#6C7167] cursor-pointer">
@@ -878,6 +923,72 @@ function CheckoutModal({
                       />
                       Save this address to my account for future orders
                     </label>
+                  )}
+                </div>
+
+                {/* Billing Address Configuration (Bill To) - Phase 6 */}
+                <div className="form-section p-3.5 bg-[#FAF8F2] rounded-xl border border-[#DEDFD5]">
+                  <label className="flex items-center gap-2.5 text-xs font-semibold text-[#123D28] cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={isSameAddress}
+                      onChange={(e) => setIsSameAddress(e.target.checked)}
+                      className="rounded accent-[#123D28] w-4 h-4"
+                    />
+                    <span>Billing address same as shipping address</span>
+                  </label>
+
+                  {!isSameAddress && (
+                    <div className="mt-3.5 pt-3 border-t border-[#DEDFD5] space-y-3">
+                      <div>
+                        <h4 className="text-xs font-bold text-[#123D28] uppercase tracking-wider">Billing Details (Bill To)</h4>
+                        <p className="text-[11px] text-[#6C7167]">Invoiced purchaser details for tax invoice & records.</p>
+                      </div>
+                      <div className="form-grid">
+                        <label>Purchaser Name<input required={!isSameAddress} value={billingName} onChange={(e) => setBillingName(e.target.value)} placeholder="Purchaser full name" /></label>
+                        <label>Purchaser Mobile<input required={!isSameAddress} value={billingPhone} onChange={(e) => setBillingPhone(e.target.value)} placeholder="+91 98765 43210" /></label>
+                        <label className="full-field">Purchaser Email<input type="email" required={!isSameAddress} value={billingEmail} onChange={(e) => setBillingEmail(e.target.value)} placeholder="billing@example.com" /></label>
+                        <label className="full-field">Billing Address<input required={!isSameAddress} value={billingAddress} onChange={(e) => setBillingAddress(e.target.value)} placeholder="Billing street address" /></label>
+                        <label>City<input required={!isSameAddress} value={billingCity} onChange={(e) => setBillingCity(e.target.value)} placeholder="City" /></label>
+                        <label>State<input required={!isSameAddress} value={billingState} onChange={(e) => setBillingState(e.target.value)} placeholder="State" /></label>
+                        <label>PIN Code<input required={!isSameAddress} value={billingPinCode} onChange={(e) => setBillingPinCode(e.target.value)} placeholder="PIN Code" /></label>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Gift Delivery Option - Phase 6 */}
+                <div className="form-section p-3.5 bg-amber-50/60 rounded-xl border border-amber-200/80">
+                  <label className="flex items-center gap-2.5 text-xs font-semibold text-[#8E5E28] cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={isGiftOrder}
+                      onChange={(e) => setIsGiftOrder(e.target.checked)}
+                      className="rounded accent-[#8E5E28] w-4 h-4"
+                    />
+                    <span className="flex items-center gap-1.5">
+                      <Gift size={15} className="text-[#8E5E28]" />
+                      <span>This is a gift order (Deliver to recipient with custom gift message)</span>
+                    </span>
+                  </label>
+
+                  {isGiftOrder && (
+                    <div className="mt-3 pt-3 border-t border-amber-200/80 space-y-2">
+                      <label className="block text-xs font-semibold text-[#123D28]">
+                        Gift Message for Recipient (Printed on shipping slip)
+                        <textarea
+                          rows={2}
+                          maxLength={500}
+                          value={giftMessage}
+                          onChange={(e) => setGiftMessage(e.target.value)}
+                          placeholder="Wishing you health and natural wellness from TRINAYAA..."
+                          className="w-full mt-1 p-2 text-xs border border-[#DEDFD5] rounded-md bg-white focus:outline-none focus:border-[#123D28]"
+                        />
+                      </label>
+                      <p className="text-[10.5px] text-[#8E5E28] italic">
+                        🎁 Confidential Packaging Notice: Outer label and packing sticker will never reveal product prices or invoice values to the recipient.
+                      </p>
+                    </div>
                   )}
                 </div>
                 <div className="form-section space-y-3">
