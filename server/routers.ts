@@ -3309,6 +3309,19 @@ addresses: router({
             );
             return branch;
           }),
+        delete: superAdminProcedure
+          .input(z.object({ id: z.string() }))
+          .mutation(async ({ input, ctx }) => {
+            const branch = db.retailBranchesRepo.getById(input.id);
+            if (!branch) throw new TRPCError({ code: "NOT_FOUND", message: "Branch not found" });
+            const result = db.retailBranchesRepo.delete(input.id);
+            db.auditLogsRepo.log(
+              ctx.user.name || "Admin",
+              "DELETE_RETAIL_BRANCH",
+              `Deleted/deactivated physical branch ${branch.name} (${branch.code})`
+            );
+            return result;
+          }),
       }),
 
       handlers: router({

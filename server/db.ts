@@ -6183,6 +6183,20 @@ export const retailBranchesRepo = {
     values.push(id);
     db.prepare(`UPDATE retail_branches SET ${fields.join(", ")} WHERE id = ?`).run(...values);
     return this.getById(id);
+  },
+
+  delete(id: string) {
+    const db = getDatabase();
+    const existing = this.getById(id);
+    if (!existing) throw new Error("Branch not found");
+    const salesCount = (db.prepare("SELECT COUNT(*) as c FROM retail_sales WHERE branch_id = ?").get(id) as any)?.c || 0;
+    if (salesCount > 0) {
+      db.prepare("UPDATE retail_branches SET is_active = 0, updated_at = ? WHERE id = ?").run(new Date().toISOString(), id);
+      return { success: true, softDeleted: true, message: `Branch "${existing.name}" deactivated (${salesCount} historical sales retained)` };
+    }
+    db.prepare("DELETE FROM retail_branch_stock WHERE branch_id = ?").run(id);
+    db.prepare("DELETE FROM retail_branches WHERE id = ?").run(id);
+    return { success: true, softDeleted: false, message: `Branch "${existing.name}" deleted successfully` };
   }
 };
 

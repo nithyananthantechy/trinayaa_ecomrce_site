@@ -33,9 +33,9 @@ export default function BrandMark({ inverse = false, compact = false, className 
             }`}
             style={{ fontFamily: "'Montserrat', system-ui, sans-serif" }}
           >
-            <span className="text-[5px] text-[#123D28]/80 font-bold">«</span>
+            <span className={`text-[5px] font-bold ${inverse ? "text-[#E5DECF]/70" : "text-[#123D28]/80"}`}>«</span>
             <span className="whitespace-nowrap px-0.5">PURE SEEDS · RAW POWDERS · TRUE HERBS</span>
-            <span className="text-[5px] text-[#123D28]/80 font-bold">»</span>
+            <span className={`text-[5px] font-bold ${inverse ? "text-[#E5DECF]/70" : "text-[#123D28]/80"}`}>»</span>
           </div>
         </div>
       </div>
@@ -68,9 +68,9 @@ export default function BrandMark({ inverse = false, compact = false, className 
           }`}
           style={{ fontFamily: "'Montserrat', system-ui, sans-serif" }}
         >
-          <span className="text-[7px] text-[#123D28]/80 font-bold">«</span>
+          <span className={`text-[7px] font-bold ${inverse ? "text-[#E5DECF]/70" : "text-[#123D28]/80"}`}>«</span>
           <span className="whitespace-nowrap">PURE SEEDS · RAW POWDERS · TRUE HERBS</span>
-          <span className="text-[7px] text-[#123D28]/80 font-bold">»</span>
+          <span className={`text-[7px] font-bold ${inverse ? "text-[#E5DECF]/70" : "text-[#123D28]/80"}`}>»</span>
         </div>
       </div>
     </div>

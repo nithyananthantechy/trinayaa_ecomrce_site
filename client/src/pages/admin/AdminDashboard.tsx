@@ -777,7 +777,7 @@ export default function AdminDashboard() {
           />
           <div className="relative w-72 max-w-[85vw] bg-[#123D28] text-white flex flex-col justify-between shadow-2xl z-10 overflow-y-auto overflow-x-hidden">
             <div>
-              <div className="p-3.5 border-b border-slate-200/90 bg-white flex items-center justify-between gap-2 shrink-0">
+              <div className="p-3 border-b border-white/10 bg-[#0C2B1C] flex items-center justify-between gap-2 shrink-0">
                 <a
                   href="/admin/dashboard"
                   onClick={(e) => {
@@ -785,14 +785,14 @@ export default function AdminDashboard() {
                     setMobileMenuOpen(false);
                     navigateToTab("overview");
                   }}
-                  className="flex items-center justify-center flex-1 hover:opacity-90 transition-opacity"
+                  className="flex items-center justify-center flex-1 px-2.5 py-1.5 rounded-xl hover:bg-white/5 transition-colors"
                   title="TRINAYAA Admin Console"
                 >
-                  <BrandMark compact={true} />
+                  <BrandMark compact={true} inverse={true} />
                 </a>
                 <button
                   onClick={() => setMobileMenuOpen(false)}
-                  className="p-1.5 rounded-lg text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition-colors shrink-0"
+                  className="p-1.5 rounded-lg text-white/70 hover:text-white hover:bg-white/10 transition-colors shrink-0"
                   aria-label="Close navigation"
                 >
                   <X size={18} />
@@ -839,14 +839,14 @@ export default function AdminDashboard() {
             </div>
 
             {/* Mobile Admin Profile / Logout */}
-            <div className="p-4 border-t border-slate-200/90 bg-white text-xs shrink-0 shadow-[0_-2px_6px_rgba(0,0,0,0.03)]">
-              <div className="flex items-center gap-2.5 mb-3">
-                <div className="w-9 h-9 rounded-full bg-[#123D28] text-[#FFFDF8] flex items-center justify-center font-bold text-sm shadow-xs shrink-0 border border-[#1B5237]/30">
+            <div className="p-3.5 border-t border-white/10 text-xs bg-[#0C2B1C] shrink-0">
+              <div className="flex items-center gap-2.5 mb-2.5">
+                <div className="w-8 h-8 rounded-full bg-white/15 flex items-center justify-center font-bold text-white border border-white/20 shrink-0">
                   {currentUser?.name?.[0]?.toUpperCase() || "A"}
                 </div>
                 <div className="overflow-hidden min-w-0 flex-1">
-                  <div className="truncate font-bold text-slate-800 text-[13px]">{currentUser?.name || "Administrator"}</div>
-                  <div className="truncate text-[11px] text-slate-500 font-medium">{currentUser?.email}</div>
+                  <div className="truncate font-semibold text-white text-xs">{currentUser?.name || "Administrator"}</div>
+                  <div className="truncate text-[10px] text-[#DFE7D7]/70">{currentUser?.email}</div>
                 </div>
               </div>
               <button
@@ -854,7 +854,7 @@ export default function AdminDashboard() {
                   setMobileMenuOpen(false);
                   logoutMutation.mutate();
                 }}
-                className="w-full flex items-center justify-center gap-2 py-2 px-3 bg-red-50 hover:bg-red-100 text-red-700 hover:text-red-800 rounded-lg transition-colors font-semibold border border-red-200 text-xs shadow-2xs"
+                className="w-full flex items-center justify-center gap-2 py-2 px-3 bg-red-950/40 hover:bg-red-900/60 text-red-200 rounded-lg transition-colors font-semibold border border-red-900/30 text-xs"
               >
                 <LogOut size={14} /> Sign Out
               </button>
@@ -866,24 +866,24 @@ export default function AdminDashboard() {
       {/* Desktop Sticky Sidebar */}
       <aside className="w-72 bg-[#123D28] text-white flex flex-col justify-between shrink-0 hidden md:flex border-r border-[#1B5237] h-screen sticky top-0 z-10 overflow-hidden select-none">
         {/* Sidebar Brand Header */}
-        <div className="py-3.5 px-4 border-b border-slate-200/90 bg-white flex items-center justify-between gap-2 shrink-0">
+        <div className="py-3 px-3.5 border-b border-white/10 bg-[#0C2B1C] flex items-center justify-between gap-2 shrink-0">
           <a
             href="/admin/dashboard"
             onClick={(e) => {
               e.preventDefault();
               navigateToTab("overview");
             }}
-            className="flex items-center justify-center flex-1 hover:opacity-90 transition-opacity"
+            className="flex items-center justify-center flex-1 px-2.5 py-1.5 rounded-xl hover:bg-white/5 transition-colors"
             title="TRINAYAA Admin Console"
           >
-            <BrandMark compact={true} />
+            <BrandMark compact={true} inverse={true} />
           </a>
           <a
             href="/"
             target="_blank"
             rel="noopener noreferrer"
             title="View Customer Storefront"
-            className="text-slate-500 hover:text-[#123D28] p-1.5 rounded-lg hover:bg-slate-100 transition-colors shrink-0"
+            className="text-[#DFE7D7] hover:text-white p-1.5 rounded-lg hover:bg-white/10 transition-colors shrink-0"
           >
             <ExternalLink size={16} />
           </a>
@@ -925,19 +925,19 @@ export default function AdminDashboard() {
         </nav>
 
         {/* Sidebar Admin Profile / Logout Footer */}
-        <div className="p-4 border-t border-slate-200/90 bg-white text-xs shrink-0 shadow-[0_-2px_6px_rgba(0,0,0,0.03)]">
-          <div className="flex items-center gap-2.5 mb-3">
-            <div className="w-9 h-9 rounded-full bg-[#123D28] text-[#FFFDF8] flex items-center justify-center font-bold text-sm shadow-xs shrink-0 border border-[#1B5237]/30">
+        <div className="p-3.5 border-t border-white/10 text-xs bg-[#0C2B1C] shrink-0">
+          <div className="flex items-center gap-2.5 mb-2.5">
+            <div className="w-8 h-8 rounded-full bg-white/15 flex items-center justify-center font-bold text-white border border-white/20 shrink-0">
               {currentUser?.name?.[0]?.toUpperCase() || "A"}
             </div>
             <div className="overflow-hidden min-w-0 flex-1">
-              <div className="truncate font-bold text-slate-800 text-[13px]">{currentUser?.name || "Administrator"}</div>
-              <div className="truncate text-[11px] text-slate-500 font-medium">{currentUser?.email}</div>
+              <div className="truncate font-semibold text-white text-xs">{currentUser?.name || "Administrator"}</div>
+              <div className="truncate text-[10px] text-[#DFE7D7]/70">{currentUser?.email}</div>
             </div>
           </div>
           <button
             onClick={() => logoutMutation.mutate()}
-            className="w-full flex items-center justify-center gap-2 py-2 px-3 bg-red-50 hover:bg-red-100 text-red-700 hover:text-red-800 rounded-lg transition-colors font-semibold border border-red-200 text-xs shadow-2xs"
+            className="w-full flex items-center justify-center gap-2 py-2 px-3 bg-red-950/40 hover:bg-red-900/60 text-red-200 rounded-lg transition-colors font-semibold border border-red-900/30 text-xs"
           >
             <LogOut size={14} /> Sign Out
           </button>
