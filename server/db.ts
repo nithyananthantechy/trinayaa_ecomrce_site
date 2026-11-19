@@ -261,6 +261,90 @@ function initTables(db: any) {
     );
     CREATE INDEX IF NOT EXISTS idx_return_history_ret ON order_return_history(return_id);
 
+    CREATE TABLE IF NOT EXISTS customer_subscriptions (
+      id TEXT PRIMARY KEY,
+      subscription_number TEXT UNIQUE NOT NULL,
+      customer_id TEXT NOT NULL,
+      customer_name TEXT NOT NULL,
+      customer_email TEXT NOT NULL,
+      customer_phone TEXT,
+      product_id TEXT NOT NULL,
+      variant_id TEXT,
+      product_name TEXT NOT NULL,
+      product_sku TEXT NOT NULL,
+      variant_label TEXT,
+      product_snapshot TEXT NOT NULL,
+      quantity INTEGER NOT NULL DEFAULT 1,
+      unit_price REAL NOT NULL,
+      subtotal REAL NOT NULL,
+      shipping_fee REAL NOT NULL DEFAULT 0,
+      total_per_cycle REAL NOT NULL,
+      frequency TEXT NOT NULL,
+      frequency_days INTEGER NOT NULL,
+      start_date TEXT NOT NULL,
+      next_delivery_date TEXT NOT NULL,
+      last_order_date TEXT,
+      delivery_address TEXT NOT NULL,
+      delivery_instructions TEXT,
+      payment_preference TEXT NOT NULL DEFAULT 'COD',
+      status TEXT NOT NULL DEFAULT 'ACTIVE',
+      pause_reason TEXT,
+      cancellation_reason TEXT,
+      cancelled_at TEXT,
+      paused_at TEXT,
+      cycle_count INTEGER NOT NULL DEFAULT 0,
+      failure_reason TEXT,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      FOREIGN KEY (customer_id) REFERENCES users(id) ON DELETE CASCADE,
+      FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE RESTRICT
+    );
+    CREATE INDEX IF NOT EXISTS idx_sub_customer ON customer_subscriptions(customer_id);
+    CREATE INDEX IF NOT EXISTS idx_sub_number ON customer_subscriptions(subscription_number);
+    CREATE INDEX IF NOT EXISTS idx_sub_status ON customer_subscriptions(status);
+    CREATE INDEX IF NOT EXISTS idx_sub_next_delivery ON customer_subscriptions(next_delivery_date);
+
+    CREATE TABLE IF NOT EXISTS subscription_cycles (
+      id TEXT PRIMARY KEY,
+      subscription_id TEXT NOT NULL,
+      subscription_number TEXT NOT NULL,
+      cycle_number INTEGER NOT NULL,
+      cycle_reference TEXT UNIQUE NOT NULL,
+      scheduled_date TEXT NOT NULL,
+      processed_date TEXT,
+      order_id TEXT,
+      order_number TEXT,
+      status TEXT NOT NULL DEFAULT 'PENDING',
+      failure_reason TEXT,
+      amount REAL NOT NULL,
+      payment_method TEXT NOT NULL,
+      payment_status TEXT NOT NULL DEFAULT 'PENDING',
+      payment_reference TEXT,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      FOREIGN KEY (subscription_id) REFERENCES customer_subscriptions(id) ON DELETE CASCADE,
+      FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE SET NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_cycle_sub ON subscription_cycles(subscription_id);
+    CREATE INDEX IF NOT EXISTS idx_cycle_ref ON subscription_cycles(cycle_reference);
+    CREATE INDEX IF NOT EXISTS idx_cycle_status ON subscription_cycles(status);
+
+    CREATE TABLE IF NOT EXISTS subscription_history (
+      id TEXT PRIMARY KEY,
+      subscription_id TEXT NOT NULL,
+      from_status TEXT,
+      to_status TEXT NOT NULL,
+      action TEXT NOT NULL,
+      actor TEXT NOT NULL,
+      actor_id TEXT,
+      note TEXT,
+      metadata TEXT,
+      created_at TEXT NOT NULL,
+      FOREIGN KEY (subscription_id) REFERENCES customer_subscriptions(id) ON DELETE CASCADE
+    );
+    CREATE INDEX IF NOT EXISTS idx_sub_hist_sub ON subscription_history(subscription_id);
+
+
     CREATE TABLE IF NOT EXISTS payments (
       id TEXT PRIMARY KEY,
       orderId TEXT NOT NULL,
@@ -595,6 +679,10 @@ function initTables(db: any) {
 
   safeAlter("ALTER TABLE payments ADD COLUMN eventId TEXT;");
   safeAlter("ALTER TABLE payments ADD COLUMN errorDescription TEXT;");
+  safeAlter("ALTER TABLE orders ADD COLUMN subscriptionId TEXT;");
+  safeAlter("ALTER TABLE orders ADD COLUMN subscriptionCycleId TEXT;");
+  safeAlter("ALTER TABLE orders ADD COLUMN isSubscriptionOrder INTEGER NOT NULL DEFAULT 0;");
+  safeAlter("ALTER TABLE products ADD COLUMN isSubscriptionEligible INTEGER NOT NULL DEFAULT 1;");
 
   // Ensure default admin user exists if table is empty
   const adminCheck = db.prepare("SELECT COUNT(*) as count FROM users WHERE role IN ('ADMIN', 'SUPER_ADMIN')").get() as { count: number };
@@ -1079,6 +1167,7 @@ function formatProduct(p: any) {
     isCodAvailable: p.isCodAvailable !== undefined ? (p.isCodAvailable === 1 || p.isCodAvailable === true || p.isCodAvailable === "1") : true,
     isRewardEligible: p.isRewardEligible !== undefined ? (p.isRewardEligible === 1 || p.isRewardEligible === true || p.isRewardEligible === "1") : true,
     sizes,
+    variants: variants.map((v) => ({ id: v.id, label: v.packSize, packSize: v.packSize, price: v.price, mrp: v.mrp, stock: v.stock, sku: v.sku })),
     gallery: gallery.length > 0 ? gallery : [resolvedImg],
   };
 }
@@ -2219,10 +2308,10 @@ export const ordersRepo = {
     const db = getDatabase();
     const id = "ord_" + Date.now() + "_" + Math.floor(Math.random() * 1000);
     let orderNumber = orderData.orderNumber;
-    if (!orderNumber) {
+    if (!orderNumber || db.prepare("SELECT id FROM orders WHERE orderNumber = ?").get(orderNumber)) {
       let candidate = "TRN-" + Math.floor(10000 + Math.random() * 90000);
       let attempts = 0;
-      while (db.prepare("SELECT id FROM orders WHERE orderNumber = ?").get(candidate) && attempts < 20) {
+      while (db.prepare("SELECT id FROM orders WHERE orderNumber = ?").get(candidate) && attempts < 50) {
         candidate = "TRN-" + Math.floor(10000 + Math.random() * 90000);
         attempts++;
       }
@@ -2254,8 +2343,9 @@ export const ordersRepo = {
         recipientName, recipientPhone, recipientEmail, isSameAddress, isGiftOrder,
         giftMessage, deliveryInstructions, subtotal, discountAmount, shippingFee, total,
         paymentMethod, paymentStatus, razorpayOrderId, razorpayPaymentId,
+        subscriptionId, subscriptionCycleId, isSubscriptionOrder,
         orderStatus, internalNotes, couponCode, trackingNumber, carrier, createdAt, updatedAt
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
       id,
       orderNumber,
@@ -2283,6 +2373,9 @@ export const ordersRepo = {
       orderData.paymentStatus || "PENDING",
       orderData.razorpayOrderId || null,
       orderData.razorpayPaymentId || null,
+      orderData.subscriptionId || null,
+      orderData.subscriptionCycleId || null,
+      orderData.isSubscriptionOrder ? 1 : (orderData.subscriptionId ? 1 : 0),
       orderData.orderStatus || "Pending Payment",
       orderData.internalNotes || "",
       orderData.couponCode || null,
@@ -2765,6 +2858,9 @@ export const ordersRepo = {
       recipientEmail: order.recipientEmail || order.customerEmail,
       giftMessage: order.giftMessage || null,
       deliveryInstructions: order.deliveryInstructions || null,
+      subscriptionId: order.subscriptionId || null,
+      subscriptionCycleId: order.subscriptionCycleId || null,
+      isSubscriptionOrder: Boolean(order.isSubscriptionOrder || order.subscriptionId),
     };
   },
 
@@ -6932,4 +7028,1098 @@ export const orderReturnsRepo = {
 
     return this.getById(ret.id);
   }
+};
+
+
+// ==========================================
+// 30. PRODUCT SUBSCRIPTIONS REPOSITORY (PHASE 7)
+// ==========================================
+export const subscriptionsRepo = {
+  getNextSubscriptionNumber(year: number): string {
+    const db = getDatabase();
+    const prefix = `TRN-SUB-${year}-%`;
+    const row = db.prepare(
+      "SELECT MAX(CAST(SUBSTR(subscription_number, -5) AS INTEGER)) as maxSeq FROM customer_subscriptions WHERE subscription_number LIKE ?"
+    ).get(prefix) as any;
+    const nextSeq = (row?.maxSeq || 0) + 1;
+    return `TRN-SUB-${year}-${String(nextSeq).padStart(5, "0")}`;
+  },
+
+  enrichSubscription(sub: any) {
+    if (!sub) return null;
+    const db = getDatabase();
+
+    let productSnapshot: any = {};
+    try {
+      productSnapshot = typeof sub.product_snapshot === "string" ? JSON.parse(sub.product_snapshot) : (sub.product_snapshot || {});
+    } catch {
+      productSnapshot = {};
+    }
+
+    let deliveryAddress: any = {};
+    try {
+      deliveryAddress = typeof sub.delivery_address === "string" ? JSON.parse(sub.delivery_address) : (sub.delivery_address || {});
+    } catch {
+      deliveryAddress = {};
+    }
+
+    const cycles = db.prepare(
+      "SELECT * FROM subscription_cycles WHERE subscription_id = ? ORDER BY cycle_number ASC"
+    ).all(sub.id) as any[];
+
+    const history = db.prepare(
+      "SELECT * FROM subscription_history WHERE subscription_id = ? ORDER BY created_at DESC"
+    ).all(sub.id) as any[];
+
+    const orders = db.prepare(
+      "SELECT id, orderNumber, total, orderStatus, paymentStatus, paymentMethod, createdAt FROM orders WHERE subscriptionId = ? ORDER BY createdAt DESC"
+    ).all(sub.id) as any[];
+
+    return {
+      id: sub.id,
+      subscriptionNumber: sub.subscription_number,
+      customerId: sub.customer_id,
+      customerName: sub.customer_name,
+      customerEmail: sub.customer_email,
+      customerPhone: sub.customer_phone,
+      productId: sub.product_id,
+      variantId: sub.variant_id,
+      productName: sub.product_name,
+      productSku: sub.product_sku,
+      variantLabel: sub.variant_label,
+      productSnapshot,
+      quantity: sub.quantity,
+      unitPrice: sub.unit_price,
+      subtotal: sub.subtotal,
+      shippingFee: sub.shipping_fee,
+      totalPerCycle: sub.total_per_cycle,
+      frequency: sub.frequency,
+      frequencyDays: sub.frequency_days,
+      startDate: sub.start_date,
+      nextDeliveryDate: sub.next_delivery_date,
+      lastOrderDate: sub.last_order_date,
+      deliveryAddress,
+      deliveryInstructions: sub.delivery_instructions,
+      paymentPreference: sub.payment_preference,
+      status: sub.status,
+      pauseReason: sub.pause_reason,
+      cancellationReason: sub.cancellation_reason,
+      cancelledAt: sub.cancelled_at,
+      pausedAt: sub.paused_at,
+      cycleCount: sub.cycle_count,
+      failureReason: sub.failure_reason,
+      createdAt: sub.created_at,
+      updatedAt: sub.updated_at,
+      cycles,
+      history,
+      orders,
+      // snake_case compatibility
+      subscription_number: sub.subscription_number,
+      customer_id: sub.customer_id,
+      customer_name: sub.customer_name,
+      customer_email: sub.customer_email,
+      customer_phone: sub.customer_phone,
+      product_id: sub.product_id,
+      variant_id: sub.variant_id,
+      product_name: sub.product_name,
+      product_sku: sub.product_sku,
+      variant_label: sub.variant_label,
+      product_snapshot: productSnapshot,
+      unit_price: sub.unit_price,
+      shipping_fee: sub.shipping_fee,
+      total_per_cycle: sub.total_per_cycle,
+      frequency_days: sub.frequency_days,
+      start_date: sub.start_date,
+      next_delivery_date: sub.next_delivery_date,
+      last_order_date: sub.last_order_date,
+      delivery_address: deliveryAddress,
+      delivery_instructions: sub.delivery_instructions,
+      payment_preference: sub.payment_preference,
+      pause_reason: sub.pause_reason,
+      cancellation_reason: sub.cancellation_reason,
+      cancelled_at: sub.cancelled_at,
+      paused_at: sub.paused_at,
+      cycle_count: sub.cycle_count,
+      failure_reason: sub.failure_reason,
+      created_at: sub.created_at,
+      updated_at: sub.updated_at,
+    };
+  },
+
+  getFrequencyDays(frequency: string): number {
+    switch (frequency) {
+      case "15_DAYS": return 15;
+      case "30_DAYS": return 30;
+      case "45_DAYS": return 45;
+      case "60_DAYS": return 60;
+      case "90_DAYS": return 90;
+      default: return 30;
+    }
+  },
+
+  create(input: {
+    customerId: string;
+    customerName?: string;
+    customerEmail?: string;
+    customerPhone?: string;
+    productId: string;
+    variantId?: string | null;
+    quantity: number;
+    frequency: string;
+    deliveryAddress: any;
+    deliveryInstructions?: string | null;
+    paymentPreference?: string;
+    startDate?: string | null;
+  }) {
+    const db = getDatabase();
+
+    // 1. Fetch customer
+    const customer = usersRepo.getById(input.customerId);
+    const customerName = input.customerName || customer?.name || "Valued Subscriber";
+    const customerEmail = input.customerEmail || customer?.email || "subscriber@trinayaa.test";
+    const customerPhone = input.customerPhone || customer?.phone || "+919876543210";
+
+    // 2. Fetch and validate product
+    const product = productsRepo.getById(input.productId);
+    if (!product) {
+      throw new Error("Product not found");
+    }
+    if (product.isSubscriptionEligible === 0 || product.isSubscriptionEligible === false || product.isSubscriptionEligible === "0") {
+      throw new Error("This botanical product is not eligible for subscription");
+    }
+    if (product.isAvailable === 0 || product.isAvailable === false) {
+      throw new Error("This botanical product is currently unavailable for subscriptions.");
+    }
+    const qty = Number(input.quantity);
+    if (!qty || qty < 1) {
+      throw new Error("Subscription quantity must be at least 1");
+    }
+    if (product.stock < qty) {
+      throw new Error(`Insufficient stock for subscription (Requested: ${qty}, In Stock: ${product.stock})`);
+    }
+
+    // 3. Resolve variant & pricing
+    let variantLabel = "100g";
+    let unitPrice = Number(product.price);
+    let sku = product.sku || `TRN-${product.id}`;
+
+    if (input.variantId) {
+      const dbVariant = (db.prepare("SELECT * FROM product_variants WHERE id = ?").get(input.variantId) as any)
+        || product.variants?.find((v: any) => v.id === input.variantId);
+      if (dbVariant) {
+        variantLabel = dbVariant.packSize || dbVariant.label || variantLabel;
+        unitPrice = Number(dbVariant.price);
+        sku = dbVariant.sku || sku;
+      }
+    } else if (product.sizes && product.sizes.length > 0) {
+      variantLabel = product.sizes[0].label || variantLabel;
+      unitPrice = Number(product.sizes[0].price);
+    }
+
+    // 4. Calculate financials
+    const subtotal = Math.round(unitPrice * qty * 100) / 100;
+    // Standard TRINAYAA delivery policy: Free delivery above Rs. 799, otherwise Rs. 60
+    const shippingFee = subtotal >= 799 ? 0 : 60;
+    const totalPerCycle = Math.round((subtotal + shippingFee) * 100) / 100;
+
+    // 5. Calculate frequency & dates
+    const freqDays = this.getFrequencyDays(input.frequency);
+    const now = new Date().toISOString();
+    const startDate = input.startDate ? new Date(input.startDate).toISOString() : now;
+    // First scheduled cycle target date
+    const nextDeliveryDate = startDate;
+
+    const deliveryAddressStr = typeof input.deliveryAddress === "string"
+      ? input.deliveryAddress
+      : JSON.stringify(input.deliveryAddress || {});
+
+    const productSnapshot = JSON.stringify({
+      id: product.id,
+      name: product.name,
+      nameTa: product.nameTa,
+      sku,
+      image: product.image,
+      category: product.category,
+      badge: product.badge,
+      description: product.description,
+      variantId: input.variantId || null,
+      variantLabel,
+      unitPrice,
+    });
+
+    const paymentPref = input.paymentPreference === "MANUAL_RENEWAL" ? "MANUAL_RENEWAL" : "COD";
+
+    // 6. Generate unique subscription number with collision retry
+    const year = new Date().getFullYear();
+    let attempts = 0;
+    while (attempts < 10) {
+      const subNumber = this.getNextSubscriptionNumber(year);
+      const subId = "sub_" + Date.now() + "_" + Math.floor(Math.random() * 100000);
+
+      try {
+        db.prepare(`
+          INSERT INTO customer_subscriptions (
+            id, subscription_number, customer_id, customer_name, customer_email,
+            customer_phone, product_id, variant_id, product_name, product_sku,
+            variant_label, product_snapshot, quantity, unit_price, subtotal,
+            shipping_fee, total_per_cycle, frequency, frequency_days, start_date,
+            next_delivery_date, delivery_address, delivery_instructions,
+            payment_preference, status, cycle_count, created_at, updated_at
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'ACTIVE', 0, ?, ?)
+        `).run(
+          subId,
+          subNumber,
+          input.customerId,
+          customerName,
+          customerEmail,
+          customerPhone,
+          product.id,
+          input.variantId || null,
+          product.name,
+          sku,
+          variantLabel,
+          productSnapshot,
+          qty,
+          unitPrice,
+          subtotal,
+          shippingFee,
+          totalPerCycle,
+          input.frequency,
+          freqDays,
+          startDate,
+          nextDeliveryDate,
+          deliveryAddressStr,
+          input.deliveryInstructions || null,
+          paymentPref,
+          now,
+          now
+        );
+
+        // 7. Create initial cycle record
+        const cycleId = "scyc_" + Date.now() + "_" + Math.floor(Math.random() * 100000);
+        const cycleRef = `${subNumber}-C1`;
+        db.prepare(`
+          INSERT INTO subscription_cycles (
+            id, subscription_id, subscription_number, cycle_number, cycle_reference,
+            scheduled_date, status, amount, payment_method, payment_status,
+            created_at, updated_at
+          ) VALUES (?, ?, ?, 1, ?, ?, 'PENDING', ?, ?, 'PENDING', ?, ?)
+        `).run(
+          cycleId,
+          subId,
+          subNumber,
+          cycleRef,
+          nextDeliveryDate,
+          totalPerCycle,
+          paymentPref,
+          now,
+          now
+        );
+
+        // 8. Create initial history record
+        const histId = "shist_" + Date.now() + "_" + Math.floor(Math.random() * 100000);
+        db.prepare(`
+          INSERT INTO subscription_history (
+            id, subscription_id, from_status, to_status, action, actor, actor_id, note, created_at
+          ) VALUES (?, ?, NULL, 'ACTIVE', 'CREATED', 'CUSTOMER', ?, ?, ?)
+        `).run(
+          histId,
+          subId,
+          input.customerId,
+          `Subscription created for ${qty}x ${product.name} (${variantLabel}), frequency: ${input.frequency}`,
+          now
+        );
+
+        const enriched = this.getById(subId);
+
+        // Telegram alert (background safe)
+        try {
+          const { notifySubscriptionCreated } = require("./telegram");
+          notifySubscriptionCreated({
+            subscriptionNumber: subNumber,
+            customerName,
+            productName: product.name,
+            variantLabel,
+            quantity: qty,
+            frequency: input.frequency,
+            nextDeliveryDate,
+          }).catch(() => {});
+        } catch {}
+
+        return enriched;
+      } catch (err: any) {
+        if (err?.message?.includes("UNIQUE constraint failed: customer_subscriptions.subscription_number")) {
+          attempts++;
+          continue;
+        }
+        throw err;
+      }
+    }
+
+    throw new Error("Failed to generate unique subscription reference after 10 attempts");
+  },
+
+  getById(idOrNumber: string) {
+    const db = getDatabase();
+    const row = db.prepare(`
+      SELECT * FROM customer_subscriptions WHERE id = ? OR subscription_number = ?
+    `).get(idOrNumber, idOrNumber) as any;
+    if (!row) return null;
+    return this.enrichSubscription(row);
+  },
+
+  listByCustomer(customerId: string) {
+    const db = getDatabase();
+    const rows = db.prepare(`
+      SELECT * FROM customer_subscriptions WHERE customer_id = ? ORDER BY created_at DESC
+    `).all(customerId) as any[];
+    return rows.map((r) => this.enrichSubscription(r));
+  },
+
+  listAll(filters: {
+    status?: string;
+    frequency?: string;
+    search?: string;
+    limit?: number;
+    offset?: number;
+  } = {}) {
+    const db = getDatabase();
+    const conditions: string[] = [];
+    const params: any[] = [];
+
+    if (filters.status && filters.status !== "ALL") {
+      conditions.push("status = ?");
+      params.push(filters.status.toUpperCase());
+    }
+
+    if (filters.frequency && filters.frequency !== "ALL") {
+      conditions.push("frequency = ?");
+      params.push(filters.frequency);
+    }
+
+    if (filters.search && filters.search.trim()) {
+      const q = `%${filters.search.trim().toLowerCase()}%`;
+      conditions.push(
+        "(LOWER(subscription_number) LIKE ? OR LOWER(customer_name) LIKE ? OR LOWER(customer_email) LIKE ? OR LOWER(product_name) LIKE ?)"
+      );
+      params.push(q, q, q, q);
+    }
+
+    const whereClause = conditions.length > 0 ? "WHERE " + conditions.join(" AND ") : "";
+
+    const totalRow = db.prepare(`
+      SELECT COUNT(*) as total FROM customer_subscriptions ${whereClause}
+    `).get(...params) as any;
+    const total = totalRow?.total || 0;
+
+    const limit = filters.limit || 50;
+    const offset = filters.offset || 0;
+
+    const rows = db.prepare(`
+      SELECT * FROM customer_subscriptions
+      ${whereClause}
+      ORDER BY created_at DESC
+      LIMIT ? OFFSET ?
+    `).all(...params, limit, offset) as any[];
+
+    return {
+      subscriptions: rows.map((r) => this.enrichSubscription(r)),
+      total,
+    };
+  },
+
+  getStats() {
+    const db = getDatabase();
+    const totalRow = db.prepare("SELECT COUNT(*) as c FROM customer_subscriptions").get() as any;
+    const activeRow = db.prepare("SELECT COUNT(*) as c FROM customer_subscriptions WHERE status = 'ACTIVE'").get() as any;
+    const pausedRow = db.prepare("SELECT COUNT(*) as c FROM customer_subscriptions WHERE status = 'PAUSED'").get() as any;
+    const cancelledRow = db.prepare("SELECT COUNT(*) as c FROM customer_subscriptions WHERE status = 'CANCELLED'").get() as any;
+    const exceptionsRow = db.prepare("SELECT COUNT(*) as c FROM customer_subscriptions WHERE status = 'FAILED' OR failure_reason IS NOT NULL").get() as any;
+
+    const upcomingLimit = new Date(Date.now() + 7 * 86400000).toISOString();
+    const upcomingRow = db.prepare(`
+      SELECT COUNT(*) as c FROM customer_subscriptions
+      WHERE status = 'ACTIVE' AND next_delivery_date <= ?
+    `).get(upcomingLimit) as any;
+
+    return {
+      total: totalRow?.c || 0,
+      active: activeRow?.c || 0,
+      paused: pausedRow?.c || 0,
+      cancelled: cancelledRow?.c || 0,
+      exceptions: exceptionsRow?.c || 0,
+      upcoming7Days: upcomingRow?.c || 0,
+    };
+  },
+
+  pause(id: string, reason: string = "Paused by customer", actor: string = "CUSTOMER", actorId?: string) {
+    const db = getDatabase();
+    const sub = this.getById(id);
+    if (!sub) throw new Error("Subscription not found");
+    if (sub.status === "PAUSED") return sub;
+    if (sub.status === "CANCELLED") throw new Error("Cancelled subscriptions cannot be paused");
+
+    const now = new Date().toISOString();
+    db.prepare(`
+      UPDATE customer_subscriptions
+      SET status = 'PAUSED', pause_reason = ?, paused_at = ?, updated_at = ?
+      WHERE id = ?
+    `).run(reason, now, now, sub.id);
+
+    const histId = "shist_" + Date.now() + "_" + Math.floor(Math.random() * 100000);
+    db.prepare(`
+      INSERT INTO subscription_history (
+        id, subscription_id, from_status, to_status, action, actor, actor_id, note, created_at
+      ) VALUES (?, ?, ?, 'PAUSED', 'PAUSED', ?, ?, ?, ?)
+    `).run(histId, sub.id, sub.status, actor, actorId || null, reason, now);
+
+    return this.getById(sub.id);
+  },
+
+  resume(id: string, actor: string = "CUSTOMER", actorId?: string) {
+    const db = getDatabase();
+    const sub = this.getById(id);
+    if (!sub) throw new Error("Subscription not found");
+    if (sub.status === "ACTIVE") return sub;
+    if (sub.status === "CANCELLED") throw new Error("Cancelled subscriptions cannot be resumed");
+
+    const now = new Date().toISOString();
+    let nextDeliveryDate = sub.nextDeliveryDate;
+    // If the next delivery date lapsed while paused, recalibrate to today + frequencyDays
+    if (new Date(nextDeliveryDate).getTime() <= Date.now()) {
+      nextDeliveryDate = new Date(Date.now() + sub.frequencyDays * 86400000).toISOString();
+    }
+
+    db.prepare(`
+      UPDATE customer_subscriptions
+      SET status = 'ACTIVE', pause_reason = NULL, paused_at = NULL, next_delivery_date = ?, updated_at = ?
+      WHERE id = ?
+    `).run(nextDeliveryDate, now, sub.id);
+
+    const histId = "shist_" + Date.now() + "_" + Math.floor(Math.random() * 100000);
+    db.prepare(`
+      INSERT INTO subscription_history (
+        id, subscription_id, from_status, to_status, action, actor, actor_id, note, created_at
+      ) VALUES (?, ?, 'PAUSED', 'ACTIVE', 'RESUMED', ?, ?, 'Subscription resumed', ?)
+    `).run(histId, sub.id, actor, actorId || null, now);
+
+    return this.getById(sub.id);
+  },
+
+  skipNext(id: string, reason: string = "Customer skipped delivery", actor: string = "CUSTOMER", actorId?: string) {
+    const db = getDatabase();
+    const sub = this.getById(id);
+    if (!sub) throw new Error("Subscription not found");
+    if (sub.status !== "ACTIVE") throw new Error("Only active subscriptions can skip upcoming deliveries");
+
+    const now = new Date().toISOString();
+    const currentDate = new Date(sub.nextDeliveryDate).getTime();
+    const newNextDate = new Date(currentDate + sub.frequencyDays * 86400000).toISOString();
+
+    // Mark current pending cycle as SKIPPED
+    const currentCycleNum = sub.cycleCount + 1;
+    const currentRef = `${sub.subscriptionNumber}-C${currentCycleNum}`;
+
+    db.prepare(`
+      UPDATE subscription_cycles
+      SET status = 'SKIPPED', updated_at = ?
+      WHERE subscription_id = ? AND cycle_reference = ? AND status = 'PENDING'
+    `).run(now, sub.id, currentRef);
+
+    // Create next scheduled cycle
+    const nextCycleNum = currentCycleNum + 1;
+    const nextRef = `${sub.subscriptionNumber}-C${nextCycleNum}`;
+    const cycleId = "scyc_" + Date.now() + "_" + Math.floor(Math.random() * 100000);
+
+    const existingNext = db.prepare("SELECT id FROM subscription_cycles WHERE cycle_reference = ?").get(nextRef);
+    if (!existingNext) {
+      db.prepare(`
+        INSERT INTO subscription_cycles (
+          id, subscription_id, subscription_number, cycle_number, cycle_reference,
+          scheduled_date, status, amount, payment_method, payment_status,
+          created_at, updated_at
+        ) VALUES (?, ?, ?, ?, ?, ?, 'PENDING', ?, ?, 'PENDING', ?, ?)
+      `).run(
+        cycleId,
+        sub.id,
+        sub.subscriptionNumber,
+        nextCycleNum,
+        nextRef,
+        newNextDate,
+        sub.totalPerCycle,
+        sub.paymentPreference,
+        now,
+        now
+      );
+    }
+
+    // Advance subscription delivery date without creating order
+    db.prepare(`
+      UPDATE customer_subscriptions
+      SET next_delivery_date = ?, updated_at = ?
+      WHERE id = ?
+    `).run(newNextDate, now, sub.id);
+
+    // Log history
+    const histId = "shist_" + Date.now() + "_" + Math.floor(Math.random() * 100000);
+    db.prepare(`
+      INSERT INTO subscription_history (
+        id, subscription_id, from_status, to_status, action, actor, actor_id, note, created_at
+      ) VALUES (?, ?, 'ACTIVE', 'ACTIVE', 'SKIPPED', ?, ?, ?, ?)
+    `).run(
+      histId,
+      sub.id,
+      actor,
+      actorId || null,
+      `Delivery skipped. Schedule advanced from ${sub.nextDeliveryDate.slice(0, 10)} to ${newNextDate.slice(0, 10)}. Reason: ${reason}`,
+      now
+    );
+
+    return this.getById(sub.id);
+  },
+
+  updateSettings(id: string, updates: {
+    quantity?: number;
+    frequency?: string;
+    deliveryAddress?: any;
+    deliveryInstructions?: string | null;
+  }, actor: string = "CUSTOMER", actorId?: string) {
+    const db = getDatabase();
+    const sub = this.getById(id);
+    if (!sub) throw new Error("Subscription not found");
+    if (sub.status === "CANCELLED") throw new Error("Cannot modify a cancelled subscription");
+
+    const now = new Date().toISOString();
+    let qty = sub.quantity;
+    let subtotal = sub.subtotal;
+    let shippingFee = sub.shippingFee;
+    let totalPerCycle = sub.totalPerCycle;
+
+    if (updates.quantity !== undefined) {
+      qty = Number(updates.quantity);
+      if (!qty || qty < 1) throw new Error("Quantity must be at least 1");
+      subtotal = Math.round(sub.unitPrice * qty * 100) / 100;
+      shippingFee = subtotal >= 799 ? 0 : 60;
+      totalPerCycle = Math.round((subtotal + shippingFee) * 100) / 100;
+    }
+
+    let frequency = sub.frequency;
+    let frequencyDays = sub.frequencyDays;
+    if (updates.frequency && updates.frequency !== sub.frequency) {
+      frequency = updates.frequency;
+      frequencyDays = this.getFrequencyDays(frequency);
+    }
+
+    let deliveryAddressStr = typeof sub.deliveryAddress === "string"
+      ? sub.deliveryAddress
+      : JSON.stringify(sub.deliveryAddress);
+
+    if (updates.deliveryAddress) {
+      deliveryAddressStr = typeof updates.deliveryAddress === "string"
+        ? updates.deliveryAddress
+        : JSON.stringify(updates.deliveryAddress);
+    }
+
+    const deliveryInstructions = updates.deliveryInstructions !== undefined
+      ? updates.deliveryInstructions
+      : sub.deliveryInstructions;
+
+    db.prepare(`
+      UPDATE customer_subscriptions
+      SET quantity = ?, subtotal = ?, shipping_fee = ?, total_per_cycle = ?,
+          frequency = ?, frequency_days = ?, delivery_address = ?,
+          delivery_instructions = ?, updated_at = ?
+      WHERE id = ?
+    `).run(
+      qty,
+      subtotal,
+      shippingFee,
+      totalPerCycle,
+      frequency,
+      frequencyDays,
+      deliveryAddressStr,
+      deliveryInstructions,
+      now,
+      sub.id
+    );
+
+    const histId = "shist_" + Date.now() + "_" + Math.floor(Math.random() * 100000);
+    db.prepare(`
+      INSERT INTO subscription_history (
+        id, subscription_id, from_status, to_status, action, actor, actor_id, note, created_at
+      ) VALUES (?, ?, ?, ?, 'SETTINGS_UPDATED', ?, ?, 'Subscription settings updated', ?)
+    `).run(histId, sub.id, sub.status, sub.status, actor, actorId || null, now);
+
+    return this.getById(sub.id);
+  },
+
+  cancel(id: string, reason: string = "Cancelled by customer", actor: string = "CUSTOMER", actorId?: string) {
+    const db = getDatabase();
+    const sub = this.getById(id);
+    if (!sub) throw new Error("Subscription not found");
+    if (sub.status === "CANCELLED") return sub;
+
+    const now = new Date().toISOString();
+    db.prepare(`
+      UPDATE customer_subscriptions
+      SET status = 'CANCELLED', cancellation_reason = ?, cancelled_at = ?, updated_at = ?
+      WHERE id = ?
+    `).run(reason, now, now, sub.id);
+
+    // Cancel pending cycle
+    db.prepare(`
+      UPDATE subscription_cycles
+      SET status = 'CANCELLED', updated_at = ?
+      WHERE subscription_id = ? AND status = 'PENDING'
+    `).run(now, sub.id);
+
+    const histId = "shist_" + Date.now() + "_" + Math.floor(Math.random() * 100000);
+    db.prepare(`
+      INSERT INTO subscription_history (
+        id, subscription_id, from_status, to_status, action, actor, actor_id, note, created_at
+      ) VALUES (?, ?, ?, 'CANCELLED', 'CANCELLED', ?, ?, ?, ?)
+    `).run(histId, sub.id, sub.status, actor, actorId || null, reason, now);
+
+    return this.getById(sub.id);
+  },
+
+  processDueCycles(options: {
+    now?: string;
+    dryRun?: boolean;
+    subscriptionId?: string;
+  } = {}) {
+    const db = getDatabase();
+    const targetNow = options.now ? new Date(options.now).toISOString() : new Date().toISOString();
+
+    let query = "SELECT * FROM customer_subscriptions WHERE status = 'ACTIVE' AND next_delivery_date <= ?";
+    const params: any[] = [targetNow];
+
+    if (options.subscriptionId) {
+      query += " AND id = ?";
+      params.push(options.subscriptionId);
+    }
+
+    const eligible = db.prepare(query).all(...params) as any[];
+
+    const results: any[] = [];
+    let succeeded = 0;
+    let failed = 0;
+    let skipped = 0;
+
+    for (const subRow of eligible) {
+      const sub = this.enrichSubscription(subRow);
+      if (!sub) continue;
+
+      // 1. Validate Product Availability
+      const product = productsRepo.getById(sub.productId);
+      if (!product || product.isAvailable === 0 || product.isAvailable === false) {
+        const failureReason = "Product is currently unavailable";
+        db.prepare(`
+          UPDATE customer_subscriptions
+          SET failure_reason = ?, updated_at = ?
+          WHERE id = ?
+        `).run(failureReason, targetNow, sub.id);
+
+        const failCycleNum = sub.cycleCount + 1;
+        db.prepare(`
+          UPDATE subscription_cycles
+          SET status = 'FAILED', failure_reason = ?, updated_at = ?
+          WHERE subscription_id = ? AND cycle_number = ?
+        `).run(failureReason, targetNow, sub.id, failCycleNum);
+
+        const histId = "shist_" + Date.now() + "_" + Math.floor(Math.random() * 100000);
+        db.prepare(`
+          INSERT INTO subscription_history (
+            id, subscription_id, from_status, to_status, action, actor, note, created_at
+          ) VALUES (?, ?, 'ACTIVE', 'ACTIVE', 'PROCESSING_FAILED', 'SYSTEM', ?, ?)
+        `).run(histId, sub.id, `Processing failed: ${failureReason}`, targetNow);
+
+        failed++;
+        results.push({ subscriptionId: sub.id, subscriptionNumber: sub.subscriptionNumber, status: "FAILED", reason: failureReason });
+        continue;
+      }
+
+      // 2. Validate Stock
+      if (product.stock < sub.quantity) {
+        const failureReason = `Insufficient stock: requested ${sub.quantity}, available ${product.stock}`;
+        db.prepare(`
+          UPDATE customer_subscriptions
+          SET failure_reason = ?, updated_at = ?
+          WHERE id = ?
+        `).run(failureReason, targetNow, sub.id);
+
+        const failCycleNum = sub.cycleCount + 1;
+        db.prepare(`
+          UPDATE subscription_cycles
+          SET status = 'FAILED', failure_reason = ?, updated_at = ?
+          WHERE subscription_id = ? AND cycle_number = ?
+        `).run(failureReason, targetNow, sub.id, failCycleNum);
+
+        const histId = "shist_" + Date.now() + "_" + Math.floor(Math.random() * 100000);
+        db.prepare(`
+          INSERT INTO subscription_history (
+            id, subscription_id, from_status, to_status, action, actor, note, created_at
+          ) VALUES (?, ?, 'ACTIVE', 'ACTIVE', 'PROCESSING_FAILED', 'SYSTEM', ?, ?)
+        `).run(histId, sub.id, `Processing failed: ${failureReason}`, targetNow);
+
+        try {
+          const { notifySubscriptionException } = require("./telegram");
+          notifySubscriptionException(
+            { subscriptionNumber: sub.subscriptionNumber, customerName: sub.customerName, productName: sub.productName },
+            failureReason
+          ).catch(() => {});
+        } catch {}
+
+        failed++;
+        results.push({ subscriptionId: sub.id, subscriptionNumber: sub.subscriptionNumber, status: "FAILED", reason: failureReason });
+        continue;
+      }
+
+      // 3. Clear failure reason if resolved
+      if (sub.failureReason) {
+        db.prepare("UPDATE customer_subscriptions SET failure_reason = NULL WHERE id = ?").run(sub.id);
+      }
+
+      // 4. Idempotency Check: Determine Cycle Reference
+      const cycleNumber = sub.cycleCount + 1;
+      const cycleRef = `${sub.subscriptionNumber}-C${cycleNumber}`;
+
+      // Check if order already exists for this cycle reference
+      const existingOrder = db.prepare("SELECT id, orderNumber FROM orders WHERE subscriptionCycleId = ?").get(cycleRef) as any;
+      if (existingOrder) {
+        skipped++;
+        results.push({
+          subscriptionId: sub.id,
+          subscriptionNumber: sub.subscriptionNumber,
+          status: "SKIPPED",
+          reason: `Cycle ${cycleRef} already processed (Order: ${existingOrder.orderNumber})`,
+        });
+        continue;
+      }
+
+      if (options.dryRun) {
+        succeeded++;
+        results.push({
+          subscriptionId: sub.id,
+          subscriptionNumber: sub.subscriptionNumber,
+          cycleReference: cycleRef,
+          status: "DRY_RUN_ELIGIBLE",
+        });
+        continue;
+      }
+
+      // 5. Payment Preference Flow:
+      if (sub.paymentPreference === "MANUAL_RENEWAL") {
+        // Option B: Transition to PAYMENT_PENDING
+        db.prepare(`
+          UPDATE customer_subscriptions
+          SET status = 'PAYMENT_PENDING', updated_at = ?
+          WHERE id = ?
+        `).run(targetNow, sub.id);
+
+        db.prepare(`
+          INSERT OR REPLACE INTO subscription_cycles (
+            id, subscription_id, subscription_number, cycle_number, cycle_reference,
+            scheduled_date, status, amount, payment_method, payment_status,
+            created_at, updated_at
+          ) VALUES (?, ?, ?, ?, ?, ?, 'PAYMENT_PENDING', ?, 'RAZORPAY_RENEWAL', 'PENDING', ?, ?)
+        `).run(
+          "scyc_" + Date.now() + "_" + Math.floor(Math.random() * 100000),
+          sub.id,
+          sub.subscriptionNumber,
+          cycleNumber,
+          cycleRef,
+          sub.nextDeliveryDate,
+          sub.totalPerCycle,
+          targetNow,
+          targetNow
+        );
+
+        const histId = "shist_" + Date.now() + "_" + Math.floor(Math.random() * 100000);
+        db.prepare(`
+          INSERT INTO subscription_history (
+            id, subscription_id, from_status, to_status, action, actor, note, created_at
+          ) VALUES (?, ?, 'ACTIVE', 'PAYMENT_PENDING', 'PAYMENT_REQUESTED', 'SYSTEM', ?, ?)
+        `).run(histId, sub.id, `Renewal payment requested for cycle #${cycleNumber} (${cycleRef})`, targetNow);
+
+        succeeded++;
+        results.push({
+          subscriptionId: sub.id,
+          subscriptionNumber: sub.subscriptionNumber,
+          cycleReference: cycleRef,
+          status: "PAYMENT_PENDING",
+        });
+        continue;
+      }
+
+      // 6. Cash on Delivery (COD) Automatic Cycle Order Creation:
+      const orderItems = [
+        {
+          productId: sub.productId,
+          productNameEn: sub.productName,
+          name: sub.productName,
+          packSize: sub.variantLabel || "100g",
+          price: sub.unitPrice,
+          unitPrice: sub.unitPrice,
+          quantity: sub.quantity,
+          subtotal: sub.subtotal,
+          image: sub.productSnapshot?.image || null,
+        },
+      ];
+
+      const orderData = {
+        customerId: sub.customerId,
+        customerName: sub.customerName,
+        customerEmail: sub.customerEmail,
+        customerPhone: sub.customerPhone,
+        shippingAddress: sub.deliveryAddress,
+        billingAddress: sub.deliveryAddress,
+        isSameAddress: 1,
+        isGiftOrder: 0,
+        subtotal: sub.subtotal,
+        shippingFee: sub.shippingFee,
+        discountAmount: 0,
+        total: sub.totalPerCycle,
+        paymentMethod: "COD",
+        paymentStatus: "PENDING",
+        orderStatus: "Confirmed",
+        subscriptionId: sub.id,
+        subscriptionCycleId: cycleRef,
+        isSubscriptionOrder: 1,
+        internalNotes: `Recurring subscription delivery for ${sub.subscriptionNumber} (Cycle #${cycleNumber})`,
+      };
+
+      const createdOrder = ordersRepo.create(orderData, orderItems);
+
+      // 7. Atomic Inventory Deduction
+      try {
+        inventoryRepo.adjustStock(
+          sub.productId,
+          sub.variantId || null,
+          -sub.quantity,
+          "SALE",
+          createdOrder.orderNumber,
+          `Subscription order delivery (${sub.subscriptionNumber} - ${cycleRef})`,
+          "Subscription Engine"
+        );
+      } catch (err) {
+        console.error("[Subscription Stock Deduction Error]:", err);
+      }
+
+      // 8. Update or Insert Cycle Record
+      const existingCycle = db.prepare("SELECT id FROM subscription_cycles WHERE cycle_reference = ?").get(cycleRef) as any;
+      const cycleId = existingCycle ? existingCycle.id : "scyc_" + Date.now() + "_" + Math.floor(Math.random() * 100000);
+
+      db.prepare(`
+        INSERT OR REPLACE INTO subscription_cycles (
+          id, subscription_id, subscription_number, cycle_number, cycle_reference,
+          scheduled_date, processed_date, order_id, order_number, status,
+          amount, payment_method, payment_status, created_at, updated_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'ORDER_GENERATED', ?, 'COD', 'PENDING', ?, ?)
+      `).run(
+        cycleId,
+        sub.id,
+        sub.subscriptionNumber,
+        cycleNumber,
+        cycleRef,
+        sub.nextDeliveryDate,
+        targetNow,
+        createdOrder.id,
+        createdOrder.orderNumber,
+        sub.totalPerCycle,
+        targetNow,
+        targetNow
+      );
+
+      // 9. Advance Subscription Schedule
+      const nextDate = new Date(Date.parse(sub.nextDeliveryDate) + sub.frequencyDays * 86400000).toISOString();
+
+      db.prepare(`
+        UPDATE customer_subscriptions
+        SET cycle_count = cycle_count + 1,
+            last_order_date = ?,
+            next_delivery_date = ?,
+            failure_reason = NULL,
+            updated_at = ?
+        WHERE id = ?
+      `).run(targetNow, nextDate, targetNow, sub.id);
+
+      // Insert next scheduled cycle record
+      const nextCycleNum = cycleNumber + 1;
+      const nextCycleRef = `${sub.subscriptionNumber}-C${nextCycleNum}`;
+      const nextCycleId = "scyc_" + Date.now() + "_" + Math.floor(Math.random() * 100000);
+      const existingNext = db.prepare("SELECT id FROM subscription_cycles WHERE cycle_reference = ?").get(nextCycleRef);
+      if (!existingNext) {
+        db.prepare(`
+          INSERT INTO subscription_cycles (
+            id, subscription_id, subscription_number, cycle_number, cycle_reference,
+            scheduled_date, status, amount, payment_method, payment_status,
+            created_at, updated_at
+          ) VALUES (?, ?, ?, ?, ?, ?, 'PENDING', ?, ?, 'PENDING', ?, ?)
+        `).run(
+          nextCycleId,
+          sub.id,
+          sub.subscriptionNumber,
+          nextCycleNum,
+          nextCycleRef,
+          nextDate,
+          sub.totalPerCycle,
+          sub.paymentPreference,
+          targetNow,
+          targetNow
+        );
+      }
+
+      // 10. Record Subscription History
+      const histId = "shist_" + Date.now() + "_" + Math.floor(Math.random() * 100000);
+      db.prepare(`
+        INSERT INTO subscription_history (
+          id, subscription_id, from_status, to_status, action, actor, note, created_at
+        ) VALUES (?, ?, 'ACTIVE', 'ACTIVE', 'ORDER_GENERATED', 'SYSTEM', ?, ?)
+      `).run(
+        histId,
+        sub.id,
+        `Order ${createdOrder.orderNumber} successfully generated for Cycle #${cycleNumber}. Next delivery scheduled for ${nextDate.slice(0, 10)}.`,
+        targetNow
+      );
+
+      // 11. Telegram Alert
+      try {
+        const { notifySubscriptionOrderGenerated } = require("./telegram");
+        notifySubscriptionOrderGenerated(
+          { subscriptionNumber: sub.subscriptionNumber, customerName: sub.customerName, productName: sub.productName },
+          { orderNumber: createdOrder.orderNumber, total: sub.totalPerCycle }
+        ).catch(() => {});
+      } catch {}
+
+      succeeded++;
+      results.push({
+        subscriptionId: sub.id,
+        subscriptionNumber: sub.subscriptionNumber,
+        cycleReference: cycleRef,
+        orderNumber: createdOrder.orderNumber,
+        status: "ORDER_GENERATED",
+      });
+    }
+
+    return {
+      totalEligible: eligible.length,
+      succeeded,
+      failed,
+      skipped,
+      results,
+    };
+  },
+
+  recordRenewalPayment(cycleIdOrRef: string, paymentDetails: {
+    razorpayOrderId?: string;
+    razorpayPaymentId: string;
+    amount?: number;
+  }) {
+    const db = getDatabase();
+    const cycle = db.prepare(`
+      SELECT * FROM subscription_cycles WHERE id = ? OR cycle_reference = ?
+    `).get(cycleIdOrRef, cycleIdOrRef) as any;
+
+    if (!cycle) throw new Error("Subscription cycle not found");
+    if (cycle.status === "ORDER_GENERATED") throw new Error("Order has already been generated for this cycle");
+
+    const sub = this.getById(cycle.subscription_id);
+    if (!sub) throw new Error("Subscription not found");
+
+    const now = new Date().toISOString();
+
+    // 1. Create order for renewed cycle
+    const orderItems = [
+      {
+        productId: sub.productId,
+        productNameEn: sub.productName,
+        name: sub.productName,
+        packSize: sub.variantLabel || "100g",
+        price: sub.unitPrice,
+        unitPrice: sub.unitPrice,
+        quantity: sub.quantity,
+        subtotal: sub.subtotal,
+        image: sub.productSnapshot?.image || null,
+      },
+    ];
+
+    const orderData = {
+      customerId: sub.customerId,
+      customerName: sub.customerName,
+      customerEmail: sub.customerEmail,
+      customerPhone: sub.customerPhone,
+      shippingAddress: sub.deliveryAddress,
+      billingAddress: sub.deliveryAddress,
+      isSameAddress: 1,
+      isGiftOrder: 0,
+      subtotal: sub.subtotal,
+      shippingFee: sub.shippingFee,
+      discountAmount: 0,
+      total: sub.totalPerCycle,
+      paymentMethod: "RAZORPAY",
+      paymentStatus: "PAID",
+      razorpayOrderId: paymentDetails.razorpayOrderId || null,
+      razorpayPaymentId: paymentDetails.razorpayPaymentId,
+      orderStatus: "Confirmed",
+      subscriptionId: sub.id,
+      subscriptionCycleId: cycle.cycle_reference,
+      isSubscriptionOrder: 1,
+      internalNotes: `Paid online renewal for ${sub.subscriptionNumber} (${cycle.cycle_reference})`,
+    };
+
+    const createdOrder = ordersRepo.create(orderData, orderItems);
+
+    // 2. Inventory deduction
+    try {
+      inventoryRepo.adjustStock(
+        sub.productId,
+        sub.variantId || null,
+        -sub.quantity,
+        "SALE",
+        createdOrder.orderNumber,
+        `Subscription paid renewal (${sub.subscriptionNumber} - ${cycle.cycle_reference})`,
+        "Payment Gateway"
+      );
+    } catch {}
+
+    // 3. Update cycle
+    db.prepare(`
+      UPDATE subscription_cycles
+      SET order_id = ?, order_number = ?, status = 'ORDER_GENERATED',
+          payment_status = 'PAID', payment_reference = ?, processed_date = ?, updated_at = ?
+      WHERE id = ?
+    `).run(createdOrder.id, createdOrder.orderNumber, paymentDetails.razorpayPaymentId, now, now, cycle.id);
+
+    // 4. Advance subscription schedule & return to ACTIVE
+    const nextDate = new Date(Date.parse(sub.nextDeliveryDate) + sub.frequencyDays * 86400000).toISOString();
+
+    db.prepare(`
+      UPDATE customer_subscriptions
+      SET status = 'ACTIVE',
+          cycle_count = cycle_count + 1,
+          last_order_date = ?,
+          next_delivery_date = ?,
+          failure_reason = NULL,
+          updated_at = ?
+      WHERE id = ?
+    `).run(now, nextDate, now, sub.id);
+
+    const histId = "shist_" + Date.now() + "_" + Math.floor(Math.random() * 100000);
+    db.prepare(`
+      INSERT INTO subscription_history (
+        id, subscription_id, from_status, to_status, action, actor, note, created_at
+      ) VALUES (?, ?, 'PAYMENT_PENDING', 'ACTIVE', 'PAYMENT_COMPLETED', 'CUSTOMER', ?, ?)
+    `).run(
+      histId,
+      sub.id,
+      `Payment verified (${paymentDetails.razorpayPaymentId}). Order ${createdOrder.orderNumber} generated. Next delivery: ${nextDate.slice(0, 10)}.`,
+      now
+    );
+
+    return {
+      subscription: this.getById(sub.id),
+      order: createdOrder,
+    };
+  },
 };

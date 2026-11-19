@@ -56,7 +56,8 @@ import RewardsTab from "./RewardsTab";
 import PolicyCmsTab from "./PolicyCmsTab";
 import AdminUsersTab from "./AdminUsersTab";
 import RetailOpsTab from "./RetailOpsTab";
-import { Award } from "lucide-react";
+import SubscriptionsAdminTab from "./SubscriptionsAdminTab";
+import { Award, Repeat } from "lucide-react";
 
 type AdminTab =
   | "overview"
@@ -64,6 +65,7 @@ type AdminTab =
   | "categories"
   | "inventory"
   | "orders"
+  | "subscriptions"
   | "enquiries"
   | "helpdesk"
   | "feedback"
@@ -89,6 +91,7 @@ export default function AdminDashboard() {
     if (location.startsWith("/admin/categories")) return "categories";
     if (location.startsWith("/admin/inventory")) return "inventory";
     if (location.startsWith("/admin/orders")) return "orders";
+    if (location.startsWith("/admin/subscriptions")) return "subscriptions";
     if (location.startsWith("/admin/enquiries")) return "enquiries";
     if (location.startsWith("/admin/helpdesk")) return "helpdesk";
     if (location.startsWith("/admin/feedback")) return "feedback";
@@ -661,6 +664,7 @@ export default function AdminDashboard() {
         { id: "categories" as AdminTab, label: "Categories", icon: FolderTree },
         { id: "inventory" as AdminTab, label: "Inventory & Stock", icon: Layers },
         { id: "orders" as AdminTab, label: "Orders", icon: ShoppingBag },
+        { id: "subscriptions" as AdminTab, label: "Subscriptions", icon: Repeat },
         { id: "offers" as AdminTab, label: "Festival Offers", icon: Tag },
         { id: "import" as AdminTab, label: "Bulk Import / Export", icon: FileSpreadsheet },
       ],
@@ -2568,6 +2572,7 @@ export default function AdminDashboard() {
           {activeTab === "policies" && <PolicyCmsTab />}
           {activeTab === "admins" && <AdminUsersTab />}
           {activeTab === "retail_ops" && <RetailOpsTab />}
+          {activeTab === "subscriptions" && <SubscriptionsAdminTab />}
 
           {/* ========================================== */}
           {activeTab === "telegram" && (

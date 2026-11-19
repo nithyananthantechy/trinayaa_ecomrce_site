@@ -21,6 +21,8 @@ import {
   Minus,
   Package,
   PackageSearch,
+  Repeat,
+  Calendar,
   Percent,
   Phone,
   Plus,
@@ -1285,6 +1287,7 @@ function ProductDetailModal({
   open,
   onClose,
   onAdd,
+  onSubscribe,
   isWishlisted,
   onWishlist,
 }: {
@@ -1292,11 +1295,14 @@ function ProductDetailModal({
   open: boolean;
   onClose: () => void;
   onAdd: (product: Product, size: string, unitPrice: number, quantity: number) => void;
+  onSubscribe?: (product: Product, size: string, unitPrice: number, quantity: number, frequency: string) => void;
   isWishlisted: boolean;
   onWishlist: () => void;
 }) {
   const [selectedSize, setSelectedSize] = useState(0);
   const [quantity, setQuantity] = useState(1);
+  const [purchaseMode, setPurchaseMode] = useState<"ONE_TIME" | "SUBSCRIPTION">("ONE_TIME");
+  const [selectedFrequency, setSelectedFrequency] = useState<string>("30_DAYS");
 
   if (!open || !product) return null;
 
@@ -1359,24 +1365,114 @@ function ProductDetailModal({
               ))}
             </div>
           </div>
+
+          {/* Phase 7: Purchase Mode Selector (One-Time vs Recurring Subscription) */}
+          <div className="choice-block">
+            <div className="choice-label">
+              <strong>Purchase Mode</strong>
+              <span>Flexible recurring delivery</span>
+            </div>
+            <div className="grid grid-cols-2 gap-2 mt-2">
+              <button
+                type="button"
+                className={`py-2 px-3 rounded-xl border text-left transition-all ${
+                  purchaseMode === "ONE_TIME"
+                    ? "border-[#123D28] bg-[#EAF2ED] text-[#123D28] font-bold shadow-xs"
+                    : "border-gray-200 bg-white text-gray-700 hover:border-gray-300"
+                }`}
+                onClick={() => setPurchaseMode("ONE_TIME")}
+              >
+                <div className="text-xs font-semibold">One-Time Order</div>
+                <div className="text-[11px] text-gray-500 mt-0.5">Standard single delivery</div>
+              </button>
+              <button
+                type="button"
+                className={`py-2 px-3 rounded-xl border text-left transition-all relative ${
+                  purchaseMode === "SUBSCRIPTION"
+                    ? "border-[#123D28] bg-[#EAF2ED] text-[#123D28] font-bold shadow-xs"
+                    : "border-gray-200 bg-white text-gray-700 hover:border-gray-300"
+                }`}
+                onClick={() => setPurchaseMode("SUBSCRIPTION")}
+              >
+                <span className="absolute -top-2 right-2 bg-[#123D28] text-white text-[9px] uppercase px-1.5 py-0.5 rounded font-bold">
+                  Recurring
+                </span>
+                <div className="text-xs font-semibold flex items-center gap-1 text-[#123D28]">
+                  <Repeat size={12} /> Subscribe
+                </div>
+                <div className="text-[11px] text-gray-500 mt-0.5">Automated delivery</div>
+              </button>
+            </div>
+
+            {purchaseMode === "SUBSCRIPTION" && (
+              <div className="mt-3 p-3 bg-[#FAF8F5] border border-[#123D28]/20 rounded-xl space-y-2">
+                <div className="text-xs font-bold text-[#123D28] flex items-center gap-1.5">
+                  <Calendar size={13} /> Select Delivery Frequency
+                </div>
+                <div className="grid grid-cols-3 sm:grid-cols-5 gap-1.5">
+                  {[
+                    { value: "15_DAYS", label: "15 Days" },
+                    { value: "30_DAYS", label: "30 Days" },
+                    { value: "45_DAYS", label: "45 Days" },
+                    { value: "60_DAYS", label: "60 Days" },
+                    { value: "90_DAYS", label: "90 Days" },
+                  ].map((freq) => (
+                    <button
+                      key={freq.value}
+                      type="button"
+                      className={`py-1 px-1.5 text-center text-xs rounded-lg border transition-all ${
+                        selectedFrequency === freq.value
+                          ? "border-[#123D28] bg-[#123D28] text-white font-bold"
+                          : "border-gray-200 bg-white text-gray-700 hover:bg-gray-50"
+                      }`}
+                      onClick={() => setSelectedFrequency(freq.value)}
+                    >
+                      {freq.label}
+                    </button>
+                  ))}
+                </div>
+                <div className="text-[11px] text-[#4F554B] flex items-center gap-1.5 pt-1">
+                  <CheckCircle2 size={13} className="text-[#123D28] shrink-0" />
+                  <span>Pause, skip, or cancel anytime in My Account.</span>
+                </div>
+              </div>
+            )}
+          </div>
           <div className="detail-actions">
             <div className="qty-stepper large-stepper">
               <button onClick={() => setQuantity(Math.max(1, quantity - 1))}><Minus size={15} /></button>
               <span>{quantity}</span>
               <button onClick={() => setQuantity(quantity + 1)}><Plus size={15} /></button>
             </div>
-            <button
-              className="dark-button add-detail-button"
-              disabled={product.stockAvailability === "Out of Stock"}
-              style={product.stockAvailability === "Out of Stock" ? { opacity: 0.5, cursor: "not-allowed" } : undefined}
-              onClick={() => {
-                if (product.stockAvailability === "Out of Stock") return;
-                onAdd(product, currentSizeObj.label, currentSizeObj.price, quantity);
-                onClose();
-              }}
-            >
-              {product.stockAvailability === "Out of Stock" ? "Out of stock" : "Add to cart"} <ShoppingBag size={17} />
-            </button>
+            {purchaseMode === "SUBSCRIPTION" ? (
+              <button
+                className="dark-button add-detail-button bg-[#123D28] hover:bg-[#0B2518]"
+                disabled={product.stockAvailability === "Out of Stock"}
+                style={product.stockAvailability === "Out of Stock" ? { opacity: 0.5, cursor: "not-allowed" } : undefined}
+                onClick={() => {
+                  if (product.stockAvailability === "Out of Stock") return;
+                  if (onSubscribe) {
+                    onSubscribe(product, currentSizeObj.label, currentSizeObj.price, quantity, selectedFrequency);
+                  }
+                  onClose();
+                }}
+              >
+                <span>Subscribe Now</span> <Repeat size={16} />
+              </button>
+            ) : (
+              <button
+                className="dark-button add-detail-button"
+                disabled={product.stockAvailability === "Out of Stock"}
+                style={product.stockAvailability === "Out of Stock" ? { opacity: 0.5, cursor: "not-allowed" } : undefined}
+                onClick={() => {
+                  if (product.stockAvailability === "Out of Stock") return;
+                  onAdd(product, currentSizeObj.label, currentSizeObj.price, quantity);
+                  onClose();
+                }}
+              >
+                {product.stockAvailability === "Out of Stock" ? "Out of stock" : "Add to cart"} <ShoppingBag size={17} />
+              </button>
+            )}
             <button
               className={`heart-detail ${isWishlisted ? "is-wishlisted" : ""}`}
               onClick={onWishlist}
@@ -1392,6 +1488,414 @@ function ProductDetailModal({
           </div>
         </div>
       </section>
+    </div>
+  );
+}
+
+
+function SubscribeModal({
+  subscribingItem,
+  open,
+  onClose,
+  currentUser,
+  onRequireAuth,
+}: {
+  subscribingItem: {
+    product: Product;
+    size: string;
+    unitPrice: number;
+    quantity: number;
+    frequency: string;
+  } | null;
+  open: boolean;
+  onClose: () => void;
+  currentUser: any;
+  onRequireAuth: () => void;
+}) {
+  const [, setLocation] = useLocation();
+  const [selectedAddressId, setSelectedAddressId] = useState<string>("default");
+  const [manualAddress, setManualAddress] = useState({
+    recipientName: "",
+    phone: "",
+    street: "",
+    city: "Erode",
+    state: "Tamil Nadu",
+    pinCode: "638001",
+  });
+  const [deliveryInstructions, setDeliveryInstructions] = useState("");
+  const [paymentPreference, setPaymentPreference] = useState<"COD" | "MANUAL_RENEWAL">("COD");
+  const [createdSub, setCreatedSub] = useState<any>(null);
+
+  const { data: addresses = [] } = trpc.addresses.list.useQuery(undefined, {
+    enabled: Boolean(currentUser && open),
+  });
+
+  const createMutation = trpc.subscriptions.create.useMutation({
+    onSuccess: (sub) => {
+      setCreatedSub(sub);
+      toast.success(`Subscription created successfully: ${sub?.subscriptionNumber || ""}`);
+    },
+    onError: (err) => {
+      toast.error(err.message || "Failed to create subscription");
+    },
+  });
+
+  useEffect(() => {
+    if (currentUser) {
+      setManualAddress((prev) => ({
+        ...prev,
+        recipientName: currentUser.name || "",
+        phone: currentUser.phone || "",
+      }));
+    }
+  }, [currentUser]);
+
+  if (!open || !subscribingItem) return null;
+
+  const itemSubtotal = subscribingItem.unitPrice * subscribingItem.quantity;
+  const shippingFee = itemSubtotal >= 799 ? 0 : 60;
+  const totalPerCycle = itemSubtotal + shippingFee;
+
+  const freqLabel = {
+    "15_DAYS": "Every 15 Days",
+    "30_DAYS": "Every 30 Days (Monthly)",
+    "45_DAYS": "Every 45 Days",
+    "60_DAYS": "Every 60 Days",
+    "90_DAYS": "Every 90 Days",
+  }[subscribingItem.frequency] || "Every 30 Days";
+
+  const handleConfirm = () => {
+    if (!currentUser) {
+      onRequireAuth();
+      return;
+    }
+
+    let deliveryAddress: any = null;
+    if (selectedAddressId !== "manual" && addresses.length > 0) {
+      const chosen = addresses.find((a: any) => a.id === selectedAddressId) || addresses[0];
+      deliveryAddress = {
+        recipientName: chosen.recipientName,
+        phone: chosen.phone,
+        street: chosen.street || chosen.addressLine1,
+        city: chosen.city,
+        state: chosen.state,
+        pinCode: chosen.pinCode,
+      };
+    } else {
+      if (!manualAddress.recipientName || !manualAddress.phone || !manualAddress.street || !manualAddress.pinCode) {
+        toast.error("Please fill in all required delivery address fields.");
+        return;
+      }
+      deliveryAddress = manualAddress;
+    }
+
+    createMutation.mutate({
+      productId: subscribingItem.product.id,
+      quantity: subscribingItem.quantity,
+      frequency: subscribingItem.frequency as any,
+      deliveryAddress,
+      deliveryInstructions: deliveryInstructions || undefined,
+      paymentPreference,
+    });
+  };
+
+  return (
+    <div className="modal-shell" role="dialog" aria-modal="true">
+      <button className="drawer-overlay" onClick={onClose} aria-label="Close subscription setup" />
+      <div className="relative bg-[#FBF8F0] w-full max-w-xl mx-auto rounded-2xl shadow-2xl overflow-hidden z-50 border border-[#123D28]/15 my-6 max-h-[90vh] flex flex-col">
+        {/* Header */}
+        <div className="bg-[#123D28] text-white p-5 flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-[#E5C378]">
+              <Repeat size={18} />
+            </div>
+            <div>
+              <h2 className="text-base font-serif font-bold text-[#E5C378]">Set Up Botanical Subscription</h2>
+              <p className="text-xs text-white/80">Automated recurring wellness delivery</p>
+            </div>
+          </div>
+          <button onClick={onClose} className="text-white/70 hover:text-white p-1 rounded-lg">
+            <X size={18} />
+          </button>
+        </div>
+
+        {/* Content */}
+        <div className="p-5 overflow-y-auto space-y-4 text-xs">
+          {createdSub ? (
+            <div className="text-center py-6 space-y-3">
+              <div className="w-14 h-14 bg-emerald-100 text-emerald-800 rounded-full flex items-center justify-center mx-auto">
+                <CheckCircle2 size={32} />
+              </div>
+              <h3 className="text-lg font-serif font-bold text-[#123D28]">Subscription Activated!</h3>
+              <p className="text-xs text-[#4F554B] max-w-sm mx-auto">
+                Your botanical subscription <span className="font-mono font-bold text-[#123D28]">{createdSub.subscriptionNumber}</span> is now active.
+              </p>
+              <div className="p-3 bg-white border border-[#123D28]/10 rounded-xl text-left max-w-sm mx-auto space-y-1 text-xs">
+                <div><strong>Product:</strong> {createdSub.productName} ({createdSub.variantLabel})</div>
+                <div><strong>Frequency:</strong> {freqLabel}</div>
+                <div><strong>Per Cycle Total:</strong> ₹{createdSub.totalPerCycle}</div>
+                <div><strong>Payment:</strong> {createdSub.paymentPreference === "COD" ? "Cash on Delivery" : "Online Renewal"}</div>
+                <div><strong>Next Scheduled Delivery:</strong> {createdSub.nextDeliveryDate?.slice(0, 10)}</div>
+              </div>
+              <div className="pt-2 flex justify-center gap-2">
+                <button
+                  type="button"
+                  className="py-2 px-4 bg-[#123D28] text-white rounded-xl font-bold hover:bg-[#0B2518] transition-colors"
+                  onClick={() => {
+                    onClose();
+                    setLocation("/account?tab=subscriptions");
+                  }}
+                >
+                  View My Subscriptions
+                </button>
+                <button
+                  type="button"
+                  className="py-2 px-4 bg-gray-200 text-gray-800 rounded-xl font-bold hover:bg-gray-300 transition-colors"
+                  onClick={onClose}
+                >
+                  Continue Shopping
+                </button>
+              </div>
+            </div>
+          ) : !currentUser ? (
+            <div className="text-center py-6 space-y-3">
+              <UserRound size={36} className="mx-auto text-[#123D28]" />
+              <h3 className="text-base font-serif font-bold text-[#123D28]">Sign In to Subscribe</h3>
+              <p className="text-xs text-[#4F554B] max-w-sm mx-auto">
+                Please log in or create an account to manage recurring subscription orders, addresses, and delivery schedules.
+              </p>
+              <button
+                type="button"
+                className="py-2.5 px-6 bg-[#123D28] text-white rounded-xl font-bold hover:bg-[#0B2518] transition-colors"
+                onClick={() => {
+                  onClose();
+                  onRequireAuth();
+                }}
+              >
+                Sign In / Register &rarr;
+              </button>
+            </div>
+          ) : (
+            <>
+              {/* Product preview */}
+              <div className="flex items-center gap-3 p-3 bg-white border border-[#123D28]/15 rounded-xl">
+                <img
+                  src={subscribingItem.product.image}
+                  alt={subscribingItem.product.name}
+                  className="w-16 h-16 rounded-lg object-cover border border-[#123D28]/10"
+                  onError={(e: any) => { e.target.src = "/images/products/packaged/pouch_001.png"; }}
+                />
+                <div className="flex-1">
+                  <div className="font-bold text-[#123D28] text-sm">{subscribingItem.product.name}</div>
+                  <div className="text-gray-500 text-xs">Pack: {subscribingItem.size} · Qty: {subscribingItem.quantity}</div>
+                  <div className="text-xs font-semibold text-[#AE6A2B] mt-0.5">{freqLabel}</div>
+                </div>
+                <div className="text-right">
+                  <div className="text-xs text-gray-500">Cycle Total</div>
+                  <div className="text-sm font-bold text-[#123D28]">₹{totalPerCycle}</div>
+                </div>
+              </div>
+
+              {/* Delivery Address */}
+              <div className="space-y-2">
+                <label className="font-bold text-[#123D28] block">Delivery Address</label>
+                {addresses.length > 0 && (
+                  <div className="space-y-1.5 mb-2">
+                    {addresses.map((addr: any) => (
+                      <label
+                        key={addr.id}
+                        className={`p-2.5 rounded-xl border flex items-start gap-2.5 cursor-pointer transition-colors ${
+                          selectedAddressId === addr.id ? "border-[#123D28] bg-[#EAF2ED]" : "border-gray-200 bg-white"
+                        }`}
+                      >
+                        <input
+                          type="radio"
+                          name="subAddress"
+                          checked={selectedAddressId === addr.id}
+                          onChange={() => setSelectedAddressId(addr.id)}
+                          className="mt-0.5"
+                        />
+                        <div className="flex-1 text-xs">
+                          <span className="font-bold text-gray-900">{addr.recipientName}</span> ({addr.phone})
+                          <div className="text-gray-600">{addr.street || addr.addressLine1}, {addr.city}, {addr.state} - {addr.pinCode}</div>
+                        </div>
+                      </label>
+                    ))}
+                    <label
+                      className={`p-2.5 rounded-xl border flex items-center gap-2.5 cursor-pointer transition-colors ${
+                        selectedAddressId === "manual" ? "border-[#123D28] bg-[#EAF2ED]" : "border-gray-200 bg-white"
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="subAddress"
+                        checked={selectedAddressId === "manual"}
+                        onChange={() => setSelectedAddressId("manual")}
+                      />
+                      <span className="font-bold text-gray-900">Enter a different delivery address</span>
+                    </label>
+                  </div>
+                )}
+
+                {(addresses.length === 0 || selectedAddressId === "manual") && (
+                  <div className="p-3 bg-white border border-gray-200 rounded-xl space-y-2">
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <span className="text-gray-600 block mb-1">Recipient Name</span>
+                        <input
+                          type="text"
+                          value={manualAddress.recipientName}
+                          onChange={(e) => setManualAddress({ ...manualAddress, recipientName: e.target.value })}
+                          className="w-full p-2 border border-gray-300 rounded-lg text-xs"
+                          placeholder="Full Name"
+                        />
+                      </div>
+                      <div>
+                        <span className="text-gray-600 block mb-1">Phone Number</span>
+                        <input
+                          type="tel"
+                          value={manualAddress.phone}
+                          onChange={(e) => setManualAddress({ ...manualAddress, phone: e.target.value })}
+                          className="w-full p-2 border border-gray-300 rounded-lg text-xs"
+                          placeholder="+91 98765 43210"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <span className="text-gray-600 block mb-1">Street Address</span>
+                      <input
+                        type="text"
+                        value={manualAddress.street}
+                        onChange={(e) => setManualAddress({ ...manualAddress, street: e.target.value })}
+                        className="w-full p-2 border border-gray-300 rounded-lg text-xs"
+                        placeholder="House / Street / Area"
+                      />
+                    </div>
+                    <div className="grid grid-cols-3 gap-2">
+                      <div>
+                        <span className="text-gray-600 block mb-1">City</span>
+                        <input
+                          type="text"
+                          value={manualAddress.city}
+                          onChange={(e) => setManualAddress({ ...manualAddress, city: e.target.value })}
+                          className="w-full p-2 border border-gray-300 rounded-lg text-xs"
+                        />
+                      </div>
+                      <div>
+                        <span className="text-gray-600 block mb-1">State</span>
+                        <input
+                          type="text"
+                          value={manualAddress.state}
+                          onChange={(e) => setManualAddress({ ...manualAddress, state: e.target.value })}
+                          className="w-full p-2 border border-gray-300 rounded-lg text-xs"
+                        />
+                      </div>
+                      <div>
+                        <span className="text-gray-600 block mb-1">PIN Code</span>
+                        <input
+                          type="text"
+                          value={manualAddress.pinCode}
+                          onChange={(e) => setManualAddress({ ...manualAddress, pinCode: e.target.value })}
+                          className="w-full p-2 border border-gray-300 rounded-lg text-xs"
+                          placeholder="638001"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Delivery Instructions */}
+              <div>
+                <label className="font-bold text-[#123D28] block mb-1">Delivery Instructions (Optional)</label>
+                <input
+                  type="text"
+                  value={deliveryInstructions}
+                  onChange={(e) => setDeliveryInstructions(e.target.value)}
+                  placeholder="e.g. Leave with security / Ring bell twice"
+                  className="w-full p-2 border border-gray-300 rounded-lg text-xs bg-white"
+                />
+              </div>
+
+              {/* Payment Preference */}
+              <div className="space-y-1.5">
+                <label className="font-bold text-[#123D28] block">Payment Method per Cycle</label>
+                <div className="grid grid-cols-2 gap-2">
+                  <label
+                    className={`p-2.5 rounded-xl border flex items-center gap-2 cursor-pointer transition-colors ${
+                      paymentPreference === "COD" ? "border-[#123D28] bg-[#EAF2ED]" : "border-gray-200 bg-white"
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="paymentPref"
+                      checked={paymentPreference === "COD"}
+                      onChange={() => setPaymentPreference("COD")}
+                    />
+                    <div>
+                      <div className="font-bold text-gray-900">Cash on Delivery</div>
+                      <div className="text-[10px] text-gray-500">Pay cash upon parcel delivery</div>
+                    </div>
+                  </label>
+                  <label
+                    className={`p-2.5 rounded-xl border flex items-center gap-2 cursor-pointer transition-colors ${
+                      paymentPreference === "MANUAL_RENEWAL" ? "border-[#123D28] bg-[#EAF2ED]" : "border-gray-200 bg-white"
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="paymentPref"
+                      checked={paymentPreference === "MANUAL_RENEWAL"}
+                      onChange={() => setPaymentPreference("MANUAL_RENEWAL")}
+                    />
+                    <div>
+                      <div className="font-bold text-gray-900">Online Renewal</div>
+                      <div className="text-[10px] text-gray-500">Pay via UPI/Card per due cycle</div>
+                    </div>
+                  </label>
+                </div>
+              </div>
+
+              {/* Financial Breakdown */}
+              <div className="p-3 bg-white border border-[#123D28]/15 rounded-xl space-y-1">
+                <div className="flex justify-between text-gray-600">
+                  <span>Product Subtotal ({subscribingItem.quantity} unit{subscribingItem.quantity > 1 ? "s" : ""})</span>
+                  <span>₹{itemSubtotal}</span>
+                </div>
+                <div className="flex justify-between text-gray-600">
+                  <span>Shipping Fee</span>
+                  <span>{shippingFee === 0 ? <strong className="text-emerald-700">Free</strong> : `₹${shippingFee}`}</span>
+                </div>
+                <div className="border-t border-gray-200 pt-1 flex justify-between font-bold text-[#123D28] text-sm">
+                  <span>Per Cycle Total</span>
+                  <span>₹{totalPerCycle}</span>
+                </div>
+              </div>
+
+              {/* Action buttons */}
+              <div className="pt-2 flex justify-end gap-2">
+                <button
+                  type="button"
+                  className="py-2.5 px-4 rounded-xl border border-gray-300 font-semibold text-gray-700 hover:bg-gray-100 transition-colors"
+                  onClick={onClose}
+                  disabled={createMutation.isPending}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  className="py-2.5 px-6 rounded-xl bg-[#123D28] hover:bg-[#0B2518] text-white font-bold transition-colors flex items-center gap-2"
+                  onClick={handleConfirm}
+                  disabled={createMutation.isPending}
+                >
+                  {createMutation.isPending ? "Activating..." : "Confirm & Start Subscription"}
+                  <Repeat size={14} />
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
@@ -1604,6 +2108,13 @@ export default function Home() {
   const [accountModalOpen, setAccountModalOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [subscribingItem, setSubscribingItem] = useState<{
+    product: Product;
+    size: string;
+    unitPrice: number;
+    quantity: number;
+    frequency: string;
+  } | null>(null);
 
   // Deep linking and clean URL routing
   const [matchProduct, productParams] = useRoute("/products/:slug");
@@ -2108,8 +2619,19 @@ export default function Home() {
           }
         }}
         onAdd={addToCart}
+        onSubscribe={(prod, size, price, qty, freq) => {
+          setSubscribingItem({ product: prod, size, unitPrice: price, quantity: qty, frequency: freq });
+        }}
         isWishlisted={selectedProduct ? wishlist.has(selectedProduct.id) : false}
         onWishlist={() => selectedProduct && toggleWishlist(selectedProduct.id)}
+      />
+
+      <SubscribeModal
+        subscribingItem={subscribingItem}
+        open={Boolean(subscribingItem)}
+        onClose={() => setSubscribingItem(null)}
+        currentUser={currentUser}
+        onRequireAuth={() => setAuthModalOpen(true)}
       />
 
       <AuthModal

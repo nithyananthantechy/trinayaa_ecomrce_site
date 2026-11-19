@@ -195,6 +195,9 @@ export const orders = mysqlTable("orders", {
   paymentStatus: varchar("paymentStatus", { length: 32 }).default("PENDING").notNull(), // 'PENDING' | 'PAID' | 'FAILED' | 'REFUNDED'
   razorpayOrderId: varchar("razorpayOrderId", { length: 128 }),
   razorpayPaymentId: varchar("razorpayPaymentId", { length: 128 }),
+  subscriptionId: varchar("subscriptionId", { length: 64 }),
+  subscriptionCycleId: varchar("subscriptionCycleId", { length: 64 }),
+  isSubscriptionOrder: int("isSubscriptionOrder").default(0).notNull(),
   orderStatus: varchar("orderStatus", { length: 32 }).default("Pending Payment").notNull(), // 'Pending Payment' | 'Confirmed' | 'Processing' | 'Packed' | 'Shipped' | 'Delivered' | 'Cancelled' | 'Refund Initiated' | 'Refunded'
   internalNotes: text("internalNotes"),
   createdAt: text("createdAt").notNull(),
@@ -800,6 +803,95 @@ export const retailSaleItems = mysqlTable("retail_sale_items", {
 
 export type RetailSaleItem = typeof retailSaleItems.$inferSelect;
 export type InsertRetailSaleItem = typeof retailSaleItems.$inferInsert;
+
+// ==========================================
+// 30. CUSTOMER SUBSCRIPTIONS (PHASE 7)
+// ==========================================
+export const customerSubscriptions = mysqlTable("customer_subscriptions", {
+  id: varchar("id", { length: 64 }).primaryKey(),
+  subscriptionNumber: varchar("subscription_number", { length: 64 }).notNull().unique(), // e.g. TRN-SUB-2026-00001
+  customerId: varchar("customer_id", { length: 64 }).notNull(),
+  customerName: varchar("customer_name", { length: 255 }).notNull(),
+  customerEmail: varchar("customer_email", { length: 320 }).notNull(),
+  customerPhone: varchar("customer_phone", { length: 32 }),
+  productId: varchar("product_id", { length: 64 }).notNull(),
+  variantId: varchar("variant_id", { length: 64 }),
+  productName: varchar("product_name", { length: 255 }).notNull(),
+  productSku: varchar("product_sku", { length: 64 }).notNull(),
+  variantLabel: varchar("variant_label", { length: 64 }),
+  productSnapshot: text("product_snapshot").notNull(), // JSON
+  quantity: int("quantity").default(1).notNull(),
+  unitPrice: double("unit_price").notNull(),
+  subtotal: double("subtotal").notNull(),
+  shippingFee: double("shipping_fee").default(0).notNull(),
+  totalPerCycle: double("total_per_cycle").notNull(),
+  frequency: varchar("frequency", { length: 32 }).notNull(), // '15_DAYS' | '30_DAYS' | '45_DAYS' | '60_DAYS' | '90_DAYS'
+  frequencyDays: int("frequency_days").notNull(),
+  startDate: text("start_date").notNull(),
+  nextDeliveryDate: text("next_delivery_date").notNull(),
+  lastOrderDate: text("last_order_date"),
+  deliveryAddress: text("delivery_address").notNull(), // JSON
+  deliveryInstructions: text("delivery_instructions"),
+  paymentPreference: varchar("payment_preference", { length: 32 }).default("COD").notNull(), // 'COD' | 'MANUAL_RENEWAL'
+  status: varchar("status", { length: 32 }).default("ACTIVE").notNull(), // 'ACTIVE' | 'PAUSED' | 'PAYMENT_PENDING' | 'ORDER_GENERATED' | 'SKIPPED' | 'CANCELLED' | 'COMPLETED' | 'FAILED'
+  pauseReason: text("pause_reason"),
+  cancellationReason: text("cancellation_reason"),
+  cancelledAt: text("cancelled_at"),
+  pausedAt: text("paused_at"),
+  cycleCount: int("cycle_count").default(0).notNull(),
+  failureReason: text("failure_reason"),
+  createdAt: text("created_at").notNull(),
+  updatedAt: text("updated_at").notNull(),
+});
+
+export type CustomerSubscription = typeof customerSubscriptions.$inferSelect;
+export type InsertCustomerSubscription = typeof customerSubscriptions.$inferInsert;
+
+// ==========================================
+// 31. SUBSCRIPTION CYCLES (PHASE 7)
+// ==========================================
+export const subscriptionCycles = mysqlTable("subscription_cycles", {
+  id: varchar("id", { length: 64 }).primaryKey(),
+  subscriptionId: varchar("subscription_id", { length: 64 }).notNull(),
+  subscriptionNumber: varchar("subscription_number", { length: 64 }).notNull(),
+  cycleNumber: int("cycle_number").notNull(),
+  cycleReference: varchar("cycle_reference", { length: 128 }).notNull().unique(), // TRN-SUB-2026-00001-C1
+  scheduledDate: text("scheduled_date").notNull(),
+  processedDate: text("processed_date"),
+  orderId: varchar("order_id", { length: 64 }),
+  orderNumber: varchar("order_number", { length: 64 }),
+  status: varchar("status", { length: 32 }).default("PENDING").notNull(), // 'PENDING' | 'PAYMENT_PENDING' | 'ORDER_GENERATED' | 'SKIPPED' | 'FAILED'
+  failureReason: text("failure_reason"),
+  amount: double("amount").notNull(),
+  paymentMethod: varchar("payment_method", { length: 32 }).notNull(), // 'COD' | 'RAZORPAY_RENEWAL'
+  paymentStatus: varchar("payment_status", { length: 32 }).default("PENDING").notNull(),
+  paymentReference: varchar("payment_reference", { length: 128 }),
+  createdAt: text("created_at").notNull(),
+  updatedAt: text("updated_at").notNull(),
+});
+
+export type SubscriptionCycle = typeof subscriptionCycles.$inferSelect;
+export type InsertSubscriptionCycle = typeof subscriptionCycles.$inferInsert;
+
+// ==========================================
+// 32. SUBSCRIPTION HISTORY (PHASE 7)
+// ==========================================
+export const subscriptionHistory = mysqlTable("subscription_history", {
+  id: varchar("id", { length: 64 }).primaryKey(),
+  subscriptionId: varchar("subscription_id", { length: 64 }).notNull(),
+  fromStatus: varchar("from_status", { length: 32 }),
+  toStatus: varchar("to_status", { length: 32 }).notNull(),
+  action: varchar("action", { length: 64 }).notNull(),
+  actor: varchar("actor", { length: 32 }).notNull(), // 'CUSTOMER' | 'ADMIN' | 'SYSTEM'
+  actorId: varchar("actor_id", { length: 64 }),
+  note: text("note"),
+  metadata: text("metadata"), // JSON
+  createdAt: text("created_at").notNull(),
+});
+
+export type SubscriptionHistory = typeof subscriptionHistory.$inferSelect;
+export type InsertSubscriptionHistory = typeof subscriptionHistory.$inferInsert;
+
 
 
 

@@ -2486,3 +2486,128 @@ function validateStatusTransition(currentStatus: string, targetStatus: string): 
   }
   return null;
 }
+
+
+
+// ==========================================
+// TELEGRAM NOTIFICATIONS: SUBSCRIPTIONS (PHASE 7)
+// ==========================================
+const dispatchedSubscriptionAlerts = new Set<string>();
+
+export async function notifySubscriptionCreated(sub: {
+  subscriptionNumber: string;
+  customerName: string;
+  productName: string;
+  variantLabel?: string | null;
+  quantity: number;
+  frequency: string;
+  nextDeliveryDate: string;
+}) {
+  try {
+    const eventKey = `sub_created_${sub.subscriptionNumber}`;
+    if (dispatchedSubscriptionAlerts.has(eventKey)) return;
+    dispatchedSubscriptionAlerts.add(eventKey);
+
+    const allowedIds = db.telegramRepo.getAllAllowedIds();
+    if (!allowedIds || allowedIds.length === 0) return;
+
+    const freqLabel = sub.frequency.replace("_", " ");
+    const nextDateStr = sub.nextDeliveryDate ? sub.nextDeliveryDate.slice(0, 10) : "Today";
+
+    const text = `🌿 *NEW BOTANICAL SUBSCRIPTION CREATED*\n\n` +
+      `• *Sub No:* \`${sub.subscriptionNumber}\`\n` +
+      `• *Customer:* ${sub.customerName}\n` +
+      `• *Product:* *${sub.productName}* (${sub.variantLabel || "100g"})\n` +
+      `• *Quantity:* ${sub.quantity}\n` +
+      `• *Frequency:* ${freqLabel}\n` +
+      `• *First/Next Delivery:* ${nextDateStr}\n` +
+      `• *Time:* ${new Date().toLocaleTimeString()}\n\n` +
+      `👉 _View subscription details and recurring schedule in Admin Subscriptions._`;
+
+    const replyMarkup = {
+      inline_keyboard: [
+        [{ text: "🔄 View Subscriptions", url: "http://localhost:3000/admin/subscriptions" }]
+      ]
+    };
+
+    for (const adminId of allowedIds) {
+      await sendTelegramMessage(adminId, text, replyMarkup);
+    }
+  } catch (err) {
+    console.error("[Telegram Error] Failed to send subscription created alert:", err);
+  }
+}
+
+export async function notifySubscriptionOrderGenerated(sub: {
+  subscriptionNumber: string;
+  customerName: string;
+  productName: string;
+}, order: {
+  orderNumber: string;
+  total: number;
+}) {
+  try {
+    const eventKey = `sub_order_${sub.subscriptionNumber}_${order.orderNumber}`;
+    if (dispatchedSubscriptionAlerts.has(eventKey)) return;
+    dispatchedSubscriptionAlerts.add(eventKey);
+
+    const allowedIds = db.telegramRepo.getAllAllowedIds();
+    if (!allowedIds || allowedIds.length === 0) return;
+
+    const text = `📦 *RECURRING SUBSCRIPTION ORDER GENERATED*\n\n` +
+      `• *Subscription:* \`${sub.subscriptionNumber}\`\n` +
+      `• *Order No:* \`${order.orderNumber}\`\n` +
+      `• *Customer:* ${sub.customerName}\n` +
+      `• *Product:* ${sub.productName}\n` +
+      `• *Order Total:* ₹${order.total}\n` +
+      `• *Time:* ${new Date().toLocaleTimeString()}\n\n` +
+      `👉 _Fulfilment document printing is ready in Order Document Studio._`;
+
+    const replyMarkup = {
+      inline_keyboard: [
+        [{ text: "📄 Open Document Studio", url: `http://localhost:3000/admin/orders?docOrder=${order.orderNumber}` }]
+      ]
+    };
+
+    for (const adminId of allowedIds) {
+      await sendTelegramMessage(adminId, text, replyMarkup);
+    }
+  } catch (err) {
+    console.error("[Telegram Error] Failed to send subscription order generated alert:", err);
+  }
+}
+
+export async function notifySubscriptionException(sub: {
+  subscriptionNumber: string;
+  customerName: string;
+  productName: string;
+}, reason: string) {
+  try {
+    const eventKey = `sub_exc_${sub.subscriptionNumber}_${reason.slice(0, 15)}`;
+    if (dispatchedSubscriptionAlerts.has(eventKey)) return;
+    dispatchedSubscriptionAlerts.add(eventKey);
+
+    const allowedIds = db.telegramRepo.getAllAllowedIds();
+    if (!allowedIds || allowedIds.length === 0) return;
+
+    const text = `⚠️ *SUBSCRIPTION EXCEPTION ALERT*\n\n` +
+      `• *Subscription:* \`${sub.subscriptionNumber}\`\n` +
+      `• *Customer:* ${sub.customerName}\n` +
+      `• *Product:* *${sub.productName}*\n` +
+      `• *Issue:* ${reason}\n` +
+      `• *Time:* ${new Date().toLocaleTimeString()}\n\n` +
+      `⚠️ _Action required: Check warehouse inventory or contact subscriber._`;
+
+    const replyMarkup = {
+      inline_keyboard: [
+        [{ text: "📦 Check Stock & Subscriptions", url: "http://localhost:3000/admin/subscriptions" }]
+      ]
+    };
+
+    for (const adminId of allowedIds) {
+      await sendTelegramMessage(adminId, text, replyMarkup);
+    }
+  } catch (err) {
+    console.error("[Telegram Error] Failed to send subscription exception alert:", err);
+  }
+}

@@ -1545,6 +1545,165 @@ addresses: router({
       }),
   }),
 
+
+  // ==========================================
+  // SUBSCRIPTIONS ROUTER (PHASE 7)
+  // ==========================================
+  subscriptions: router({
+    create: protectedProcedure
+      .input(
+        z.object({
+          productId: z.string(),
+          variantId: z.string().optional().nullable(),
+          quantity: z.number().min(1, "Quantity must be at least 1"),
+          frequency: z.enum(["15_DAYS", "30_DAYS", "45_DAYS", "60_DAYS", "90_DAYS"]).default("30_DAYS"),
+          deliveryAddress: z.any(),
+          deliveryInstructions: z.string().optional().nullable(),
+          paymentPreference: z.enum(["COD", "MANUAL_RENEWAL"]).default("COD"),
+          startDate: z.string().optional().nullable(),
+        })
+      )
+      .mutation(async ({ input, ctx }) => {
+        try {
+          return db.subscriptionsRepo.create({
+            ...input,
+            customerId: String(ctx.user.id),
+            customerName: ctx.user.name,
+            customerEmail: ctx.user.email,
+            customerPhone: ctx.user.phone || undefined,
+          });
+        } catch (err: any) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: err.message || "Failed to create subscription",
+          });
+        }
+      }),
+
+    mySubscriptions: protectedProcedure.query(async ({ ctx }) => {
+      return db.subscriptionsRepo.listByCustomer(String(ctx.user.id));
+    }),
+
+    getById: protectedProcedure
+      .input(z.object({ id: z.string() }))
+      .query(async ({ input, ctx }) => {
+        const sub = db.subscriptionsRepo.getById(input.id);
+        if (!sub) {
+          throw new TRPCError({ code: "NOT_FOUND", message: "Subscription not found" });
+        }
+        const role = (ctx.user.role || "").toUpperCase();
+        if (sub.customerId !== String(ctx.user.id) && role !== "ADMIN" && role !== "SUPER_ADMIN") {
+          throw new TRPCError({ code: "FORBIDDEN", message: "Access denied" });
+        }
+        return sub;
+      }),
+
+    pause: protectedProcedure
+      .input(z.object({ id: z.string(), reason: z.string().optional() }))
+      .mutation(async ({ input, ctx }) => {
+        const sub = db.subscriptionsRepo.getById(input.id);
+        if (!sub) throw new TRPCError({ code: "NOT_FOUND", message: "Subscription not found" });
+        const role = (ctx.user.role || "").toUpperCase();
+        if (sub.customerId !== String(ctx.user.id) && role !== "ADMIN" && role !== "SUPER_ADMIN") {
+          throw new TRPCError({ code: "FORBIDDEN", message: "Access denied" });
+        }
+        try {
+          return db.subscriptionsRepo.pause(input.id, input.reason || "Paused by customer", "CUSTOMER", String(ctx.user.id));
+        } catch (err: any) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: err.message });
+        }
+      }),
+
+    resume: protectedProcedure
+      .input(z.object({ id: z.string() }))
+      .mutation(async ({ input, ctx }) => {
+        const sub = db.subscriptionsRepo.getById(input.id);
+        if (!sub) throw new TRPCError({ code: "NOT_FOUND", message: "Subscription not found" });
+        const role = (ctx.user.role || "").toUpperCase();
+        if (sub.customerId !== String(ctx.user.id) && role !== "ADMIN" && role !== "SUPER_ADMIN") {
+          throw new TRPCError({ code: "FORBIDDEN", message: "Access denied" });
+        }
+        try {
+          return db.subscriptionsRepo.resume(input.id, "CUSTOMER", String(ctx.user.id));
+        } catch (err: any) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: err.message });
+        }
+      }),
+
+    skipNext: protectedProcedure
+      .input(z.object({ id: z.string(), reason: z.string().optional() }))
+      .mutation(async ({ input, ctx }) => {
+        const sub = db.subscriptionsRepo.getById(input.id);
+        if (!sub) throw new TRPCError({ code: "NOT_FOUND", message: "Subscription not found" });
+        const role = (ctx.user.role || "").toUpperCase();
+        if (sub.customerId !== String(ctx.user.id) && role !== "ADMIN" && role !== "SUPER_ADMIN") {
+          throw new TRPCError({ code: "FORBIDDEN", message: "Access denied" });
+        }
+        try {
+          return db.subscriptionsRepo.skipNext(input.id, input.reason || "Skipped next delivery", "CUSTOMER", String(ctx.user.id));
+        } catch (err: any) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: err.message });
+        }
+      }),
+
+    update: protectedProcedure
+      .input(
+        z.object({
+          id: z.string(),
+          quantity: z.number().min(1).optional(),
+          frequency: z.enum(["15_DAYS", "30_DAYS", "45_DAYS", "60_DAYS", "90_DAYS"]).optional(),
+          deliveryAddress: z.any().optional(),
+          deliveryInstructions: z.string().optional().nullable(),
+        })
+      )
+      .mutation(async ({ input, ctx }) => {
+        const sub = db.subscriptionsRepo.getById(input.id);
+        if (!sub) throw new TRPCError({ code: "NOT_FOUND", message: "Subscription not found" });
+        const role = (ctx.user.role || "").toUpperCase();
+        if (sub.customerId !== String(ctx.user.id) && role !== "ADMIN" && role !== "SUPER_ADMIN") {
+          throw new TRPCError({ code: "FORBIDDEN", message: "Access denied" });
+        }
+        try {
+          return db.subscriptionsRepo.updateSettings(input.id, input, "CUSTOMER", String(ctx.user.id));
+        } catch (err: any) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: err.message });
+        }
+      }),
+
+    cancel: protectedProcedure
+      .input(z.object({ id: z.string(), reason: z.string().min(2, "Reason is required") }))
+      .mutation(async ({ input, ctx }) => {
+        const sub = db.subscriptionsRepo.getById(input.id);
+        if (!sub) throw new TRPCError({ code: "NOT_FOUND", message: "Subscription not found" });
+        const role = (ctx.user.role || "").toUpperCase();
+        if (sub.customerId !== String(ctx.user.id) && role !== "ADMIN" && role !== "SUPER_ADMIN") {
+          throw new TRPCError({ code: "FORBIDDEN", message: "Access denied" });
+        }
+        try {
+          return db.subscriptionsRepo.cancel(input.id, input.reason, "CUSTOMER", String(ctx.user.id));
+        } catch (err: any) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: err.message });
+        }
+      }),
+
+    payRenewal: protectedProcedure
+      .input(
+        z.object({
+          cycleId: z.string(),
+          razorpayPaymentId: z.string(),
+          razorpayOrderId: z.string().optional(),
+          amount: z.number().optional(),
+        })
+      )
+      .mutation(async ({ input, ctx }) => {
+        try {
+          return db.subscriptionsRepo.recordRenewalPayment(input.cycleId, input);
+        } catch (err: any) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: err.message });
+        }
+      }),
+  }),
+
   // ==========================================
   // PAYMENTS & RAZORPAY ROUTER
   // ==========================================
@@ -2334,6 +2493,97 @@ addresses: router({
               code: "BAD_REQUEST",
               message: err.message || "Failed to update return status",
             });
+          }
+        }),
+    }),
+
+    // ==========================================
+    // ADMIN SUBSCRIPTIONS ROUTER (PHASE 7)
+    // ==========================================
+    subscriptions: router({
+      list: adminProcedure
+        .input(
+          z
+            .object({
+              status: z.string().optional(),
+              frequency: z.string().optional(),
+              search: z.string().optional(),
+              limit: z.number().optional().default(50),
+              offset: z.number().optional().default(0),
+            })
+            .optional()
+        )
+        .query(async ({ input }) => {
+          return db.subscriptionsRepo.listAll(input || {});
+        }),
+
+      getStats: adminProcedure.query(async () => {
+        return db.subscriptionsRepo.getStats();
+      }),
+
+      getById: adminProcedure
+        .input(z.object({ id: z.string() }))
+        .query(async ({ input }) => {
+          const item = db.subscriptionsRepo.getById(input.id);
+          if (!item) throw new TRPCError({ code: "NOT_FOUND", message: "Subscription not found" });
+          return item;
+        }),
+
+      pause: adminProcedure
+        .input(z.object({ id: z.string(), reason: z.string().optional() }))
+        .mutation(async ({ input, ctx }) => {
+          try {
+            return db.subscriptionsRepo.pause(input.id, input.reason || "Paused by admin", "ADMIN", String(ctx.user.id));
+          } catch (err: any) {
+            throw new TRPCError({ code: "BAD_REQUEST", message: err.message });
+          }
+        }),
+
+      resume: adminProcedure
+        .input(z.object({ id: z.string() }))
+        .mutation(async ({ input, ctx }) => {
+          try {
+            return db.subscriptionsRepo.resume(input.id, "ADMIN", String(ctx.user.id));
+          } catch (err: any) {
+            throw new TRPCError({ code: "BAD_REQUEST", message: err.message });
+          }
+        }),
+
+      skipCycle: adminProcedure
+        .input(z.object({ id: z.string(), reason: z.string().optional() }))
+        .mutation(async ({ input, ctx }) => {
+          try {
+            return db.subscriptionsRepo.skipNext(input.id, input.reason || "Skipped by admin", "ADMIN", String(ctx.user.id));
+          } catch (err: any) {
+            throw new TRPCError({ code: "BAD_REQUEST", message: err.message });
+          }
+        }),
+
+      cancel: adminProcedure
+        .input(z.object({ id: z.string(), reason: z.string().min(2, "Cancellation reason required") }))
+        .mutation(async ({ input, ctx }) => {
+          try {
+            return db.subscriptionsRepo.cancel(input.id, input.reason, "ADMIN", String(ctx.user.id));
+          } catch (err: any) {
+            throw new TRPCError({ code: "BAD_REQUEST", message: err.message });
+          }
+        }),
+
+      processDueCycles: adminProcedure
+        .input(
+          z
+            .object({
+              now: z.string().optional(),
+              dryRun: z.boolean().optional(),
+              subscriptionId: z.string().optional(),
+            })
+            .optional()
+        )
+        .mutation(async ({ input }) => {
+          try {
+            return db.subscriptionsRepo.processDueCycles(input || {});
+          } catch (err: any) {
+            throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: err.message });
           }
         }),
     }),

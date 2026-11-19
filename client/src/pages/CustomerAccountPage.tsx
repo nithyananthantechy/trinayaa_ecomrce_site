@@ -6,6 +6,7 @@ import BrandMark from "@/components/BrandMark";
 import AuthModal from "@/components/AuthModal";
 import {
   RotateCcw,
+  Repeat,
   User,
   MapPin,
   ShoppingBag,
@@ -39,7 +40,7 @@ import {
   PackageSearch,
 } from "lucide-react";
 
-type AccountTab = "profile" | "addresses" | "orders" | "returns" | "wishlist" | "tickets" | "feedback" | "rewards" | "enquiries" | "security";
+type AccountTab = "profile" | "addresses" | "orders" | "subscriptions" | "returns" | "wishlist" | "tickets" | "feedback" | "rewards" | "enquiries" | "security";
 
 export default function CustomerAccountPage() {
   const [, setLocation] = useLocation();
@@ -181,11 +182,70 @@ export default function CustomerAccountPage() {
     enabled: Boolean(currentUser),
   });
 
+  // Phase 7: Subscriptions state & queries
+  const [selectedSubForAction, setSelectedSubForAction] = useState<any>(null);
+  const [subActionModal, setSubActionModal] = useState<"pause" | "skip" | "settings" | "cancel" | null>(null);
+  const [actionReason, setActionReason] = useState("");
+  const [editQty, setEditQty] = useState(1);
+  const [editFreq, setEditFreq] = useState<"15_DAYS" | "30_DAYS" | "45_DAYS" | "60_DAYS" | "90_DAYS">("30_DAYS");
+
+  const { data: subscriptions = [], isLoading: subscriptionsLoading, refetch: refetchSubscriptions } = trpc.subscriptions.mySubscriptions.useQuery(undefined, {
+    enabled: Boolean(currentUser),
+  });
+
+  const pauseSubMutation = trpc.subscriptions.pause.useMutation({
+    onSuccess: () => {
+      toast.success("Subscription paused");
+      setSubActionModal(null);
+      setSelectedSubForAction(null);
+      refetchSubscriptions();
+    },
+    onError: (err) => toast.error(err.message || "Failed to pause subscription"),
+  });
+
+  const resumeSubMutation = trpc.subscriptions.resume.useMutation({
+    onSuccess: () => {
+      toast.success("Subscription resumed successfully");
+      refetchSubscriptions();
+    },
+    onError: (err) => toast.error(err.message || "Failed to resume subscription"),
+  });
+
+  const skipSubMutation = trpc.subscriptions.skipNext.useMutation({
+    onSuccess: () => {
+      toast.success("Next scheduled delivery skipped");
+      setSubActionModal(null);
+      setSelectedSubForAction(null);
+      refetchSubscriptions();
+    },
+    onError: (err) => toast.error(err.message || "Failed to skip delivery"),
+  });
+
+  const updateSubMutation = trpc.subscriptions.update.useMutation({
+    onSuccess: () => {
+      toast.success("Subscription preferences updated");
+      setSubActionModal(null);
+      setSelectedSubForAction(null);
+      refetchSubscriptions();
+    },
+    onError: (err) => toast.error(err.message || "Failed to update preferences"),
+  });
+
+  const cancelSubMutation = trpc.subscriptions.cancel.useMutation({
+    onSuccess: () => {
+      toast.success("Subscription cancelled");
+      setSubActionModal(null);
+      setSelectedSubForAction(null);
+      refetchSubscriptions();
+    },
+    onError: (err) => toast.error(err.message || "Failed to cancel subscription"),
+  });
+
   // Check URL query tab parameter
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const tabParam = params.get("tab");
-    if (tabParam && ["profile", "addresses", "orders", "wishlist", "tickets", "feedback", "rewards", "enquiries", "security"].includes(tabParam)) {
+    if (tabParam && ["profile", "addresses", "orders", "wishlist", "tickets", "feedback", "rewards", "enquiries", "subscriptions", "security"].includes(tabParam)) {
       setActiveTab(tabParam as AccountTab);
     }
   }, []);
@@ -682,6 +742,7 @@ export default function CustomerAccountPage() {
             { id: "profile" as AccountTab, label: "My Profile", icon: User },
             { id: "addresses" as AccountTab, label: `Saved Addresses (${addresses.length})`, icon: MapPin },
             { id: "orders" as AccountTab, label: `My Orders (${orders.length})`, icon: ShoppingBag },
+            { id: "subscriptions" as AccountTab, label: `My Subscriptions (${subscriptions.length})`, icon: Repeat },
             { id: "returns" as AccountTab, label: `Returns & RMAs (${myReturns.length})`, icon: RotateCcw },
             { id: "wishlist" as AccountTab, label: `My Wishlist (${wishlistItems.length})`, icon: Heart },
             { id: "tickets" as AccountTab, label: `Support Helpdesk (${myTickets.length})`, icon: LifeBuoy },
@@ -918,6 +979,419 @@ export default function CustomerAccountPage() {
         {/* ======================================================== */}
         {/* TAB 3B: RETURNS & RMA MANAGEMENT (Phase 6) */}
         {/* ======================================================== */}
+        
+        {/* ======================================================== */}
+        {/* TAB: SUBSCRIPTIONS & RECURRING DELIVERIES (PHASE 7) */}
+        {/* ======================================================== */}
+        {activeTab === "subscriptions" && (
+          <div className="space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-[#EFECE4] gap-2">
+              <div>
+                <h2 className="font-serif text-xl font-bold text-[#123D28] flex items-center gap-2">
+                  <Repeat size={20} className="text-[#AE6A2B]" /> My Botanical Subscriptions
+                </h2>
+                <p className="text-xs text-[#6C7167] mt-0.5">
+                  Manage your automated wellness deliveries, pause or skip anytime with zero penalties.
+                </p>
+              </div>
+              <Link
+                href="/products"
+                className="py-1.5 px-3 bg-[#123D28] hover:bg-[#0B2518] text-white rounded-xl text-xs font-bold transition-colors inline-flex items-center gap-1.5 self-start sm:self-auto"
+              >
+                <Plus size={13} /> Subscribe to a Product
+              </Link>
+            </div>
+
+            {subscriptions.length === 0 ? (
+              <div className="bg-white rounded-3xl border border-[#DEDFD5] p-12 text-center max-w-lg mx-auto shadow-xs space-y-3">
+                <div className="w-14 h-14 bg-[#FAF7EB] text-[#123D28] rounded-full flex items-center justify-center mx-auto">
+                  <Repeat size={28} />
+                </div>
+                <h3 className="font-serif text-lg font-bold text-[#123D28]">No active subscriptions yet</h3>
+                <p className="text-xs text-[#6C7167]">
+                  Never run out of pure herbal powders, natural seeds, and wellness botanicals. Enjoy scheduled deliveries right to your doorstep.
+                </p>
+                <Link
+                  href="/products"
+                  className="inline-block py-2.5 px-6 bg-[#123D28] hover:bg-[#0B2518] text-white font-bold rounded-xl text-xs transition-colors"
+                >
+                  Explore Botanical Catalogue &rarr;
+                </Link>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {subscriptions.map((sub: any) => {
+                  const freqMap: Record<string, string> = {
+                    "15_DAYS": "Every 15 Days",
+                    "30_DAYS": "Every 30 Days (Monthly)",
+                    "45_DAYS": "Every 45 Days",
+                    "60_DAYS": "Every 60 Days",
+                    "90_DAYS": "Every 90 Days",
+                  };
+                  const freqText = freqMap[sub.frequency] || sub.frequency;
+
+                  const statusBadgeClass =
+                    sub.status === "ACTIVE"
+                      ? "bg-emerald-100 text-emerald-800 border-emerald-300"
+                      : sub.status === "PAUSED"
+                      ? "bg-amber-100 text-amber-800 border-amber-300"
+                      : sub.status === "PAYMENT_PENDING"
+                      ? "bg-blue-100 text-blue-800 border-blue-300"
+                      : sub.status === "CANCELLED"
+                      ? "bg-gray-100 text-gray-700 border-gray-300"
+                      : "bg-rose-100 text-rose-800 border-rose-300";
+
+                  return (
+                    <div
+                      key={sub.id}
+                      className="bg-white rounded-2xl border border-[#DEDFD5] p-5 shadow-xs transition-all hover:border-[#123D28]/30 space-y-4"
+                    >
+                      {/* Top Bar */}
+                      <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-gray-100 text-xs">
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono font-bold text-sm text-[#123D28]">{sub.subscriptionNumber}</span>
+                          <span className={`px-2 py-0.5 rounded-full font-bold uppercase tracking-wider text-[10px] border ${statusBadgeClass}`}>
+                            {sub.status}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2 text-gray-500">
+                          <span className="bg-[#FAF8F5] border border-gray-200 px-2.5 py-0.5 rounded-md font-semibold text-gray-700">
+                            {freqText}
+                          </span>
+                          <span>Started: {sub.startDate?.slice(0, 10)}</span>
+                        </div>
+                      </div>
+
+                      {/* Main Info */}
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+                        {/* Product details */}
+                        <div className="flex items-center gap-3">
+                          <img
+                            src={sub.productSnapshot?.image || "/images/products/packaged/pouch_001.png"}
+                            alt={sub.productName}
+                            className="w-16 h-16 rounded-xl object-cover border border-gray-200"
+                            onError={(e: any) => { e.target.src = "/images/products/packaged/pouch_001.png"; }}
+                          />
+                          <div>
+                            <div className="font-bold text-[#123D28] text-sm">{sub.productName}</div>
+                            <div className="text-gray-500">Pack: {sub.variantLabel || "Standard"} · Qty: {sub.quantity}</div>
+                            <div className="text-[11px] font-semibold text-[#AE6A2B] mt-0.5">
+                              ₹{sub.unitPrice} each · Total/cycle: ₹{sub.totalPerCycle}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Schedule & Delivery Info */}
+                        <div className="bg-[#FAF7EB] p-3 rounded-xl space-y-1 text-gray-700">
+                          <div className="font-bold text-[#123D28] flex items-center gap-1">
+                            <Calendar size={13} /> Next Scheduled Delivery:
+                          </div>
+                          <div className="text-xs font-semibold text-gray-900">
+                            {sub.status === "PAUSED" ? (
+                              <span className="text-amber-800">Paused (Will resume upon request)</span>
+                            ) : sub.status === "CANCELLED" ? (
+                              <span className="text-gray-500">Subscription Terminated</span>
+                            ) : (
+                              <span>{sub.nextDeliveryDate?.slice(0, 10)}</span>
+                            )}
+                          </div>
+                          <div className="text-[11px] text-gray-600">
+                            Payment: {sub.paymentPreference === "COD" ? "Cash on Delivery" : "Online Renewal"}
+                          </div>
+                          {sub.failureReason && (
+                            <div className="text-[11px] text-red-600 font-semibold">
+                              Notice: {sub.failureReason}
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Delivery Destination */}
+                        <div className="p-3 bg-gray-50 rounded-xl space-y-1 text-gray-700">
+                          <div className="font-bold text-[#123D28] flex items-center gap-1">
+                            <MapPin size={13} /> Destination:
+                          </div>
+                          <div className="text-[11px] line-clamp-2">
+                            {sub.deliveryAddress?.street || sub.deliveryAddress?.addressLine1},{" "}
+                            {sub.deliveryAddress?.city}, {sub.deliveryAddress?.pinCode}
+                          </div>
+                          {sub.deliveryInstructions && (
+                            <div className="text-[10px] text-gray-500 italic">
+                              "{sub.deliveryInstructions}"
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Generated Orders History */}
+                      {sub.orders && sub.orders.length > 0 && (
+                        <div className="pt-2 border-t border-gray-100">
+                          <div className="text-[11px] font-bold text-gray-700 mb-1.5">Associated Orders ({sub.orders.length}):</div>
+                          <div className="flex flex-wrap gap-2">
+                            {sub.orders.map((ord: any) => (
+                              <div
+                                key={ord.id}
+                                className="px-2.5 py-1 bg-white border border-gray-200 rounded-lg text-[11px] flex items-center gap-1.5"
+                              >
+                                <span className="font-mono font-bold text-[#123D28]">{ord.orderNumber}</span>
+                                <span className="text-gray-500">₹{ord.total}</span>
+                                <span className="text-emerald-700 font-medium">({ord.orderStatus})</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Action Bar */}
+                      <div className="pt-3 border-t border-gray-100 flex flex-wrap items-center justify-between gap-2">
+                        <div className="text-[11px] text-gray-500">
+                          Completed cycles: <strong>{sub.cycleCount}</strong>
+                        </div>
+                        <div className="flex flex-wrap items-center gap-2">
+                          {sub.status === "ACTIVE" && (
+                            <>
+                              <button
+                                type="button"
+                                className="py-1 px-3 border border-amber-300 bg-amber-50 hover:bg-amber-100 text-amber-900 rounded-lg text-xs font-semibold transition-colors"
+                                onClick={() => {
+                                  setSelectedSubForAction(sub);
+                                  setActionReason("");
+                                  setSubActionModal("pause");
+                                }}
+                              >
+                                Pause
+                              </button>
+                              <button
+                                type="button"
+                                className="py-1 px-3 border border-blue-300 bg-blue-50 hover:bg-blue-100 text-blue-900 rounded-lg text-xs font-semibold transition-colors"
+                                onClick={() => {
+                                  setSelectedSubForAction(sub);
+                                  setActionReason("");
+                                  setSubActionModal("skip");
+                                }}
+                              >
+                                Skip Next
+                              </button>
+                              <button
+                                type="button"
+                                className="py-1 px-3 border border-gray-300 hover:bg-gray-100 text-gray-800 rounded-lg text-xs font-semibold transition-colors"
+                                onClick={() => {
+                                  setSelectedSubForAction(sub);
+                                  setEditQty(sub.quantity);
+                                  setEditFreq(sub.frequency);
+                                  setSubActionModal("settings");
+                                }}
+                              >
+                                Settings
+                              </button>
+                              <button
+                                type="button"
+                                className="py-1 px-3 border border-red-200 bg-red-50 hover:bg-red-100 text-red-700 rounded-lg text-xs font-semibold transition-colors"
+                                onClick={() => {
+                                  setSelectedSubForAction(sub);
+                                  setActionReason("");
+                                  setSubActionModal("cancel");
+                                }}
+                              >
+                                Cancel
+                              </button>
+                            </>
+                          )}
+
+                          {sub.status === "PAUSED" && (
+                            <>
+                              <button
+                                type="button"
+                                className="py-1 px-3 bg-[#123D28] hover:bg-[#0B2518] text-white rounded-lg text-xs font-bold transition-colors"
+                                onClick={() => resumeSubMutation.mutate({ id: sub.id })}
+                                disabled={resumeSubMutation.isPending}
+                              >
+                                {resumeSubMutation.isPending ? "Resuming..." : "Resume Subscription"}
+                              </button>
+                              <button
+                                type="button"
+                                className="py-1 px-3 border border-red-200 bg-red-50 hover:bg-red-100 text-red-700 rounded-lg text-xs font-semibold transition-colors"
+                                onClick={() => {
+                                  setSelectedSubForAction(sub);
+                                  setActionReason("");
+                                  setSubActionModal("cancel");
+                                }}
+                              >
+                                Cancel
+                              </button>
+                            </>
+                          )}
+
+                          {sub.status === "CANCELLED" && (
+                            <span className="text-[11px] text-gray-500 italic">
+                              Subscription cancelled ({sub.cancellationReason || "Customer requested"})
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* Modals for Pause, Skip, Cancel, Settings */}
+            {subActionModal && selectedSubForAction && (
+              <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+                <div className="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl space-y-4 text-xs">
+                  {subActionModal === "pause" && (
+                    <>
+                      <h3 className="text-base font-bold text-[#123D28] font-serif">Pause Subscription</h3>
+                      <p className="text-gray-600">
+                        Pausing will hold upcoming deliveries for <strong>{selectedSubForAction.productName}</strong>. You can resume anytime.
+                      </p>
+                      <div>
+                        <label className="block font-semibold mb-1">Reason for pausing (optional):</label>
+                        <input
+                          type="text"
+                          value={actionReason}
+                          onChange={(e) => setActionReason(e.target.value)}
+                          placeholder="e.g. Travelling / Have enough stock"
+                          className="w-full p-2 border border-gray-300 rounded-lg text-xs"
+                        />
+                      </div>
+                      <div className="flex justify-end gap-2 pt-2">
+                        <button
+                          type="button"
+                          className="py-2 px-3 border rounded-lg text-gray-700"
+                          onClick={() => setSubActionModal(null)}
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          type="button"
+                          className="py-2 px-4 bg-amber-600 hover:bg-amber-700 text-white rounded-lg font-bold"
+                          onClick={() => pauseSubMutation.mutate({ id: selectedSubForAction.id, reason: actionReason })}
+                          disabled={pauseSubMutation.isPending}
+                        >
+                          {pauseSubMutation.isPending ? "Pausing..." : "Confirm Pause"}
+                        </button>
+                      </div>
+                    </>
+                  )}
+
+                  {subActionModal === "skip" && (
+                    <>
+                      <h3 className="text-base font-bold text-[#123D28] font-serif">Skip Next Delivery</h3>
+                      <p className="text-gray-600">
+                        Skip the delivery scheduled for <strong>{selectedSubForAction.nextDeliveryDate?.slice(0, 10)}</strong>.
+                        Your schedule will automatically advance by one frequency interval without generating an order.
+                      </p>
+                      <div className="flex justify-end gap-2 pt-2">
+                        <button
+                          type="button"
+                          className="py-2 px-3 border rounded-lg text-gray-700"
+                          onClick={() => setSubActionModal(null)}
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          type="button"
+                          className="py-2 px-4 bg-[#123D28] text-white rounded-lg font-bold"
+                          onClick={() => skipSubMutation.mutate({ id: selectedSubForAction.id, reason: "Customer skipped" })}
+                          disabled={skipSubMutation.isPending}
+                        >
+                          {skipSubMutation.isPending ? "Skipping..." : "Confirm Skip"}
+                        </button>
+                      </div>
+                    </>
+                  )}
+
+                  {subActionModal === "settings" && (
+                    <>
+                      <h3 className="text-base font-bold text-[#123D28] font-serif">Update Subscription Settings</h3>
+                      <div className="space-y-3">
+                        <div>
+                          <label className="block font-semibold mb-1">Quantity per Delivery:</label>
+                          <input
+                            type="number"
+                            min="1"
+                            max="20"
+                            value={editQty}
+                            onChange={(e) => setEditQty(Math.max(1, parseInt(e.target.value) || 1))}
+                            className="w-full p-2 border border-gray-300 rounded-lg text-xs"
+                          />
+                        </div>
+                        <div>
+                          <label className="block font-semibold mb-1">Frequency:</label>
+                          <select
+                            value={editFreq}
+                            onChange={(e) => setEditFreq(e.target.value as any)}
+                            className="w-full p-2 border border-gray-300 rounded-lg text-xs bg-white"
+                          >
+                            <option value="15_DAYS">Every 15 Days</option>
+                            <option value="30_DAYS">Every 30 Days (Monthly)</option>
+                            <option value="45_DAYS">Every 45 Days</option>
+                            <option value="60_DAYS">Every 60 Days</option>
+                            <option value="90_DAYS">Every 90 Days</option>
+                          </select>
+                        </div>
+                      </div>
+                      <div className="flex justify-end gap-2 pt-2">
+                        <button
+                          type="button"
+                          className="py-2 px-3 border rounded-lg text-gray-700"
+                          onClick={() => setSubActionModal(null)}
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          type="button"
+                          className="py-2 px-4 bg-[#123D28] text-white rounded-lg font-bold"
+                          onClick={() => updateSubMutation.mutate({ id: selectedSubForAction.id, quantity: editQty, frequency: editFreq as any })}
+                          disabled={updateSubMutation.isPending}
+                        >
+                          {updateSubMutation.isPending ? "Saving..." : "Save Settings"}
+                        </button>
+                      </div>
+                    </>
+                  )}
+
+                  {subActionModal === "cancel" && (
+                    <>
+                      <h3 className="text-base font-bold text-red-700 font-serif">Cancel Subscription</h3>
+                      <p className="text-gray-600">
+                        Are you sure you want to cancel your subscription for <strong>{selectedSubForAction.productName}</strong>? Future recurring deliveries will stop immediately.
+                      </p>
+                      <div>
+                        <label className="block font-semibold mb-1 text-gray-700">Reason for cancellation *</label>
+                        <input
+                          type="text"
+                          value={actionReason}
+                          onChange={(e) => setActionReason(e.target.value)}
+                          placeholder="e.g. Relocating / Switching products"
+                          className="w-full p-2 border border-gray-300 rounded-lg text-xs"
+                        />
+                      </div>
+                      <div className="flex justify-end gap-2 pt-2">
+                        <button
+                          type="button"
+                          className="py-2 px-3 border rounded-lg text-gray-700"
+                          onClick={() => setSubActionModal(null)}
+                        >
+                          Keep Subscription
+                        </button>
+                        <button
+                          type="button"
+                          className="py-2 px-4 bg-red-700 hover:bg-red-800 text-white rounded-lg font-bold"
+                          disabled={!actionReason.trim() || cancelSubMutation.isPending}
+                          onClick={() => cancelSubMutation.mutate({ id: selectedSubForAction.id, reason: actionReason })}
+                        >
+                          {cancelSubMutation.isPending ? "Cancelling..." : "Confirm Cancellation"}
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
         {activeTab === "returns" && (
           <div className="space-y-6">
             <div className="bg-white p-5 rounded-2xl border border-[#DEDFD5] shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
