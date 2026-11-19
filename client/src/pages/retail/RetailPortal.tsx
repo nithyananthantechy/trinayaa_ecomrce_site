@@ -35,6 +35,7 @@ import {
   Check
 } from "lucide-react";
 import { COOKIE_NAME } from "@shared/const";
+import RetailLogin from "./RetailLogin";
 
 type RetailNavTab = "billing" | "stock" | "history" | "dashboard" | "account";
 
@@ -294,23 +295,7 @@ export default function RetailPortal() {
 
   const role = (currentUser?.role || "").toUpperCase();
   if (!currentUser || (role !== "RETAIL_SHOP_HANDLER" && role !== "SUPER_ADMIN")) {
-    return (
-      <div className="min-h-screen bg-[#FBF8F0] flex flex-col items-center justify-center p-6 text-center font-sans">
-        <div className="w-16 h-16 rounded-full bg-red-100 text-red-700 flex items-center justify-center mb-4">
-          <AlertTriangle size={32} />
-        </div>
-        <h2 className="font-serif text-2xl font-bold text-[#123D28] mb-2">Retail Staff Access Required</h2>
-        <p className="text-xs text-[#6C7167] max-w-sm mb-6">
-          You must be logged in as an authorized Retail Shop Handler or Super Administrator to access the physical branch POS.
-        </p>
-        <button
-          onClick={() => setLocation("/retail/login")}
-          className="inline-flex items-center gap-2 px-6 py-2.5 rounded-lg bg-[#123D28] text-white text-xs font-bold shadow-sm hover:bg-[#1C5A3C] transition-all cursor-pointer"
-        >
-          Go to Retail Login <ArrowRight size={15} />
-        </button>
-      </div>
-    );
+    return <RetailLogin />;
   }
 
   return (
@@ -319,8 +304,8 @@ export default function RetailPortal() {
       <header className="bg-[#123D28] text-[#FBF8F0] px-4 py-3 sticky top-0 z-40 shadow-sm">
         <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-lg bg-[#FBF8F0] flex items-center justify-center text-[#123D28] shadow-xs shrink-0">
-              <Store size={20} />
+            <div className="w-9 h-9 rounded-lg bg-[#FBF8F0] p-1 flex items-center justify-center shadow-xs shrink-0">
+              <img src="/images/brand/emblem_crisp.png" alt="TRINAYAA" className="w-full h-full object-contain" />
             </div>
             <div>
               <div className="flex items-center gap-2">

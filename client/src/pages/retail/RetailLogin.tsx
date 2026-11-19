@@ -2,8 +2,9 @@ import { useState, FormEvent } from "react";
 import { useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
-import { Store, ArrowRight, Lock, Mail, ArrowLeft, AlertCircle, ShoppingBag, MapPin } from "lucide-react";
+import { Store, ArrowRight, Lock, Mail, ArrowLeft, AlertCircle, ShoppingBag, MapPin, Shield } from "lucide-react";
 import { COOKIE_NAME } from "@shared/const";
+import BrandMark from "@/components/BrandMark";
 
 export default function RetailLogin() {
   const [, setLocation] = useLocation();
@@ -66,14 +67,14 @@ export default function RetailLogin() {
 
         <div className="bg-white border border-[#E5DECF] rounded-2xl p-6 sm:p-8 shadow-sm">
           <div className="text-center mb-6">
-            <div className="w-16 h-16 mx-auto mb-3 rounded-2xl bg-[#123D28] p-2.5 flex items-center justify-center shadow-md">
-              <Store size={32} className="text-[#FBF8F0]" />
+            <div className="flex justify-center mb-3">
+              <BrandMark />
             </div>
-            <h1 className="font-serif text-2xl font-bold text-[#123D28] tracking-tight">
-              TRINAYAA Retail POS
-            </h1>
-            <p className="text-xs text-[#6C7167] mt-1 font-sans">
-              Retail Shop Operations · Offline Sales Billing · Branch Inventory Control
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-800 mb-2 border border-emerald-200">
+              <Store size={12} className="text-emerald-700" /> Physical Retail Outlets &amp; POS Billing
+            </div>
+            <p className="text-xs text-[#6C7167] font-sans">
+              Authorized cashiers and retail shop handlers · Counter billing &amp; branch stock
             </p>
           </div>
 
@@ -130,14 +131,16 @@ export default function RetailLogin() {
             </button>
           </form>
 
-          <div className="mt-6 pt-5 border-t border-[#F0EBE1] text-center text-[11px] text-[#6C7167]">
-            <span>Need full administrator access? </span>
+          <div className="mt-6 pt-5 border-t border-[#F0EBE1] flex flex-col sm:flex-row items-center justify-between gap-2 text-[11px] text-[#6C7167]">
+            <span className="flex items-center gap-1">
+              <Store size={13} className="text-[#123D28]" /> Retail terminal access
+            </span>
             <button
               type="button"
               onClick={() => setLocation("/admin/login")}
-              className="font-bold text-[#123D28] hover:underline cursor-pointer"
+              className="font-bold text-[#123D28] hover:text-[#AE6A2B] hover:underline cursor-pointer flex items-center gap-1 transition-colors"
             >
-              Admin Console Login
+              <Shield size={13} /> Admin Console Login &rarr;
             </button>
           </div>
         </div>

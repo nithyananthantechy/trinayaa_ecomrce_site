@@ -2,8 +2,9 @@ import { useState, FormEvent } from "react";
 import { useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
-import { Shield, ArrowRight, Lock, Mail, ArrowLeft, Leaf, AlertCircle } from "lucide-react";
+import { Shield, ArrowRight, Lock, Mail, ArrowLeft, Leaf, AlertCircle, Store } from "lucide-react";
 import { COOKIE_NAME } from "@shared/const";
+import BrandMark from "@/components/BrandMark";
 
 export default function AdminLogin() {
   const [, setLocation] = useLocation();
@@ -61,13 +62,13 @@ export default function AdminLogin() {
 
         <div className="bg-white border border-[#E5DECF] rounded-2xl p-6 sm:p-8 shadow-sm">
           <div className="text-center mb-6">
-            <div className="w-16 h-16 mx-auto mb-3 rounded-2xl bg-[#123D28] p-2.5 flex items-center justify-center shadow-md">
-              <img src="/images/brand/emblem_crisp.png" alt="TRINAYAA" className="w-full h-full object-contain filter brightness-110 drop-shadow" />
+            <div className="flex justify-center mb-3">
+              <BrandMark />
             </div>
-            <h1 className="font-serif text-2xl font-bold text-[#123D28] tracking-tight">
-              TRINAYAA Admin
-            </h1>
-            <p className="text-xs text-[#6C7167] mt-1 font-sans">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-[#123D28]/10 text-[#123D28] mb-2 border border-[#123D28]/20">
+              <Shield size={12} className="text-[#123D28]" /> Super Administrator Portal
+            </div>
+            <p className="text-xs text-[#6C7167] font-sans">
               Enter authorized administrator credentials to manage the catalogue, orders, and promotions.
             </p>
           </div>
@@ -124,9 +125,17 @@ export default function AdminLogin() {
             </button>
           </form>
 
-          <div className="mt-6 pt-6 border-t border-[#DEDFD5] text-center text-[11px] text-[#6C7167]">
-            <Shield size={14} className="inline mr-1 text-[#123D28]" />
-            Session protected with HttpOnly cookies & role validation.
+          <div className="mt-6 pt-5 border-t border-[#F0EBE1] flex flex-col sm:flex-row items-center justify-between gap-2 text-[11px] text-[#6C7167]">
+            <span className="flex items-center gap-1">
+              <Shield size={13} className="text-[#123D28]" /> Protected admin session
+            </span>
+            <button
+              type="button"
+              onClick={() => setLocation("/retail/login")}
+              className="font-bold text-[#123D28] hover:text-[#AE6A2B] hover:underline cursor-pointer flex items-center gap-1 transition-colors"
+            >
+              <Store size={13} /> Retail Shop POS Login &rarr;
+            </button>
           </div>
         </div>
       </div>

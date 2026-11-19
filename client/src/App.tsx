@@ -37,9 +37,15 @@ function Router() {
       <Route path="/account" component={CustomerAccountPage} />
       <Route path="/footer-samples" component={FooterSamplesPage} />
       <Route path="/admin/login" component={AdminLogin} />
+      <Route path="/adminlogin" component={AdminLogin} />
+      <Route path="/admin-login" component={AdminLogin} />
       <Route path="/admin" component={AdminDashboard} />
       <Route path="/admin/:sub*" component={AdminDashboard} />
       <Route path="/retail/login" component={RetailLogin} />
+      <Route path="/retaillogin" component={RetailLogin} />
+      <Route path="/retail-login" component={RetailLogin} />
+      <Route path="/pos/login" component={RetailLogin} />
+      <Route path="/pos" component={RetailPortal} />
       <Route path="/retail" component={RetailPortal} />
       <Route path="/retail/:sub*" component={RetailPortal} />
       <Route path="/404" component={NotFound} />
