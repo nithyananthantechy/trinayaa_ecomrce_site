@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 
 import BrandMark from "@/components/BrandMark";
+import StoreFooter from "@/components/StoreFooter";
 
 export default function TrackOrder() {
   const [, setLocation] = useLocation();
@@ -173,10 +174,8 @@ export default function TrackOrder() {
         </section>
       </main>
 
-      <footer className="minimal-footer">
-        <span>© 2026 TRINAYAA ENTERPRISES</span>
-        <button onClick={() => setLocation("/")}>Back to shop <ArrowRight size={15} /></button>
-      </footer>
+      {/* Official Master Store Footer */}
+      <StoreFooter />
     </div>
   );
 }

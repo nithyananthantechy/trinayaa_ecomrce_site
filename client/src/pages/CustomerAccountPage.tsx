@@ -4,6 +4,7 @@ import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 import BrandMark from "@/components/BrandMark";
 import AuthModal from "@/components/AuthModal";
+import StoreFooter from "@/components/StoreFooter";
 import {
   RotateCcw,
   Repeat,
@@ -2949,6 +2950,8 @@ export default function CustomerAccountPage() {
         </div>
       )}
 
+      {/* Official Master Store Footer */}
+      <StoreFooter />
     </div>
   );
 }

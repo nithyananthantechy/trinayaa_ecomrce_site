@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Link, useLocation } from "wouter";
 import BrandMark from "@/components/BrandMark";
 import BulkEnquiryDialog from "@/components/BulkEnquiryDialog";
+import StoreFooter from "@/components/StoreFooter";
 import {
   Building2,
   Package,
@@ -207,16 +208,8 @@ export default function BulkEnquiryPage() {
         </section>
       </main>
 
-      {/* Footer */}
-      <footer className="bg-[#123D28] text-[#E5DECF] py-8 px-4 text-xs">
-        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
-          <BrandMark inverse />
-          <div className="text-center sm:text-right">
-            <div>Headquarters: 42, Kongu Nagar, Erode, Tamil Nadu - 638002</div>
-            <div className="text-[#A5B8A0] mt-0.5">© 2026 TRINAYAA ENTERPRISES. All Rights Reserved.</div>
-          </div>
-        </div>
-      </footer>
+      {/* Official Master Store Footer */}
+      <StoreFooter />
 
       {/* Bulk Enquiry Dialog */}
       <BulkEnquiryDialog open={dialogOpen} onClose={() => setDialogOpen(false)} />
