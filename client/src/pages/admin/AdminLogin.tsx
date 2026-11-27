@@ -2,7 +2,7 @@ import { useState, FormEvent } from "react";
 import { useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
-import { Shield, ArrowRight, Lock, Mail, ArrowLeft, Leaf, AlertCircle, Store } from "lucide-react";
+import { Shield, ArrowRight, Lock, Mail, ArrowLeft, Leaf, AlertCircle, Store, Eye, EyeOff } from "lucide-react";
 import { COOKIE_NAME } from "@shared/const";
 import BrandMark from "@/components/BrandMark";
 
@@ -10,6 +10,7 @@ export default function AdminLogin() {
   const [, setLocation] = useLocation();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
 
@@ -104,14 +105,23 @@ export default function AdminLogin() {
               <div className="relative">
                 <Lock className="absolute left-3 top-3 text-[#6C7167]" size={16} />
                 <input
-                  type="password"
+                  type={showPassword ? "text" : "password"}
                   required
                   autoComplete="current-password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••••••"
-                  className="w-full pl-9 pr-3 py-2.5 bg-[#FBF8F0] border border-[#DEDFD5] rounded-md focus:outline-none focus:border-[#123D28]"
+                  className="w-full pl-9 pr-10 py-2.5 bg-[#FBF8F0] border border-[#DEDFD5] rounded-md focus:outline-none focus:border-[#123D28]"
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-[#6C7167] hover:text-[#123D28] transition-colors cursor-pointer"
+                  title={showPassword ? "Hide password" : "Show password"}
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                >
+                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
               </div>
             </div>
 

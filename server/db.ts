@@ -653,6 +653,59 @@ function initTables(db: any) {
     CREATE INDEX IF NOT EXISTS idx_retail_sales_created ON retail_sales(created_at);
     CREATE INDEX IF NOT EXISTS idx_retail_movements_branch ON retail_stock_movements(branch_id, created_at);
     CREATE INDEX IF NOT EXISTS idx_retail_adj_branch ON retail_stock_adjustments(branch_id, status);
+
+    -- RETAIL BRANCH EXPENSES & CASH FLOW (PHASE 4 EXTENSION)
+    CREATE TABLE IF NOT EXISTS retail_branch_expenses (
+      id TEXT PRIMARY KEY,
+      branch_id TEXT NOT NULL,
+      amount REAL NOT NULL,
+      category TEXT NOT NULL,
+      description TEXT NOT NULL,
+      payment_mode TEXT NOT NULL DEFAULT 'CASH',
+      recorded_by TEXT NOT NULL,
+      handler_id TEXT,
+      expense_date TEXT NOT NULL,
+      receipt_ref TEXT,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      FOREIGN KEY (branch_id) REFERENCES retail_branches(id) ON DELETE CASCADE
+    );
+
+    CREATE TABLE IF NOT EXISTS retail_branch_allowances (
+      id TEXT PRIMARY KEY,
+      branch_id TEXT NOT NULL,
+      month_year TEXT NOT NULL,
+      allocated_amount REAL NOT NULL DEFAULT 25000,
+      notes TEXT,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      UNIQUE(branch_id, month_year),
+      FOREIGN KEY (branch_id) REFERENCES retail_branches(id) ON DELETE CASCADE
+    );
+
+    CREATE TABLE IF NOT EXISTS retail_branch_shipments (
+      id TEXT PRIMARY KEY,
+      shipment_number TEXT UNIQUE NOT NULL,
+      branch_id TEXT NOT NULL,
+      source_warehouse TEXT NOT NULL DEFAULT 'Central Erode Warehouse & Processing Hub',
+      product_id TEXT NOT NULL,
+      sku TEXT NOT NULL,
+      product_name TEXT NOT NULL,
+      pack_size TEXT DEFAULT 'Standard Pack',
+      quantity_shipped INTEGER NOT NULL,
+      batch_number TEXT,
+      carrier TEXT DEFAULT 'DTDC Express',
+      tracking_number TEXT,
+      status TEXT DEFAULT 'IN_TRANSIT',
+      dispatch_date TEXT NOT NULL,
+      estimated_delivery TEXT,
+      delivered_date TEXT,
+      received_by TEXT,
+      notes TEXT,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      FOREIGN KEY (branch_id) REFERENCES retail_branches(id) ON DELETE CASCADE
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_retail_expenses_branch ON retail_branch_expenses(branch_id, expense_date);
+    CREATE INDEX IF NOT EXISTS idx_retail_shipments_branch ON retail_branch_shipments(branch_id, status);
   `);
 
   // Safe schema migrations for existing database tables
@@ -665,6 +718,7 @@ function initTables(db: any) {
   };
 
   safeAlter("ALTER TABLE users ADD COLUMN branchId TEXT;");
+  safeAlter("ALTER TABLE users ADD COLUMN adminNotes TEXT;");
 
   safeAlter("ALTER TABLE customer_addresses ADD COLUMN addressLine1 TEXT;");
   safeAlter("ALTER TABLE customer_addresses ADD COLUMN addressLine2 TEXT;");
@@ -676,6 +730,17 @@ function initTables(db: any) {
   safeAlter("ALTER TABLE orders ADD COLUMN couponCode TEXT;");
   safeAlter("ALTER TABLE orders ADD COLUMN trackingNumber TEXT;");
   safeAlter("ALTER TABLE orders ADD COLUMN carrier TEXT;");
+  safeAlter("ALTER TABLE orders ADD COLUMN billingAddress TEXT;");
+  safeAlter("ALTER TABLE orders ADD COLUMN billingName TEXT;");
+  safeAlter("ALTER TABLE orders ADD COLUMN billingPhone TEXT;");
+  safeAlter("ALTER TABLE orders ADD COLUMN billingEmail TEXT;");
+  safeAlter("ALTER TABLE orders ADD COLUMN recipientName TEXT;");
+  safeAlter("ALTER TABLE orders ADD COLUMN recipientPhone TEXT;");
+  safeAlter("ALTER TABLE orders ADD COLUMN recipientEmail TEXT;");
+  safeAlter("ALTER TABLE orders ADD COLUMN isSameAddress INTEGER NOT NULL DEFAULT 1;");
+  safeAlter("ALTER TABLE orders ADD COLUMN isGiftOrder INTEGER NOT NULL DEFAULT 0;");
+  safeAlter("ALTER TABLE orders ADD COLUMN giftMessage TEXT;");
+  safeAlter("ALTER TABLE orders ADD COLUMN deliveryInstructions TEXT;");
 
   safeAlter("ALTER TABLE payments ADD COLUMN eventId TEXT;");
   safeAlter("ALTER TABLE payments ADD COLUMN errorDescription TEXT;");
@@ -2754,29 +2819,43 @@ export const ordersRepo = {
     if (!order) return null;
 
     const history = db.prepare("SELECT status, note, updatedBy, createdAt FROM order_status_history WHERE orderId = ? ORDER BY createdAt ASC").all(order.id) as any[];
-    const items = db.prepare("SELECT productNameEn, productNameTa, packSize, quantity, price, image FROM order_items WHERE orderId = ?").all(order.id) as any[];
+    const items = db.prepare("SELECT productNameEn, productNameTa, packSize, quantity, price, subtotal, image, productId FROM order_items WHERE orderId = ?").all(order.id) as any[];
 
-    let addressSummary: any = {};
+    let parsedAddress: any = {};
     try {
-      const parsed = JSON.parse(order.shippingAddress);
-      addressSummary = {
-        city: parsed.city,
-        state: parsed.state,
-        pinCode: parsed.pinCode,
-      };
+      parsedAddress = typeof order.shippingAddress === "string" ? JSON.parse(order.shippingAddress) : (order.shippingAddress || {});
     } catch {
-      addressSummary = { city: "India" };
+      parsedAddress = { street: order.shippingAddress, city: "", state: "Tamil Nadu", pinCode: "" };
     }
+
+    const recipientName = order.recipientName || parsedAddress?.recipientName || order.customerName || "Customer";
+    const recipientPhone = order.recipientPhone || parsedAddress?.recipientPhone || order.customerPhone || "";
+    const addressLines = [
+      parsedAddress?.addressLine1 || parsedAddress?.street,
+      parsedAddress?.addressLine2,
+      parsedAddress?.landmark ? `Landmark: ${parsedAddress.landmark}` : null,
+      parsedAddress?.district || parsedAddress?.city,
+      parsedAddress?.state ? `${parsedAddress.state} - ${parsedAddress?.pinCode || ""}` : parsedAddress?.pinCode,
+    ].filter(Boolean);
 
     return {
       orderNumber: order.orderNumber,
       orderStatus: order.orderStatus,
       paymentStatus: order.paymentStatus,
+      paymentMethod: order.paymentMethod,
+      customerName: order.customerName,
+      customerPhone: order.customerPhone,
+      customerEmail: order.customerEmail,
+      recipientName,
+      recipientPhone,
+      shippingAddress: addressLines.join(", ") || (typeof order.shippingAddress === "string" ? order.shippingAddress : ""),
+      pinCode: parsedAddress?.pinCode || "",
       trackingNumber: order.trackingNumber,
       carrier: order.carrier,
       subtotal: order.subtotal,
       shippingFee: order.shippingFee,
       discountAmount: order.discountAmount,
+      couponCode: order.couponCode,
       total: order.total,
       createdAt: order.createdAt,
       updatedAt: order.updatedAt,
@@ -6659,6 +6738,372 @@ export const retailSalesRepo = {
       totalCount: overallStats?.count || 0,
       totalRevenue: overallStats?.revenue || 0,
     };
+  }
+};
+
+// ==========================================
+// RETAIL BRANCH EXPENSES & CASH FLOW REPO
+// ==========================================
+function getValidBranchId(branchId?: string): string {
+  const db = getDatabase();
+  if (branchId) {
+    const existing = db.prepare("SELECT id FROM retail_branches WHERE id = ?").get(branchId) as any;
+    if (existing) return existing.id;
+  }
+  const erodeHq = db.prepare("SELECT id FROM retail_branches WHERE UPPER(code) = 'ERODE_HQ'").get() as any;
+  if (erodeHq) return erodeHq.id;
+  const anyBranch = db.prepare("SELECT id FROM retail_branches LIMIT 1").get() as any;
+  if (anyBranch) return anyBranch.id;
+  return branchId || "brn_1795591406325_849";
+}
+
+export const retailExpensesRepo = {
+  addExpense(data: {
+    branchId: string;
+    amount: number;
+    category: string;
+    description: string;
+    paymentMode: string;
+    recordedBy: string;
+    handlerId?: string;
+    expenseDate?: string;
+    receiptRef?: string;
+  }) {
+    const db = getDatabase();
+    const validBranchId = getValidBranchId(data.branchId);
+    const id = "exp_" + Date.now() + "_" + Math.floor(Math.random() * 10000);
+    const expenseDate = data.expenseDate || new Date().toISOString().slice(0, 10);
+    const now = new Date().toISOString();
+
+    db.prepare(`
+      INSERT INTO retail_branch_expenses (
+        id, branch_id, amount, category, description, payment_mode, recorded_by, handler_id, expense_date, receipt_ref, created_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(
+      id,
+      validBranchId,
+      data.amount,
+      data.category,
+      data.description,
+      data.paymentMode || "CASH",
+      data.recordedBy,
+      data.handlerId || null,
+      expenseDate,
+      data.receiptRef || null,
+      now
+    );
+
+    return db.prepare("SELECT * FROM retail_branch_expenses WHERE id = ?").get(id) as any;
+  },
+
+  listExpenses(branchId: string, options: { monthYear?: string; category?: string; search?: string; limit?: number } = {}) {
+    const db = getDatabase();
+    const validBranchId = getValidBranchId(branchId);
+    this.seedDefaultsIfEmpty(validBranchId);
+
+    let sql = "SELECT * FROM retail_branch_expenses WHERE branch_id = ?";
+    const params: any[] = [validBranchId];
+
+    if (options.monthYear) {
+      sql += " AND expense_date LIKE ?";
+      params.push(`${options.monthYear}%`);
+    }
+
+    if (options.category && options.category !== "ALL") {
+      sql += " AND category = ?";
+      params.push(options.category);
+    }
+
+    if (options.search?.trim()) {
+      sql += " AND (description LIKE ? OR category LIKE ? OR recorded_by LIKE ?)";
+      const term = `%${options.search.trim()}%`;
+      params.push(term, term, term);
+    }
+
+    sql += " ORDER BY expense_date DESC, created_at DESC LIMIT ?";
+    params.push(options.limit || 100);
+
+    return db.prepare(sql).all(...params) as any[];
+  },
+
+  deleteExpense(id: string, branchId: string) {
+    const db = getDatabase();
+    const validBranchId = getValidBranchId(branchId);
+    return db.prepare("DELETE FROM retail_branch_expenses WHERE id = ? AND branch_id = ?").run(id, validBranchId);
+  },
+
+  getFinanceSummary(branchId: string, monthYear?: string) {
+    const db = getDatabase();
+    const validBranchId = getValidBranchId(branchId);
+    this.seedDefaultsIfEmpty(validBranchId);
+
+    const targetMonth = monthYear || new Date().toISOString().slice(0, 7);
+    const today = new Date().toISOString().slice(0, 10);
+
+    const allowanceRow = db.prepare("SELECT * FROM retail_branch_allowances WHERE branch_id = ? AND month_year = ?")
+      .get(validBranchId, targetMonth) as any;
+    const monthlyAllowance = allowanceRow ? allowanceRow.allocated_amount : 25000;
+
+    const monthStats = db.prepare(`
+      SELECT COALESCE(SUM(amount), 0) as totalMonthly, COUNT(*) as monthlyCount
+      FROM retail_branch_expenses
+      WHERE branch_id = ? AND expense_date LIKE ?
+    `).get(validBranchId, `${targetMonth}%`) as any;
+
+    const todayStats = db.prepare(`
+      SELECT COALESCE(SUM(amount), 0) as totalToday, COUNT(*) as todayCount
+      FROM retail_branch_expenses
+      WHERE branch_id = ? AND expense_date = ?
+    `).get(validBranchId, today) as any;
+
+    const totalExpenses = monthStats?.totalMonthly || 0;
+    const todayExpenses = todayStats?.totalToday || 0;
+    const remainingAllowance = Math.max(0, monthlyAllowance - totalExpenses);
+
+    const categoryBreakdown = db.prepare(`
+      SELECT category, COALESCE(SUM(amount), 0) as total, COUNT(*) as count
+      FROM retail_branch_expenses
+      WHERE branch_id = ? AND expense_date LIKE ?
+      GROUP BY category
+      ORDER BY total DESC
+    `).all(branchId, `${targetMonth}%`) as any[];
+
+    const recentExpenses = db.prepare(`
+      SELECT * FROM retail_branch_expenses
+      WHERE branch_id = ?
+      ORDER BY expense_date DESC, created_at DESC
+      LIMIT 50
+    `).all(branchId) as any[];
+
+    return {
+      monthYear: targetMonth,
+      monthlyAllowance,
+      totalExpenses,
+      todayExpenses,
+      remainingAllowance,
+      monthlyCount: monthStats?.monthlyCount || 0,
+      todayCount: todayStats?.todayCount || 0,
+      categoryBreakdown,
+      recentExpenses,
+    };
+  },
+
+  seedDefaultsIfEmpty(branchId: string) {
+    const db = getDatabase();
+    const validBranchId = getValidBranchId(branchId);
+    const currentMonth = new Date().toISOString().slice(0, 7);
+    const today = new Date().toISOString().slice(0, 10);
+
+    const existingAllowance = db.prepare("SELECT id FROM retail_branch_allowances WHERE branch_id = ? AND month_year = ?")
+      .get(validBranchId, currentMonth);
+    if (!existingAllowance) {
+      db.prepare(`
+        INSERT OR IGNORE INTO retail_branch_allowances (id, branch_id, month_year, allocated_amount, notes)
+        VALUES (?, ?, ?, ?, ?)
+      `).run("alw_" + Date.now(), validBranchId, currentMonth, 25000, "Approved Monthly Store Operations & Petty Cash Allowance");
+    }
+
+    const count = (db.prepare("SELECT COUNT(*) as c FROM retail_branch_expenses WHERE branch_id = ?").get(validBranchId) as any)?.c || 0;
+    if (count === 0) {
+      const samples = [
+        {
+          amount: 180,
+          category: "Tea & Refreshments",
+          description: "Evening herbal tea and biscuits for store cashier & customer hospitality",
+          payment_mode: "CASH",
+          recorded_by: "Store Cashier",
+          expense_date: today,
+        },
+        {
+          amount: 450,
+          category: "Furniture & Fixtures",
+          description: "Billing counter stool hinge replacement & wood repair",
+          payment_mode: "UPI",
+          recorded_by: "Branch Manager",
+          expense_date: today,
+        },
+        {
+          amount: 280,
+          category: "Stationery & Billing Rolls",
+          description: "Thermal paper rolls (5 rolls) & packaging cello tape",
+          payment_mode: "CASH",
+          recorded_by: "Store Cashier",
+          expense_date: today,
+        },
+        {
+          amount: 350,
+          category: "Maintenance & Electrical",
+          description: "Display rack spotlight LED tube replacement & electrical wire check",
+          payment_mode: "CASH",
+          recorded_by: "Store Cashier",
+          expense_date: today,
+        },
+      ];
+
+      for (const s of samples) {
+        const id = "exp_init_" + Math.random().toString(36).slice(2, 9);
+        db.prepare(`
+          INSERT INTO retail_branch_expenses (
+            id, branch_id, amount, category, description, payment_mode, recorded_by, expense_date, created_at
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
+        `).run(id, validBranchId, s.amount, s.category, s.description, s.payment_mode, s.recorded_by, s.expense_date);
+      }
+    }
+  }
+};
+
+// ==========================================
+// RETAIL BRANCH SHIPMENTS & RESTOCK REPO
+// ==========================================
+export const retailShipmentsRepo = {
+  listShipments(branchId: string, options: { search?: string; status?: string; limit?: number } = {}) {
+    const db = getDatabase();
+    const validBranchId = getValidBranchId(branchId);
+    this.seedDefaultsIfEmpty(validBranchId);
+
+    let sql = "SELECT * FROM retail_branch_shipments WHERE branch_id = ?";
+    const params: any[] = [validBranchId];
+
+    if (options.status && options.status !== "ALL") {
+      sql += " AND status = ?";
+      params.push(options.status);
+    }
+
+    if (options.search?.trim()) {
+      sql += " AND (shipment_number LIKE ? OR product_name LIKE ? OR sku LIKE ? OR carrier LIKE ? OR tracking_number LIKE ?)";
+      const term = `%${options.search.trim()}%`;
+      params.push(term, term, term, term, term);
+    }
+
+    sql += " ORDER BY created_at DESC LIMIT ?";
+    params.push(options.limit || 100);
+
+    const shipments = db.prepare(sql).all(...params) as any[];
+
+    const inTransitCount = (db.prepare("SELECT COUNT(*) as c FROM retail_branch_shipments WHERE branch_id = ? AND status = 'IN_TRANSIT'")
+      .get(validBranchId) as any)?.c || 0;
+    const deliveredCount = (db.prepare("SELECT COUNT(*) as c FROM retail_branch_shipments WHERE branch_id = ? AND status IN ('DELIVERED', 'RECEIVED')")
+      .get(validBranchId) as any)?.c || 0;
+    const totalUnits = (db.prepare("SELECT COALESCE(SUM(quantity_shipped), 0) as u FROM retail_branch_shipments WHERE branch_id = ?")
+      .get(validBranchId) as any)?.u || 0;
+
+    return {
+      shipments,
+      inTransitCount,
+      deliveredCount,
+      totalUnits,
+    };
+  },
+
+  acknowledgeReceipt(id: string, branchId: string, receivedBy: string) {
+    const db = getDatabase();
+    const validBranchId = getValidBranchId(branchId);
+    const shipment = db.prepare("SELECT * FROM retail_branch_shipments WHERE id = ? AND branch_id = ?")
+      .get(id, validBranchId) as any;
+    if (!shipment) throw new Error("Shipment not found");
+    if (shipment.status === "RECEIVED") return shipment;
+
+    const today = new Date().toISOString().slice(0, 10);
+    const now = new Date().toISOString();
+
+    db.exec("BEGIN IMMEDIATE;");
+    try {
+      db.prepare(`
+        UPDATE retail_branch_shipments
+        SET status = 'RECEIVED', delivered_date = ?, received_by = ?
+        WHERE id = ?
+      `).run(today, receivedBy, id);
+
+      const stockRow = db.prepare("SELECT * FROM retail_branch_stock WHERE branch_id = ? AND product_id = ?")
+        .get(validBranchId, shipment.product_id) as any;
+
+      if (stockRow) {
+        const newStock = stockRow.stock_quantity + shipment.quantity_shipped;
+        db.prepare("UPDATE retail_branch_stock SET stock_quantity = ?, updated_at = ? WHERE id = ?")
+          .run(newStock, now, stockRow.id);
+
+        const movId = "mov_" + Date.now() + "_" + Math.floor(Math.random() * 1000);
+        db.prepare(`
+          INSERT INTO retail_stock_movements (
+            id, branch_id, product_id, sku, change_type, delta, previous_stock, new_stock, reference_id, reason, performed_by, created_at
+          ) VALUES (?, ?, ?, ?, 'RESTOCK_RECEIVED', ?, ?, ?, ?, 'Shipment Acknowledged & Stocked', ?, ?)
+        `).run(
+          movId,
+          validBranchId,
+          shipment.product_id,
+          shipment.sku,
+          shipment.quantity_shipped,
+          stockRow.stock_quantity,
+          newStock,
+          shipment.shipment_number,
+          receivedBy,
+          now
+        );
+      }
+
+      db.exec("COMMIT;");
+      return db.prepare("SELECT * FROM retail_branch_shipments WHERE id = ?").get(id) as any;
+    } catch (err) {
+      try { db.exec("ROLLBACK;"); } catch {}
+      throw err;
+    }
+  },
+
+  seedDefaultsIfEmpty(branchId: string) {
+    const db = getDatabase();
+    const validBranchId = getValidBranchId(branchId);
+    const count = (db.prepare("SELECT COUNT(*) as c FROM retail_branch_shipments WHERE branch_id = ?").get(validBranchId) as any)?.c || 0;
+    if (count > 0) return;
+
+    const items = db.prepare(`
+      SELECT s.*, p.nameEn, p.nameTa, p.sellingPrice
+      FROM retail_branch_stock s
+      JOIN products p ON s.product_id = p.id
+      WHERE s.branch_id = ?
+      LIMIT 8
+    `).all(validBranchId) as any[];
+
+    if (items.length === 0) return;
+
+    const tomorrow = new Date(Date.now() + 86400000).toISOString().slice(0, 10);
+    const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+
+    const statuses = ["IN_TRANSIT", "IN_TRANSIT", "RECEIVED", "DISPATCHED", "RECEIVED"];
+
+    items.slice(0, 5).forEach((item: any, index: number) => {
+      const id = "ship_" + Date.now() + "_" + index;
+      const shipNum = `TRN-SHIP-2026-${String(index + 1042).padStart(5, "0")}`;
+      const status = statuses[index % statuses.length];
+      const tracking = `DTDC${Math.floor(100000000 + Math.random() * 900000000)}IN`;
+      const batch = `BATCH-2026-${String(index + 1).padStart(3, "0")}`;
+
+      db.prepare(`
+        INSERT INTO retail_branch_shipments (
+          id, shipment_number, branch_id, source_warehouse, product_id, sku, product_name,
+          pack_size, quantity_shipped, batch_number, carrier, tracking_number, status,
+          dispatch_date, estimated_delivery, delivered_date, received_by, notes, created_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
+      `).run(
+        id,
+        shipNum,
+        branchId,
+        "Central Botanical Processing Hub & Warehouse (Erode)",
+        item.product_id,
+        item.sku,
+        item.nameEn,
+        "Standard Pack (100g / 250g)",
+        50,
+        batch,
+        "DTDC Express Freight",
+        tracking,
+        status,
+        yesterday,
+        tomorrow,
+        status === "RECEIVED" ? yesterday : null,
+        status === "RECEIVED" ? "Store Manager" : null,
+        "Weekly replenishment quota for physical store inventory"
+      );
+    });
   }
 };
 

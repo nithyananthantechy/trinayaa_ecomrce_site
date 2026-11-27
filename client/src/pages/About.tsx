@@ -12,7 +12,6 @@ import {
   Search,
   Instagram,
   Facebook,
-  Youtube,
   Award,
   HeartHandshake,
   Sprout,

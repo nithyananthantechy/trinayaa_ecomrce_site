@@ -30,6 +30,24 @@ function isDuplicateEnquiry(key: string, cooldownMs = 60000): boolean {
   return false;
 }
 
+// Helper to safely resolve a valid branch ID in the database
+function resolveRetailBranchId(user: any, requestedBranchId?: string): string {
+  if (requestedBranchId) {
+    const requested = db.retailBranchesRepo.getById(requestedBranchId);
+    if (requested) return requested.id;
+  }
+  if (user?.branchId) {
+    const assigned = db.retailBranchesRepo.getById(user.branchId);
+    if (assigned) return assigned.id;
+  }
+  const erodeHq = db.retailBranchesRepo.getByCode("ERODE_HQ");
+  if (erodeHq) return erodeHq.id;
+
+  const firstBranch = db.retailBranchesRepo.getAll()[0];
+  if (firstBranch) return firstBranch.id;
+
+  return "brn_1795591406325_849";
+}
 
 export const appRouter = router({
   system: systemRouter,
@@ -3965,7 +3983,7 @@ addresses: router({
   retail: router({
     myBranch: retailProcedure.query(async ({ ctx }) => {
       const user = db.usersRepo.getById(String(ctx.user.id));
-      const branchId = user?.branchId || "brn_erode_hq";
+      const branchId = resolveRetailBranchId(user);
       const branch = db.retailBranchesRepo.getById(branchId);
       if (!branch) {
         throw new TRPCError({ code: "NOT_FOUND", message: "Assigned branch not found." });
@@ -3986,15 +4004,7 @@ addresses: router({
       .query(async ({ input, ctx }) => {
         const user = db.usersRepo.getById(String(ctx.user.id));
         const role = (user?.role || "").toUpperCase();
-        let effectiveBranchId = user?.branchId || "brn_erode_hq";
-        if (role === "SUPER_ADMIN" && input.branchId) {
-          effectiveBranchId = input.branchId;
-        } else if (input.branchId && input.branchId !== user?.branchId && role !== "SUPER_ADMIN") {
-          throw new TRPCError({
-            code: "FORBIDDEN",
-            message: "Unauthorized: You may only access your assigned branch stock.",
-          });
-        }
+        const effectiveBranchId = resolveRetailBranchId(user, role === "SUPER_ADMIN" ? input.branchId : undefined);
         return db.retailStockRepo.getBranchStock(effectiveBranchId, input);
       }),
 
@@ -4007,7 +4017,7 @@ addresses: router({
       )
       .query(async ({ input, ctx }) => {
         const user = db.usersRepo.getById(String(ctx.user.id));
-        const effectiveBranchId = (user?.role === "SUPER_ADMIN" && input.branchId) ? input.branchId : (user?.branchId || "brn_erode_hq");
+        const effectiveBranchId = resolveRetailBranchId(user, input.branchId);
         const items = db.retailStockRepo.getBranchStock(effectiveBranchId, { search: input.query, limit: 30 });
         return items;
       }),
@@ -4036,7 +4046,7 @@ addresses: router({
       )
       .mutation(async ({ input, ctx }) => {
         const user = db.usersRepo.getById(String(ctx.user.id));
-        const branchId = user?.branchId || "brn_erode_hq";
+        const branchId = resolveRetailBranchId(user);
 
         try {
           const sale = db.retailSalesRepo.processSale(
@@ -4113,7 +4123,7 @@ addresses: router({
       )
       .query(async ({ input, ctx }) => {
         const user = db.usersRepo.getById(String(ctx.user.id));
-        const branchId = user?.branchId || "brn_erode_hq";
+        const branchId = resolveRetailBranchId(user);
         return db.retailSalesRepo.listSales({
           ...input,
           branchId: user?.role === "SUPER_ADMIN" ? undefined : branchId,
@@ -4131,7 +4141,7 @@ addresses: router({
       )
       .mutation(async ({ input, ctx }) => {
         const user = db.usersRepo.getById(String(ctx.user.id));
-        const branchId = user?.branchId || "brn_erode_hq";
+        const branchId = resolveRetailBranchId(user);
 
         const adj = db.retailStockRepo.requestAdjustment({
           branchId,
@@ -4153,7 +4163,7 @@ addresses: router({
 
     myAdjustments: retailProcedure.query(async ({ ctx }) => {
       const user = db.usersRepo.getById(String(ctx.user.id));
-      const branchId = user?.branchId || "brn_erode_hq";
+      const branchId = resolveRetailBranchId(user);
       return db.retailStockRepo.listAdjustments(user?.role === "SUPER_ADMIN" ? undefined : branchId);
     }),
 
@@ -4161,13 +4171,13 @@ addresses: router({
       .input(z.object({ limit: z.number().optional().default(50) }))
       .query(async ({ input, ctx }) => {
         const user = db.usersRepo.getById(String(ctx.user.id));
-        const branchId = user?.branchId || "brn_erode_hq";
+        const branchId = resolveRetailBranchId(user);
         return db.retailStockRepo.getMovements(branchId, input.limit);
       }),
 
     dashboardMetrics: retailProcedure.query(async ({ ctx }) => {
       const user = db.usersRepo.getById(String(ctx.user.id));
-      const branchId = user?.branchId || "brn_erode_hq";
+      const branchId = resolveRetailBranchId(user);
       const branch = db.retailBranchesRepo.getById(branchId);
       const metrics = db.retailSalesRepo.getSalesMetrics(user?.role === "SUPER_ADMIN" ? undefined : branchId);
       const stockItems = db.retailStockRepo.getBranchStock(branchId, { limit: 500 });
@@ -4180,6 +4190,101 @@ addresses: router({
         lowStockCount,
       };
     }),
+
+    // ==========================================
+    // RETAIL FINANCE & CASH FLOW PROCEDURES
+    // ==========================================
+    financeSummary: retailProcedure
+      .input(
+        z.object({
+          monthYear: z.string().optional(),
+          branchId: z.string().optional(),
+        }).optional()
+      )
+      .query(async ({ input, ctx }) => {
+        const user = db.usersRepo.getById(String(ctx.user.id));
+        const effectiveBranchId = resolveRetailBranchId(user, input?.branchId);
+        return db.retailExpensesRepo.getFinanceSummary(effectiveBranchId, input?.monthYear);
+      }),
+
+    addExpense: retailProcedure
+      .input(
+        z.object({
+          amount: z.number().positive("Amount must be greater than zero"),
+          category: z.string().min(1, "Category is required"),
+          description: z.string().min(2, "Description is required"),
+          paymentMode: z.enum(["CASH", "UPI", "CARD"]).default("CASH"),
+          expenseDate: z.string().optional(),
+          receiptRef: z.string().optional(),
+        })
+      )
+      .mutation(async ({ input, ctx }) => {
+        const user = db.usersRepo.getById(String(ctx.user.id));
+        const branchId = resolveRetailBranchId(user);
+
+        const expense = db.retailExpensesRepo.addExpense({
+          branchId,
+          amount: input.amount,
+          category: input.category,
+          description: input.description,
+          paymentMode: input.paymentMode,
+          recordedBy: ctx.user.name || "Retail Staff",
+          handlerId: String(ctx.user.id),
+          expenseDate: input.expenseDate,
+          receiptRef: input.receiptRef,
+        });
+
+        db.auditLogsRepo.log(
+          ctx.user.name || "Retail Staff",
+          "RETAIL_EXPENSE_RECORDED",
+          `Recorded branch expense ₹${input.amount} for "${input.description}" (${input.category}) at branch ${branchId}`
+        );
+
+        return expense;
+      }),
+
+    deleteExpense: retailProcedure
+      .input(z.object({ id: z.string() }))
+      .mutation(async ({ input, ctx }) => {
+        const user = db.usersRepo.getById(String(ctx.user.id));
+        const branchId = resolveRetailBranchId(user);
+        db.retailExpensesRepo.deleteExpense(input.id, branchId);
+        return { success: true };
+      }),
+
+    // ==========================================
+    // RETAIL SHIPMENTS & LOGISTICS PROCEDURES
+    // ==========================================
+    listShipments: retailProcedure
+      .input(
+        z.object({
+          search: z.string().optional(),
+          status: z.string().optional(),
+          limit: z.number().optional().default(50),
+          branchId: z.string().optional(),
+        }).optional()
+      )
+      .query(async ({ input, ctx }) => {
+        const user = db.usersRepo.getById(String(ctx.user.id));
+        const effectiveBranchId = resolveRetailBranchId(user, input?.branchId);
+        return db.retailShipmentsRepo.listShipments(effectiveBranchId, input);
+      }),
+
+    acknowledgeShipment: retailProcedure
+      .input(z.object({ id: z.string() }))
+      .mutation(async ({ input, ctx }) => {
+        const user = db.usersRepo.getById(String(ctx.user.id));
+        const branchId = resolveRetailBranchId(user);
+        const result = db.retailShipmentsRepo.acknowledgeReceipt(input.id, branchId, ctx.user.name || "Retail Staff");
+
+        db.auditLogsRepo.log(
+          ctx.user.name || "Retail Staff",
+          "RETAIL_SHIPMENT_RECEIVED",
+          `Shipment ${result.shipment_number} for product ${result.product_name} (${result.quantity_shipped} units) acknowledged and added to inventory at branch ${branchId}`
+        );
+
+        return result;
+      }),
   }),
 });
 

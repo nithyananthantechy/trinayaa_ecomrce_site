@@ -18,11 +18,11 @@ import {
   UserRound,
   Instagram,
   Facebook,
-  Youtube,
   ChevronRight,
   CheckCircle2,
   X,
-  Building2
+  Building2,
+  Check
 } from "lucide-react";
 
 import BrandMark from "@/components/BrandMark";
@@ -118,6 +118,35 @@ export default function Catalog() {
   });
 
   const cartCount = cartQuery.data?.items?.reduce((sum: number, item: any) => sum + item.quantity, 0) || 0;
+  const [addedMap, setAddedMap] = useState<Record<string, boolean>>({});
+  const [isCartBumping, setIsCartBumping] = useState(false);
+  const [showPlusOne, setShowPlusOne] = useState(false);
+  const [isWishlistBumping, setIsWishlistBumping] = useState(false);
+  const [animatingWishlistIds, setAnimatingWishlistIds] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    const handleCartAdd = () => {
+      setIsCartBumping(true);
+      setShowPlusOne(true);
+      const t1 = setTimeout(() => setIsCartBumping(false), 600);
+      const t2 = setTimeout(() => setShowPlusOne(false), 950);
+      return () => {
+        clearTimeout(t1);
+        clearTimeout(t2);
+      };
+    };
+    const handleWishlistAdd = () => {
+      setIsWishlistBumping(true);
+      const t = setTimeout(() => setIsWishlistBumping(false), 650);
+      return () => clearTimeout(t);
+    };
+    window.addEventListener("trinayaa-cart-added", handleCartAdd);
+    window.addEventListener("trinayaa-wishlist-added", handleWishlistAdd);
+    return () => {
+      window.removeEventListener("trinayaa-cart-added", handleCartAdd);
+      window.removeEventListener("trinayaa-wishlist-added", handleWishlistAdd);
+    };
+  }, []);
 
   // Filter and sort products
   const products = useMemo(() => {
@@ -144,8 +173,20 @@ export default function Catalog() {
   }, [dbProducts, search, sort]);
 
   const toggleWishlist = (id: string) => {
+    const isAdding = !wishlist.has(id);
     if (currentUser) {
       toggleWishlistMutation.mutate({ productId: id });
+    }
+    if (isAdding) {
+      setAnimatingWishlistIds((prev) => new Set(prev).add(id));
+      window.dispatchEvent(new CustomEvent("trinayaa-wishlist-added", { detail: { id } }));
+      setTimeout(() => {
+        setAnimatingWishlistIds((prev) => {
+          const next = new Set(prev);
+          next.delete(id);
+          return next;
+        });
+      }, 950);
     }
     setWishlist((prev) => {
       const next = new Set(prev);
@@ -233,7 +274,7 @@ export default function Catalog() {
               />
             </label>
             <button
-              className="icon-action wishlist-action"
+              className={`icon-action wishlist-action ${isWishlistBumping ? "wishlist-header-anim" : ""}`}
               aria-label="Wishlist"
               onClick={() => {
                 if (currentUser) {
@@ -246,7 +287,7 @@ export default function Catalog() {
             >
               <Heart size={21} className={wishlist.size > 0 ? "text-rose-600 fill-rose-600" : ""} />
               <span>Wishlist</span>
-              {wishlist.size > 0 && <b>{wishlist.size}</b>}
+              {wishlist.size > 0 && <b className={isWishlistBumping ? "cart-badge-bounce" : ""}>{wishlist.size}</b>}
             </button>
             <button
               className="icon-action account-action"
@@ -262,10 +303,15 @@ export default function Catalog() {
               <UserRound size={22} />
               <span>{currentUser ? (currentUser.role === "ADMIN" ? "Admin" : currentUser.name.split(" ")[0]) : "Account"}</span>
             </button>
-            <button className="icon-action cart-action" aria-label="Open cart" onClick={() => setLocation("/")}>
-              <ShoppingBag size={23} />
+            <button
+              className={`icon-action cart-action relative ${isCartBumping ? "cart-pop-anim" : ""}`}
+              aria-label="Open cart"
+              onClick={() => setLocation("/")}
+            >
+              <ShoppingBag size={23} className={isCartBumping ? "text-emerald-700" : ""} />
               <span>Cart</span>
-              {cartCount > 0 && <b>{cartCount}</b>}
+              {cartCount > 0 && <b className={isCartBumping ? "cart-badge-bounce bg-emerald-700" : ""}>{cartCount}</b>}
+              {showPlusOne && <span className="floating-plus-one">+1</span>}
             </button>
           </div>
         </div>
@@ -278,11 +324,10 @@ export default function Catalog() {
             <button
               type="button"
               onClick={() => setShoppingMode("home")}
-              className={`px-4 py-1.5 rounded-lg transition-all flex items-center gap-1.5 ${
-                shoppingMode === "home"
+              className={`px-4 py-1.5 rounded-lg transition-all flex items-center gap-1.5 ${shoppingMode === "home"
                   ? "bg-[#123D28] text-white shadow-xs font-bold"
                   : "text-[#4A5546] hover:text-[#123D28]"
-              }`}
+                }`}
             >
               <span>🌿 Shop for Home / Personal</span>
             </button>
@@ -293,11 +338,10 @@ export default function Catalog() {
                 setBulkInitialProduct(undefined);
                 setBulkDialogOpen(true);
               }}
-              className={`px-4 py-1.5 rounded-lg transition-all flex items-center gap-1.5 ${
-                shoppingMode === "business"
+              className={`px-4 py-1.5 rounded-lg transition-all flex items-center gap-1.5 ${shoppingMode === "business"
                   ? "bg-[#123D28] text-white shadow-xs font-bold"
                   : "text-[#4A5546] hover:text-[#123D28]"
-              }`}
+                }`}
             >
               <Building2 size={13} />
               <span>🏢 Shop for Business (Wholesale)</span>
@@ -368,11 +412,10 @@ export default function Catalog() {
                   else if (cat === "Raw Powders") setLocation("/categories/raw-powders");
                   else if (cat === "Herbs") setLocation("/categories/herbs");
                 }}
-                className={`px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all ${
-                  selectedCategory === cat
+                className={`px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all ${selectedCategory === cat
                     ? "bg-[#123D28] text-white shadow-xs"
                     : "bg-white text-[#4B5046] border border-[#E5DECF] hover:border-[#123D28]"
-                }`}
+                  }`}
               >
                 {cat}
               </button>
@@ -449,11 +492,16 @@ export default function Catalog() {
                       e.stopPropagation();
                       toggleWishlist(p.id);
                     }}
-                    className={`absolute top-3 right-3 w-8 h-8 rounded-full bg-white/90 backdrop-blur-xs flex items-center justify-center shadow-xs hover:bg-white transition-colors ${
-                      wishlist.has(p.id) ? "text-rose-600" : "text-slate-400"
-                    }`}
+                    className={`absolute top-3 right-3 w-8 h-8 rounded-full bg-white/90 backdrop-blur-xs flex items-center justify-center shadow-xs hover:bg-white transition-all ${animatingWishlistIds.has(p.id) ? "wishlist-pop-anim text-rose-600 scale-110" : ""
+                      } ${wishlist.has(p.id) ? "text-rose-600" : "text-slate-400"
+                      }`}
                   >
-                    <Heart size={15} fill={wishlist.has(p.id) ? "currentColor" : "none"} />
+                    <Heart size={15} fill={wishlist.has(p.id) || animatingWishlistIds.has(p.id) ? "currentColor" : "none"} />
+                    {animatingWishlistIds.has(p.id) && (
+                      <span className="floating-heart">
+                        <Heart size={13} fill="currentColor" />
+                      </span>
+                    )}
                   </button>
                 </div>
 
@@ -504,8 +552,18 @@ export default function Catalog() {
                       </button>
                       <button
                         type="button"
+                        disabled={addedMap[p.id]}
                         onClick={(e) => {
                           e.stopPropagation();
+                          setAddedMap((prev) => ({ ...prev, [p.id]: true }));
+                          window.dispatchEvent(
+                            new CustomEvent("trinayaa-cart-added", {
+                              detail: { product: p, quantity: 1 },
+                            })
+                          );
+                          setTimeout(() => {
+                            setAddedMap((prev) => ({ ...prev, [p.id]: false }));
+                          }, 1400);
                           addToCartMutation.mutate({
                             productId: p.id,
                             quantity: 1,
@@ -513,10 +571,21 @@ export default function Catalog() {
                             guestToken,
                           });
                         }}
-                        className="px-3 py-1.5 bg-[#123D28] hover:bg-[#1A4D33] text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 shadow-xs transition-colors"
+                        className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 shadow-xs transition-all cursor-pointer ${addedMap[p.id]
+                            ? "bg-emerald-700 text-white scale-[1.05]"
+                            : "bg-[#123D28] hover:bg-[#1A4D33] text-white active:scale-95"
+                          }`}
                         title="Add to cart"
                       >
-                        <ShoppingBag size={14} /> Add
+                        {addedMap[p.id] ? (
+                          <>
+                            <Check size={14} className="stroke-[2.5]" /> Added!
+                          </>
+                        ) : (
+                          <>
+                            <ShoppingBag size={14} /> Add
+                          </>
+                        )}
                       </button>
                     </div>
                   </div>

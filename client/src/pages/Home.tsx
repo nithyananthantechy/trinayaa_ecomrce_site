@@ -34,7 +34,6 @@ import {
   Truck,
   UserRound,
   X,
-  Youtube,
 } from "lucide-react";
 import { useEffect, useMemo, useState, useRef, FormEvent } from "react";
 import { useLocation, useRoute } from "wouter";
@@ -73,7 +72,7 @@ function getGuestToken(): string {
 }
 
 const IMG = {
-  hero: "/images/hero/trinayaa_home_hero_banner_2x.jpg?v=3",
+  hero: "/images/hero/trinayaa_home_hero_banner_2x.webp?v=4",
   moringa: "/images/products/packaged/pouch_001.png",
   blackSeed: "/images/products/packaged/pouch_002.png",
   hibiscus: "/images/products/packaged/pouch_003.png",
@@ -196,7 +195,34 @@ function SiteHeader({
 }) {
   const [, setLocation] = useLocation();
   const [accountDropdownOpen, setAccountDropdownOpen] = useState(false);
+  const [isCartBumping, setIsCartBumping] = useState(false);
+  const [showPlusOne, setShowPlusOne] = useState(false);
+  const [isWishlistBumping, setIsWishlistBumping] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleCartAdd = () => {
+      setIsCartBumping(true);
+      setShowPlusOne(true);
+      const t1 = setTimeout(() => setIsCartBumping(false), 600);
+      const t2 = setTimeout(() => setShowPlusOne(false), 950);
+      return () => {
+        clearTimeout(t1);
+        clearTimeout(t2);
+      };
+    };
+    const handleWishlistAdd = () => {
+      setIsWishlistBumping(true);
+      const t = setTimeout(() => setIsWishlistBumping(false), 650);
+      return () => clearTimeout(t);
+    };
+    window.addEventListener("trinayaa-cart-added", handleCartAdd);
+    window.addEventListener("trinayaa-wishlist-added", handleWishlistAdd);
+    return () => {
+      window.removeEventListener("trinayaa-cart-added", handleCartAdd);
+      window.removeEventListener("trinayaa-wishlist-added", handleWishlistAdd);
+    };
+  }, []);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -268,7 +294,7 @@ function SiteHeader({
               />
             </label>
             <button
-              className="icon-action wishlist-action"
+              className={`icon-action wishlist-action ${isWishlistBumping ? "wishlist-header-anim" : ""}`}
               aria-label="Wishlist"
               onClick={() => {
                 if (currentUser) {
@@ -281,7 +307,7 @@ function SiteHeader({
             >
               <Heart size={21} className={wishlistCount && wishlistCount > 0 ? "text-rose-600 fill-rose-600" : ""} />
               <span>Wishlist</span>
-              {wishlistCount && wishlistCount > 0 ? <b>{wishlistCount}</b> : null}
+              {wishlistCount && wishlistCount > 0 ? <b className={isWishlistBumping ? "cart-badge-bounce" : ""}>{wishlistCount}</b> : null}
             </button>
             <div className="relative" ref={dropdownRef}>
               <button
@@ -393,10 +419,15 @@ function SiteHeader({
                 </div>
               )}
             </div>
-            <button className="icon-action cart-action" aria-label="Open cart" onClick={onCart}>
-              <ShoppingBag size={23} />
+            <button
+              className={`icon-action cart-action relative ${isCartBumping ? "cart-pop-anim" : ""}`}
+              aria-label="Open cart"
+              onClick={onCart}
+            >
+              <ShoppingBag size={23} className={isCartBumping ? "text-emerald-700" : ""} />
               <span>Cart</span>
-              {cartCount > 0 && <b>{cartCount}</b>}
+              {cartCount > 0 && <b className={isCartBumping ? "cart-badge-bounce bg-emerald-700" : ""}>{cartCount}</b>}
+              {showPlusOne && <span className="floating-plus-one">+1</span>}
             </button>
           </div>
         </div>
@@ -429,6 +460,29 @@ function ProductCard({
   onDetails: () => void;
   onAdd: () => void;
 }) {
+  const [isAdded, setIsAdded] = useState(false);
+  const [isWishlistAnimating, setIsWishlistAnimating] = useState(false);
+  const [showFloatingHeart, setShowFloatingHeart] = useState(false);
+
+  const handleAdd = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onAdd();
+    setIsAdded(true);
+    setTimeout(() => setIsAdded(false), 1400);
+  };
+
+  const handleWishlist = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onWishlist();
+    if (!isWishlisted) {
+      setIsWishlistAnimating(true);
+      setShowFloatingHeart(true);
+      window.dispatchEvent(new CustomEvent("trinayaa-wishlist-added", { detail: { product } }));
+      setTimeout(() => setIsWishlistAnimating(false), 600);
+      setTimeout(() => setShowFloatingHeart(false), 950);
+    }
+  };
+
   return (
     <article className="product-card" id={`product-${(product as any).slug || product.id}`}>
       <div className="product-image-wrap" onClick={onDetails} role="button" tabIndex={0} onKeyDown={(e) => e.key === "Enter" && onDetails()}>
@@ -443,14 +497,16 @@ function ProductCard({
         />
         {product.badge && <span className="product-badge">{product.badge}</span>}
         <button
-          className={`wishlist-button ${isWishlisted ? "is-wishlisted" : ""}`}
+          className={`wishlist-button relative ${isWishlisted ? "is-wishlisted" : ""} ${isWishlistAnimating ? "wishlist-pop-anim" : ""}`}
           aria-label={`${isWishlisted ? "Remove" : "Add"} ${product.name} ${isWishlisted ? "from" : "to"} wishlist`}
-          onClick={(e) => {
-            e.stopPropagation();
-            onWishlist();
-          }}
+          onClick={handleWishlist}
         >
-          <Heart size={17} fill={isWishlisted ? "currentColor" : "none"} />
+          <Heart size={17} fill={isWishlisted ? "currentColor" : "none"} className={isWishlistAnimating ? "text-rose-600 fill-rose-600 scale-110 transition-transform" : ""} />
+          {showFloatingHeart && (
+            <span className="floating-heart">
+              <Heart size={14} fill="currentColor" />
+            </span>
+          )}
         </button>
         <button className="quick-view" onClick={(e) => { e.stopPropagation(); onDetails(); }}>
           Quick view <ArrowRight size={14} />
@@ -471,8 +527,20 @@ function ProductCard({
             {product.compareAt && product.compareAt > product.price && <del>{formatINR(product.compareAt)}</del>}
             <small> / {product.sizes[0]?.label || "100 g"}</small>
           </div>
-          <button className="add-button" onClick={onAdd}>
-            <ShoppingBag size={15} /> Add to Cart
+          <button
+            className={`add-button ${isAdded ? "is-added" : ""}`}
+            onClick={handleAdd}
+            disabled={isAdded}
+          >
+            {isAdded ? (
+              <>
+                <Check size={14} className="stroke-[2.5]" /> Added!
+              </>
+            ) : (
+              <>
+                <ShoppingBag size={15} /> Add to Cart
+              </>
+            )}
           </button>
         </div>
       </div>
@@ -1031,13 +1099,12 @@ function CheckoutModal({
                         return (
                           <div
                             key={offer.id || offer.code}
-                            className={`p-3 rounded-xl border transition-all text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
-                              isApplied
+                            className={`p-3 rounded-xl border transition-all text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${isApplied
                                 ? "bg-emerald-50/90 border-emerald-400 ring-1 ring-emerald-300"
                                 : meetsMinOrder
-                                ? "bg-[#FAF7F0] border-[#DEDFD5] hover:border-[#123D28]/40 shadow-2xs"
-                                : "bg-slate-50/80 border-slate-200 opacity-80"
-                            }`}
+                                  ? "bg-[#FAF7F0] border-[#DEDFD5] hover:border-[#123D28]/40 shadow-2xs"
+                                  : "bg-slate-50/80 border-slate-200 opacity-80"
+                              }`}
                           >
                             <div className="flex-1 space-y-1">
                               <div className="flex items-center gap-2 flex-wrap">
@@ -1102,11 +1169,10 @@ function CheckoutModal({
                                     setCouponCode(offer.code);
                                     validateCouponMutation.mutate({ code: offer.code, subtotal });
                                   }}
-                                  className={`text-xs py-1.5 px-3.5 rounded-lg font-semibold transition-all ${
-                                    meetsMinOrder
+                                  className={`text-xs py-1.5 px-3.5 rounded-lg font-semibold transition-all ${meetsMinOrder
                                       ? "bg-[#123D28] text-white hover:bg-[#0B2D1D] shadow-xs cursor-pointer"
                                       : "bg-[#123D28]/20 text-[#123D28]/60 cursor-pointer hover:bg-[#123D28]/30"
-                                  }`}
+                                    }`}
                                   title={meetsMinOrder ? "Apply this festival offer" : `Requires minimum order of ₹${offer.minOrderValue}`}
                                 >
                                   Apply Offer
@@ -1177,9 +1243,8 @@ function CheckoutModal({
                       },
                     ].map((opt) => (
                       <label
-                        className={`payment-option ${payment === opt.value ? "is-selected" : ""} ${
-                          opt.disabled ? "opacity-60 cursor-not-allowed bg-slate-50/80" : ""
-                        }`}
+                        className={`payment-option ${payment === opt.value ? "is-selected" : ""} ${opt.disabled ? "opacity-60 cursor-not-allowed bg-slate-50/80" : ""
+                          }`}
                         key={opt.value}
                       >
                         <input
@@ -1303,6 +1368,20 @@ function ProductDetailModal({
   const [quantity, setQuantity] = useState(1);
   const [purchaseMode, setPurchaseMode] = useState<"ONE_TIME" | "SUBSCRIPTION">("ONE_TIME");
   const [selectedFrequency, setSelectedFrequency] = useState<string>("30_DAYS");
+  const [isModalAdded, setIsModalAdded] = useState(false);
+  const [isWishlistAnimating, setIsWishlistAnimating] = useState(false);
+  const [showFloatingHeart, setShowFloatingHeart] = useState(false);
+
+  const handleWishlist = () => {
+    onWishlist();
+    if (!isWishlisted && product) {
+      setIsWishlistAnimating(true);
+      setShowFloatingHeart(true);
+      window.dispatchEvent(new CustomEvent("trinayaa-wishlist-added", { detail: { product } }));
+      setTimeout(() => setIsWishlistAnimating(false), 600);
+      setTimeout(() => setShowFloatingHeart(false), 950);
+    }
+  };
 
   if (!open || !product) return null;
 
@@ -1340,13 +1419,12 @@ function ProductDetailModal({
               </>
             )}
             <span
-              className={`ml-2 font-medium text-xs ${
-                product.stockAvailability === "Out of Stock"
+              className={`ml-2 font-medium text-xs ${product.stockAvailability === "Out of Stock"
                   ? "text-rose-600 font-bold"
                   : product.stockAvailability === "Limited availability"
-                  ? "text-amber-700 font-semibold"
-                  : "text-[#2E7D32]"
-              }`}
+                    ? "text-amber-700 font-semibold"
+                    : "text-[#2E7D32]"
+                }`}
             >
               • {product.stockAvailability || (product.stock && product.stock > 0 ? "In Stock" : "In Stock")}
             </span>
@@ -1375,11 +1453,10 @@ function ProductDetailModal({
             <div className="grid grid-cols-2 gap-2 mt-2">
               <button
                 type="button"
-                className={`py-2 px-3 rounded-xl border text-left transition-all ${
-                  purchaseMode === "ONE_TIME"
+                className={`py-2 px-3 rounded-xl border text-left transition-all ${purchaseMode === "ONE_TIME"
                     ? "border-[#123D28] bg-[#EAF2ED] text-[#123D28] font-bold shadow-xs"
                     : "border-gray-200 bg-white text-gray-700 hover:border-gray-300"
-                }`}
+                  }`}
                 onClick={() => setPurchaseMode("ONE_TIME")}
               >
                 <div className="text-xs font-semibold">One-Time Order</div>
@@ -1387,11 +1464,10 @@ function ProductDetailModal({
               </button>
               <button
                 type="button"
-                className={`py-2 px-3 rounded-xl border text-left transition-all relative ${
-                  purchaseMode === "SUBSCRIPTION"
+                className={`py-2 px-3 rounded-xl border text-left transition-all relative ${purchaseMode === "SUBSCRIPTION"
                     ? "border-[#123D28] bg-[#EAF2ED] text-[#123D28] font-bold shadow-xs"
                     : "border-gray-200 bg-white text-gray-700 hover:border-gray-300"
-                }`}
+                  }`}
                 onClick={() => setPurchaseMode("SUBSCRIPTION")}
               >
                 <span className="absolute -top-2 right-2 bg-[#123D28] text-white text-[9px] uppercase px-1.5 py-0.5 rounded font-bold">
@@ -1420,11 +1496,10 @@ function ProductDetailModal({
                     <button
                       key={freq.value}
                       type="button"
-                      className={`py-1 px-1.5 text-center text-xs rounded-lg border transition-all ${
-                        selectedFrequency === freq.value
+                      className={`py-1 px-1.5 text-center text-xs rounded-lg border transition-all ${selectedFrequency === freq.value
                           ? "border-[#123D28] bg-[#123D28] text-white font-bold"
                           : "border-gray-200 bg-white text-gray-700 hover:bg-gray-50"
-                      }`}
+                        }`}
                       onClick={() => setSelectedFrequency(freq.value)}
                     >
                       {freq.label}
@@ -1461,24 +1536,38 @@ function ProductDetailModal({
               </button>
             ) : (
               <button
-                className="dark-button add-detail-button"
-                disabled={product.stockAvailability === "Out of Stock"}
+                className={`dark-button add-detail-button ${isModalAdded ? "is-added" : ""}`}
+                disabled={product.stockAvailability === "Out of Stock" || isModalAdded}
                 style={product.stockAvailability === "Out of Stock" ? { opacity: 0.5, cursor: "not-allowed" } : undefined}
                 onClick={() => {
-                  if (product.stockAvailability === "Out of Stock") return;
+                  if (product.stockAvailability === "Out of Stock" || isModalAdded) return;
+                  setIsModalAdded(true);
                   onAdd(product, currentSizeObj.label, currentSizeObj.price, quantity);
-                  onClose();
+                  setTimeout(() => {
+                    setIsModalAdded(false);
+                    onClose();
+                  }, 650);
                 }}
               >
-                {product.stockAvailability === "Out of Stock" ? "Out of stock" : "Add to cart"} <ShoppingBag size={17} />
+                {product.stockAvailability === "Out of Stock"
+                  ? "Out of stock"
+                  : isModalAdded
+                    ? "Added to Cart!"
+                    : "Add to cart"}{" "}
+                {isModalAdded ? <Check size={17} className="stroke-[2.5]" /> : <ShoppingBag size={17} />}
               </button>
             )}
             <button
-              className={`heart-detail ${isWishlisted ? "is-wishlisted" : ""}`}
-              onClick={onWishlist}
+              className={`heart-detail relative ${isWishlisted ? "is-wishlisted" : ""} ${isWishlistAnimating ? "wishlist-pop-anim" : ""}`}
+              onClick={handleWishlist}
               aria-label="Toggle wishlist"
             >
-              <Heart size={19} fill={isWishlisted ? "currentColor" : "none"} />
+              <Heart size={19} fill={isWishlisted ? "currentColor" : "none"} className={isWishlistAnimating ? "text-rose-600 fill-rose-600 scale-110 transition-transform" : ""} />
+              {showFloatingHeart && (
+                <span className="floating-heart">
+                  <Heart size={15} fill="currentColor" />
+                </span>
+              )}
             </button>
           </div>
           <div className="detail-features">
@@ -1704,9 +1793,8 @@ function SubscribeModal({
                     {addresses.map((addr: any) => (
                       <label
                         key={addr.id}
-                        className={`p-2.5 rounded-xl border flex items-start gap-2.5 cursor-pointer transition-colors ${
-                          selectedAddressId === addr.id ? "border-[#123D28] bg-[#EAF2ED]" : "border-gray-200 bg-white"
-                        }`}
+                        className={`p-2.5 rounded-xl border flex items-start gap-2.5 cursor-pointer transition-colors ${selectedAddressId === addr.id ? "border-[#123D28] bg-[#EAF2ED]" : "border-gray-200 bg-white"
+                          }`}
                       >
                         <input
                           type="radio"
@@ -1722,9 +1810,8 @@ function SubscribeModal({
                       </label>
                     ))}
                     <label
-                      className={`p-2.5 rounded-xl border flex items-center gap-2.5 cursor-pointer transition-colors ${
-                        selectedAddressId === "manual" ? "border-[#123D28] bg-[#EAF2ED]" : "border-gray-200 bg-white"
-                      }`}
+                      className={`p-2.5 rounded-xl border flex items-center gap-2.5 cursor-pointer transition-colors ${selectedAddressId === "manual" ? "border-[#123D28] bg-[#EAF2ED]" : "border-gray-200 bg-white"
+                        }`}
                     >
                       <input
                         type="radio"
@@ -1822,9 +1909,8 @@ function SubscribeModal({
                 <label className="font-bold text-[#123D28] block">Payment Method per Cycle</label>
                 <div className="grid grid-cols-2 gap-2">
                   <label
-                    className={`p-2.5 rounded-xl border flex items-center gap-2 cursor-pointer transition-colors ${
-                      paymentPreference === "COD" ? "border-[#123D28] bg-[#EAF2ED]" : "border-gray-200 bg-white"
-                    }`}
+                    className={`p-2.5 rounded-xl border flex items-center gap-2 cursor-pointer transition-colors ${paymentPreference === "COD" ? "border-[#123D28] bg-[#EAF2ED]" : "border-gray-200 bg-white"
+                      }`}
                   >
                     <input
                       type="radio"
@@ -1838,9 +1924,8 @@ function SubscribeModal({
                     </div>
                   </label>
                   <label
-                    className={`p-2.5 rounded-xl border flex items-center gap-2 cursor-pointer transition-colors ${
-                      paymentPreference === "MANUAL_RENEWAL" ? "border-[#123D28] bg-[#EAF2ED]" : "border-gray-200 bg-white"
-                    }`}
+                    className={`p-2.5 rounded-xl border flex items-center gap-2 cursor-pointer transition-colors ${paymentPreference === "MANUAL_RENEWAL" ? "border-[#123D28] bg-[#EAF2ED]" : "border-gray-200 bg-white"
+                      }`}
                   >
                     <input
                       type="radio"
@@ -2168,7 +2253,7 @@ export default function Home() {
         const freshGuestToken = "gst_" + Math.random().toString(36).substring(2, 10) + Date.now().toString(36);
         localStorage.setItem("trinayaa_guest_token", freshGuestToken);
         sessionStorage.clear();
-      } catch (e) {}
+      } catch (e) { }
       setCart([]);
       toast.success("Signed out successfully");
       refetchUser();
@@ -2299,6 +2384,8 @@ export default function Home() {
       return [...current, { ...product, size, unitPrice, quantity }];
     });
 
+    window.dispatchEvent(new CustomEvent("trinayaa-cart-added", { detail: { product, quantity } }));
+
     addToCartMutation.mutate(
       { guestToken, productId: product.id, packSize: size, quantity },
       {
@@ -2382,15 +2469,23 @@ export default function Home() {
             className="group relative cursor-pointer overflow-hidden rounded-xl sm:rounded-2xl shadow-sm border border-[#E5DECF] transition-all hover:shadow-md bg-[#FAF6F0]"
             role="banner"
           >
-            <img
-              src={IMG.hero}
-              srcSet="/images/hero/trinayaa_home_hero_banner.jpg?v=3 1024w, /images/hero/trinayaa_home_hero_banner_2x.jpg?v=3 2048w"
-              sizes="(max-width: 1024px) 100vw, 1400px"
-              alt="TRINAYAA — Rooted in Nature. Made for Everyday Wellness. Natural Herbs, Seeds, Raw Powders."
-              className="w-full h-auto object-cover block transition-transform duration-700 group-hover:scale-[1.006]"
-              loading="eager"
-              decoding="async"
-            />
+            <picture>
+              <source
+                type="image/webp"
+                srcSet="/images/hero/trinayaa_home_hero_banner_4k.webp?v=5 3840w, /images/hero/trinayaa_home_hero_banner_2x.webp?v=5 2880w, /images/hero/trinayaa_home_hero_banner.webp?v=5 1920w"
+                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 100vw, 1400px"
+              />
+              <img
+                src="/images/hero/trinayaa_home_hero_banner_2x.jpg?v=5"
+                srcSet="/images/hero/trinayaa_home_hero_banner_4k.jpg?v=5 3840w, /images/hero/trinayaa_home_hero_banner_2x.jpg?v=5 2880w, /images/hero/trinayaa_home_hero_banner.jpg?v=5 1920w"
+                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 100vw, 1400px"
+                alt="TRINAYAA — Rooted in Nature. Made for Everyday Wellness. Natural Herbs, Seeds, Raw Powders."
+                className="w-full h-auto object-cover block transition-transform duration-700 group-hover:scale-[1.006]"
+                loading="eager"
+                decoding="async"
+                style={{ imageRendering: "-webkit-optimize-contrast" }}
+              />
+            </picture>
             {/* SEO and Screen Reader Headings */}
             <h1 className="sr-only">
               TRINAYAA — Rooted in Nature. Made for Everyday Wellness. Natural Herbs, Seeds, Raw Powders.
@@ -2427,7 +2522,7 @@ export default function Home() {
           ))}
         </section>
 
-                {/* Brand Heritage & Purity Philosophy Section */}
+        {/* Brand Heritage & Purity Philosophy Section */}
         <section className="brand-philosophy-section container-wide py-16" aria-label="About TRINAYAA Brand">
           <div className="text-center max-w-3xl mx-auto mb-12">
             <span className="eyebrow text-xs font-bold uppercase tracking-widest text-[#8E734B] block mb-2">

@@ -21,8 +21,7 @@ import {
   ShoppingBag,
   Search,
   Instagram,
-  Facebook,
-  Youtube
+  Facebook
 } from "lucide-react";
 
 import BrandMark from "@/components/BrandMark";

@@ -502,7 +502,7 @@ describe("TRINAYAA Phase 5 — Order Fulfilment Documents & Printing System Suit
     const branch = await callerRetailHandler.retail.myBranch();
 
     expect(branch).toBeDefined();
-    expect(branch.id).toBe("brn_erode_hq");
+    expect((branch.code || branch.id).toLowerCase()).toContain("erode");
     expect(branch.name).toContain("Erode");
 
     const stock = await callerRetailHandler.retail.branchStock();

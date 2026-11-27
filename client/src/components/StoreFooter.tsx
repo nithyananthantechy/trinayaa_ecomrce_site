@@ -2,14 +2,13 @@ import React from "react";
 import { useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import BrandMark from "./BrandMark";
+import WhatsAppIcon from "./WhatsAppIcon";
 import {
   Instagram,
   Facebook,
-  Youtube,
   MapPin,
   Mail,
   Phone,
-  MessageCircle,
 } from "lucide-react";
 
 // Exact SVG district contour of Erode, Tamil Nadu
@@ -25,7 +24,7 @@ export default function StoreFooter() {
       <div className="w-full max-w-[1440px] mx-auto px-6 sm:px-10 lg:px-14 pt-10 pb-6">
         {/* Responsive Expanded 5-Column Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-[1.4fr_0.9fr_1fr_1.2fr_1.3fr] gap-8 lg:gap-6 items-start">
-          
+
           {/* Column 1: Brand & Logo (Exact same as Home Page header) */}
           <div className="flex flex-col justify-between pr-0 lg:pr-4">
             <button
@@ -70,19 +69,7 @@ export default function StoreFooter() {
                 <Facebook size={15} />
               </a>
 
-              {/* YouTube */}
-              <a
-                href="https://youtube.com"
-                target="_blank"
-                rel="noopener noreferrer"
-                aria-label="YouTube"
-                title="TRINAYAA on YouTube"
-                className="w-8 h-8 rounded-full border border-[#123D28]/40 flex items-center justify-center text-[#123D28] hover:bg-[#123D28] hover:text-[#E2BA89] transition-all"
-              >
-                <Youtube size={15} />
-              </a>
-
-              {/* WhatsApp (Near Instagram as requested) */}
+              {/* WhatsApp */}
               <a
                 href={socialLinks?.whatsappUrl || "https://wa.me/919442218990"}
                 target="_blank"
@@ -91,7 +78,7 @@ export default function StoreFooter() {
                 title="Chat with TRINAYAA on WhatsApp"
                 className="w-8 h-8 rounded-full border border-[#123D28]/40 flex items-center justify-center text-[#123D28] hover:bg-[#123D28] hover:text-[#E2BA89] transition-all"
               >
-                <MessageCircle size={15} />
+                <WhatsAppIcon size={16} />
               </a>
             </div>
           </div>

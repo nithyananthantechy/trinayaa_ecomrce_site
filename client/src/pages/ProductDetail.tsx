@@ -1,5 +1,5 @@
 import { resolveProductImage, getCategoryPlaceholder } from "../lib/productImage";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useLocation, useRoute } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
@@ -16,7 +16,6 @@ import {
   UserRound,
   Instagram,
   Facebook,
-  Youtube,
   ChevronRight,
   CheckCircle2,
   Share2,
@@ -27,7 +26,9 @@ import {
   ArrowLeft,
   Award,
   AlertCircle,
-  Building2
+  Building2,
+  Check,
+  Loader2
 } from "lucide-react";
 
 import BrandMark from "@/components/BrandMark";
@@ -123,7 +124,42 @@ export default function ProductDetail() {
   const [quantity, setQuantity] = useState<number>(1);
   const [activeTab, setActiveTab] = useState<"about" | "ayurveda" | "usage" | "quality">("about");
   const [isWishlisted, setIsWishlisted] = useState<boolean>(false);
+  const [isWishlistAnimating, setIsWishlistAnimating] = useState<boolean>(false);
+  const [showFloatingHeart, setShowFloatingHeart] = useState<boolean>(false);
   const [bulkDialogOpen, setBulkDialogOpen] = useState<boolean>(false);
+  const [isAdded, setIsAdded] = useState<boolean>(false);
+  const [isCartBumping, setIsCartBumping] = useState<boolean>(false);
+  const [showPlusOne, setShowPlusOne] = useState<boolean>(false);
+
+  const handleToggleWishlist = () => {
+    const nextState = !isWishlisted;
+    setIsWishlisted(nextState);
+    if (nextState && product) {
+      setIsWishlistAnimating(true);
+      setShowFloatingHeart(true);
+      window.dispatchEvent(new CustomEvent("trinayaa-wishlist-added", { detail: { product } }));
+      toast.success(`"${product.nameEn || product.name}" added to your wishlist!`);
+      setTimeout(() => setIsWishlistAnimating(false), 600);
+      setTimeout(() => setShowFloatingHeart(false), 950);
+    } else {
+      toast.info("Removed from your wishlist");
+    }
+  };
+
+  useEffect(() => {
+    const handleCartAdd = () => {
+      setIsCartBumping(true);
+      setShowPlusOne(true);
+      const t1 = setTimeout(() => setIsCartBumping(false), 600);
+      const t2 = setTimeout(() => setShowPlusOne(false), 950);
+      return () => {
+        clearTimeout(t1);
+        clearTimeout(t2);
+      };
+    };
+    window.addEventListener("trinayaa-cart-added", handleCartAdd);
+    return () => window.removeEventListener("trinayaa-cart-added", handleCartAdd);
+  }, []);
 
   // Pack size multiplier calculation
   const packMultiplier = useMemo(() => {
@@ -153,12 +189,21 @@ export default function ProductDetail() {
 
   const handleAddToCart = () => {
     if (!product) return;
-    addToCartMutation.mutate({
-      productId: product.id,
-      quantity,
-      packSize: selectedPack,
-      guestToken,
-    });
+    addToCartMutation.mutate(
+      {
+        productId: product.id,
+        quantity,
+        packSize: selectedPack,
+        guestToken,
+      },
+      {
+        onSuccess: () => {
+          setIsAdded(true);
+          window.dispatchEvent(new CustomEvent("trinayaa-cart-added", { detail: { product, quantity } }));
+          setTimeout(() => setIsAdded(false), 1600);
+        },
+      }
+    );
   };
 
   const handleBuyNow = () => {
@@ -186,7 +231,7 @@ export default function ProductDetail() {
           text: `Explore ${product?.nameEn} at TRINAYAA Enterprises.`,
           url: window.location.href,
         })
-        .catch(() => {});
+        .catch(() => { });
     } else {
       navigator.clipboard.writeText(window.location.href);
       toast.success("Product link copied to clipboard!");
@@ -292,21 +337,22 @@ export default function ProductDetail() {
               <span>
                 {currentUser
                   ? (currentUser.role === "ADMIN" || currentUser.role === "SUPER_ADMIN"
-                      ? "Admin"
-                      : currentUser.name.split(" ")[0])
+                    ? "Admin"
+                    : currentUser.name.split(" ")[0])
                   : "Account"}
               </span>
             </button>
 
             <button
               type="button"
-              className="icon-action cart-action"
+              className={`icon-action cart-action relative ${isCartBumping ? "cart-pop-anim" : ""}`}
               onClick={() => setLocation("/#cart")}
               title="Shopping Cart"
             >
-              <ShoppingBag size={20} />
+              <ShoppingBag size={20} className={isCartBumping ? "text-emerald-700" : ""} />
               <span>Cart</span>
-              {cartTotalItems > 0 && <b>{cartTotalItems}</b>}
+              {cartTotalItems > 0 && <b className={isCartBumping ? "cart-badge-bounce bg-emerald-700" : ""}>{cartTotalItems}</b>}
+              {showPlusOne && <span className="floating-plus-one">+{quantity}</span>}
             </button>
           </div>
         </div>
@@ -369,13 +415,18 @@ export default function ProductDetail() {
                   <Share2 size={16} />
                 </button>
                 <button
-                  onClick={() => setIsWishlisted(!isWishlisted)}
-                  className={`w-9 h-9 rounded-full bg-white/90 backdrop-blur-xs flex items-center justify-center shadow-xs hover:bg-white transition-colors ${
-                    isWishlisted ? "text-rose-600" : "text-slate-500"
-                  }`}
-                  title="Save to wishlist"
+                  onClick={handleToggleWishlist}
+                  className={`w-9 h-9 rounded-full bg-white/90 backdrop-blur-xs flex items-center justify-center shadow-xs hover:bg-white transition-all relative ${isWishlistAnimating ? "wishlist-pop-anim text-rose-600 scale-110" : ""
+                    } ${isWishlisted ? "text-rose-600" : "text-slate-500"
+                    }`}
+                  title={isWishlisted ? "Remove from wishlist" : "Save to wishlist"}
                 >
-                  <Heart size={16} fill={isWishlisted ? "currentColor" : "none"} />
+                  <Heart size={16} fill={isWishlisted ? "currentColor" : "none"} className={isWishlistAnimating ? "text-rose-600 fill-rose-600" : ""} />
+                  {showFloatingHeart && (
+                    <span className="floating-heart">
+                      <Heart size={13} fill="currentColor" />
+                    </span>
+                  )}
                 </button>
               </div>
             </div>
@@ -469,11 +520,10 @@ export default function ProductDetail() {
                     key={size}
                     type="button"
                     onClick={() => setSelectedPack(size)}
-                    className={`py-2 px-3 text-xs font-bold rounded-xl border text-center transition-all ${
-                      selectedPack === size
+                    className={`py-2 px-3 text-xs font-bold rounded-xl border text-center transition-all ${selectedPack === size
                         ? "bg-[#123D28] text-white border-[#123D28] shadow-xs"
                         : "bg-white text-[#123D28] border-[#E5DECF] hover:border-[#123D28]"
-                    }`}
+                      }`}
                   >
                     {size}
                   </button>
@@ -515,11 +565,28 @@ export default function ProductDetail() {
               <button
                 type="button"
                 onClick={handleAddToCart}
-                disabled={addToCartMutation.isPending}
-                className="w-full py-3.5 px-6 rounded-xl font-bold text-sm bg-white border-2 border-[#123D28] text-[#123D28] hover:bg-[#FAF6EE] transition-all flex items-center justify-center gap-2 shadow-xs"
+                disabled={addToCartMutation.isPending || isAdded}
+                className={`w-full py-3.5 px-6 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2 cursor-pointer shadow-xs ${isAdded
+                    ? "bg-emerald-700 border-2 border-emerald-700 text-white scale-[1.02] shadow-md"
+                    : "bg-white border-2 border-[#123D28] text-[#123D28] hover:bg-[#FAF6EE] active:scale-95"
+                  }`}
               >
-                <ShoppingBag size={18} />
-                {addToCartMutation.isPending ? "Adding..." : "Add to Cart"}
+                {isAdded ? (
+                  <>
+                    <Check size={18} className="stroke-[2.5]" />
+                    <span>Added to Cart!</span>
+                  </>
+                ) : addToCartMutation.isPending ? (
+                  <>
+                    <Loader2 size={18} className="animate-spin" />
+                    <span>Adding...</span>
+                  </>
+                ) : (
+                  <>
+                    <ShoppingBag size={18} />
+                    <span>Add to Cart</span>
+                  </>
+                )}
               </button>
 
               <button
@@ -568,41 +635,37 @@ export default function ProductDetail() {
           <div className="flex border-b border-[#F0EBE0] gap-4 sm:gap-8 overflow-x-auto">
             <button
               onClick={() => setActiveTab("about")}
-              className={`pb-3 text-sm font-bold border-b-2 whitespace-nowrap transition-colors ${
-                activeTab === "about"
+              className={`pb-3 text-sm font-bold border-b-2 whitespace-nowrap transition-colors ${activeTab === "about"
                   ? "border-[#123D28] text-[#123D28]"
                   : "border-transparent text-slate-500 hover:text-[#123D28]"
-              }`}
+                }`}
             >
               Botanical Profile &amp; Description
             </button>
             <button
               onClick={() => setActiveTab("ayurveda")}
-              className={`pb-3 text-sm font-bold border-b-2 whitespace-nowrap transition-colors ${
-                activeTab === "ayurveda"
+              className={`pb-3 text-sm font-bold border-b-2 whitespace-nowrap transition-colors ${activeTab === "ayurveda"
                   ? "border-[#123D28] text-[#123D28]"
                   : "border-transparent text-slate-500 hover:text-[#123D28]"
-              }`}
+                }`}
             >
               Ayurveda &amp; Siddha Benefits
             </button>
             <button
               onClick={() => setActiveTab("usage")}
-              className={`pb-3 text-sm font-bold border-b-2 whitespace-nowrap transition-colors ${
-                activeTab === "usage"
+              className={`pb-3 text-sm font-bold border-b-2 whitespace-nowrap transition-colors ${activeTab === "usage"
                   ? "border-[#123D28] text-[#123D28]"
                   : "border-transparent text-slate-500 hover:text-[#123D28]"
-              }`}
+                }`}
             >
               How to Use &amp; Dosage
             </button>
             <button
               onClick={() => setActiveTab("quality")}
-              className={`pb-3 text-sm font-bold border-b-2 whitespace-nowrap transition-colors ${
-                activeTab === "quality"
+              className={`pb-3 text-sm font-bold border-b-2 whitespace-nowrap transition-colors ${activeTab === "quality"
                   ? "border-[#123D28] text-[#123D28]"
                   : "border-transparent text-slate-500 hover:text-[#123D28]"
-              }`}
+                }`}
             >
               Purity &amp; Storage Guarantee
             </button>

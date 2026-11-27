@@ -3,6 +3,7 @@ import { useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import BrandMark from "./BrandMark";
 import ErodeMapGraphic from "./ErodeMapGraphic";
+import WhatsAppIcon from "./WhatsAppIcon";
 import {
   Instagram,
   Facebook,
@@ -10,7 +11,6 @@ import {
   Phone,
   MapPin,
   ExternalLink,
-  MessageCircle,
   Leaf,
 } from "lucide-react";
 
@@ -337,7 +337,7 @@ export default function FooterVariation({
                   }}
                   aria-label="Chat with TRINAYAA Care Desk on WhatsApp"
                 >
-                  <MessageCircle size={17} />
+                  <WhatsAppIcon size={17} />
                 </a>
               )}
             </div>
@@ -551,14 +551,14 @@ export default function FooterVariation({
                     backgroundColor: theme.whatsappBtnBg,
                     color: theme.whatsappBtnText,
                   }}
-                  onMouseEnter={(e) => {
+                  onMouseEnter={(e: React.MouseEvent<HTMLAnchorElement>) => {
                     e.currentTarget.style.backgroundColor = theme.whatsappBtnHoverBg;
                   }}
-                  onMouseLeave={(e) => {
+                  onMouseLeave={(e: React.MouseEvent<HTMLAnchorElement>) => {
                     e.currentTarget.style.backgroundColor = theme.whatsappBtnBg;
                   }}
                 >
-                  <MessageCircle size={15} />
+                  <WhatsAppIcon size={16} />
                   <span>WhatsApp Erode Care Team</span>
                 </a>
               </div>

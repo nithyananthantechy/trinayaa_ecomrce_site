@@ -3,6 +3,7 @@ import SupportHelpdeskTab from "./SupportHelpdeskTab";
 import CustomerFeedbackTab from "./CustomerFeedbackTab";
 import AiImageStudioTab from "./AiImageStudioTab";
 import Customer360Tab from "./Customer360Tab";
+import QRCodeDisplay from "@/components/QRCodeDisplay";
 import { useState, useMemo, useEffect } from "react";
 import { useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
@@ -3922,7 +3923,7 @@ export default function AdminDashboard() {
 // ==========================================
 // ORDER FULFILMENT DOCUMENT STUDIO (PHASE 5)
 // ==========================================
-type FulfilmentDocTab = "slip" | "invoice" | "challan" | "sticker" | "all" | "gap";
+type FulfilmentDocTab = "slip" | "invoice" | "challan" | "sticker" | "all";
 
 function OrderDocumentStudioModal({
   orderNumber,
@@ -4083,19 +4084,6 @@ function OrderDocumentStudioModal({
             >
               <Printer size={13} />
               <span>Print All (Bundle)</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setActiveDocTab("gap")}
-              className={`px-3 py-1.5 rounded-lg font-medium flex items-center gap-1.5 transition-colors ml-auto ${
-                activeDocTab === "gap"
-                  ? "bg-slate-700 text-white shadow-xs"
-                  : "bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-300"
-              }`}
-            >
-              <Info size={13} />
-              <span>5th Doc Status</span>
             </button>
           </div>
 
@@ -4522,11 +4510,11 @@ function OrderDocumentStudioModal({
                 {(activeDocTab === "sticker" || activeDocTab === "all") && sticker && (
                   <div className="flex flex-col items-center">
                     <div className="text-[11px] text-gray-500 mb-2 font-medium no-print">
-                      Thermal Shipping Label (4" × 6" Format) • Barcode & High-Visibility PIN
+                      Thermal Shipping Label (4" × 6" Format) • Barcode, Scannable QR & High-Visibility PIN
                     </div>
                     <div
-                      className="bg-white border-2 border-black p-4 rounded shadow-md w-full max-w-[384px] text-black font-sans leading-tight text-xs print:border-black print:shadow-none mb-8"
-                      style={{ minHeight: "560px" }}
+                      className="bg-white border-2 border-black p-4 rounded shadow-md w-full max-w-[400px] text-black font-sans leading-tight text-xs print:border-black print:shadow-none mb-8"
+                      style={{ minHeight: "580px" }}
                     >
                       {/* Thermal Label Header */}
                       <div className="border-b-2 border-black pb-2 mb-2 flex items-center justify-between">
@@ -4545,7 +4533,7 @@ function OrderDocumentStudioModal({
 
                       {/* Payment Callout Badge */}
                       <div
-                        className={`border-2 border-black p-2 text-center font-bold mb-3 ${
+                        className={`border-2 border-black p-2 text-center font-bold mb-2.5 ${
                           sticker.payment.isCod ? "bg-amber-100" : "bg-emerald-50"
                         }`}
                       >
@@ -4558,7 +4546,7 @@ function OrderDocumentStudioModal({
                       </div>
 
                       {/* Destination / Consignee Address */}
-                      <div className="border border-black p-2.5 mb-2.5 bg-gray-50/50">
+                      <div className="border border-black p-2.5 mb-2 bg-gray-50/50">
                         <div className="text-[9px] uppercase font-bold text-gray-700 border-b border-gray-300 pb-0.5 mb-1">
                           SHIP TO / CONSIGNEE:
                         </div>
@@ -4568,32 +4556,62 @@ function OrderDocumentStudioModal({
                           {sticker.to.formattedAddress}
                         </div>
                         {/* Prominent PIN CODE banner */}
-                        <div className="mt-2.5 bg-black text-white px-2 py-1 text-center font-mono font-black text-sm tracking-widest rounded-xs">
+                        <div className="mt-2 bg-black text-white px-2 py-1 text-center font-mono font-black text-sm tracking-widest rounded-xs">
                           PIN: {sticker.to.pinCode}
                         </div>
                       </div>
 
-                      {/* Barcode & Tracking Area */}
-                      <div className="border border-black p-2 text-center mb-2.5">
-                        <div className="text-[9px] text-gray-600 font-mono">AWB / TRACKING NUMBER</div>
-                        <div className="font-mono text-sm font-black tracking-widest my-1">
-                          {sticker.routing.trackingNumber}
+                      {/* Dual Code Section: Barcode & Scannable QR Code */}
+                      <div className="border border-black p-2 mb-2 bg-white">
+                        <div className="grid grid-cols-[1fr_auto] gap-2 items-center">
+                          {/* Left: AWB & Linear Barcode */}
+                          <div className="text-center border-r border-gray-300 pr-2">
+                            <div className="text-[8px] text-gray-600 font-mono font-bold uppercase tracking-wider">
+                              AWB / TRACKING NUMBER
+                            </div>
+                            <div className="font-mono text-xs font-black tracking-widest my-0.5">
+                              {sticker.routing.trackingNumber}
+                            </div>
+                            <div className="font-mono text-base font-bold tracking-widest bg-gray-100 py-1 border border-dashed border-gray-400">
+                              {sticker.barcodeData.orderNumberBarcode}
+                            </div>
+                            <div className="text-[8px] text-gray-500 font-mono mt-0.5">ORDER #{sticker.orderNumber}</div>
+                          </div>
+
+                          {/* Right: Scannable QR Code for Complete Order Info */}
+                          <div className="flex flex-col items-center pl-1">
+                            <div className="bg-white p-1 border border-black rounded-xs shadow-2xs">
+                              <QRCodeDisplay
+                                value={
+                                  typeof window !== "undefined"
+                                    ? `${window.location.origin}/track-order?orderId=${encodeURIComponent(sticker.orderNumber)}`
+                                    : `https://trinayaa.in/track-order?orderId=${encodeURIComponent(sticker.orderNumber)}`
+                                }
+                                size={88}
+                                quietZone={1}
+                                title={`Scan Order ${sticker.orderNumber}`}
+                              />
+                            </div>
+                            <div className="text-[7.5px] font-bold text-black uppercase tracking-tight text-center mt-1 leading-none">
+                              SCAN FOR ORDER &<br />PRODUCT INFO
+                            </div>
+                          </div>
                         </div>
-                        {/* CSS simulated barcode */}
-                        <div className="font-mono text-lg font-bold tracking-widest bg-gray-100 py-1 border border-dashed border-gray-400">
-                          {sticker.barcodeData.orderNumberBarcode}
-                        </div>
-                        <div className="text-[8px] text-gray-500 font-mono mt-0.5">ORDER #{sticker.orderNumber}</div>
                       </div>
 
-                      {/* Manifest Brief & Package Summary */}
-                      <div className="border border-black p-2 text-[9px] mb-2 space-y-0.5">
-                        <div className="flex justify-between font-bold">
-                          <span>Contents: {sticker.packageSummary.totalPieces} Botanical Packs</span>
+                      {/* Manifest Brief & Individual Products Summary */}
+                      <div className="border border-black p-2 text-[9px] mb-2 space-y-1 bg-gray-50/40">
+                        <div className="flex justify-between font-bold border-b border-gray-300 pb-0.5">
+                          <span>CONTENTS: {sticker.packageSummary.totalPieces} Botanical Packs</span>
                           <span>Est. Weight: ~{sticker.packageSummary.weightGrams}g</span>
                         </div>
-                        <div className="text-gray-600 truncate">
-                          Items: {sticker.packageSummary.itemManifest.map((m: any) => `${m.name} (${m.packSize})`).join(", ")}
+                        <div className="space-y-0.5 text-gray-800">
+                          {sticker.packageSummary.itemManifest.map((m: any, mIdx: number) => (
+                            <div key={mIdx} className="flex justify-between items-center text-[9px]">
+                              <span className="font-semibold truncate max-w-[260px]">• {m.name} ({m.packSize})</span>
+                              <span className="font-mono font-bold shrink-0 ml-1">Qty: {m.quantity}</span>
+                            </div>
+                          ))}
                         </div>
                       </div>
 
@@ -4607,54 +4625,6 @@ function OrderDocumentStudioModal({
                         <div className="text-right font-mono font-bold text-[9px]">
                           {sticker.stickerNumber}
                         </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* TAB 5: FIFTH DOCUMENT INVESTIGATION & STATUS */}
-                {activeDocTab === "gap" && (
-                  <div className="bg-white border border-slate-300 p-6 rounded-xl shadow-xs max-w-[760px] mx-auto text-black font-sans leading-relaxed text-xs">
-                    <div className="flex items-center gap-3 border-b border-gray-200 pb-3 mb-4">
-                      <div className="w-10 h-10 rounded-lg bg-amber-500/10 text-amber-800 flex items-center justify-center shrink-0">
-                        <Info size={20} />
-                      </div>
-                      <div>
-                        <h2 className="text-base font-bold font-serif text-[#123D28]">
-                          Fifth Fulfilment Document Investigation & Status
-                        </h2>
-                        <p className="text-[11px] text-gray-600">
-                          Pre-implementation audit of client materials, screenshots & e-commerce dispatch standards
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="space-y-4 text-xs">
-                      <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-lg">
-                        <h3 className="font-bold text-emerald-900 mb-1 flex items-center gap-1.5">
-                          <CheckCircle2 size={14} /> Four Verified & Active Documents Implemented:
-                        </h3>
-                        <ol className="list-decimal list-inside space-y-1 text-emerald-800 text-[11px]">
-                          <li><strong>Shipping Slip:</strong> Warehouse packing checklist, SKU breakdown, consignee delivery details (Seq: <span className="font-mono">TRN-SHIP-YYYY-XXXXX</span>).</li>
-                          <li><strong>Customer Invoice:</strong> Statutory sales/tax invoice with HSN 121190, CGST/SGST 2.5%, amount in words (Seq: <span className="font-mono">TRN-INV-YYYY-XXXXX</span>).</li>
-                          <li><strong>Delivery Challan:</strong> Goods movement document under Rule 55 of CGST Rules 2017 with consignee acknowledgement (Seq: <span className="font-mono">TRN-DC-YYYY-XXXXX</span>).</li>
-                          <li><strong>Parcel Sticker:</strong> 4"x6" thermal label format with bold recipient PIN, COD collect callout, barcode (Seq: <span className="font-mono">TRN-LBL-YYYY-XXXXX</span>).</li>
-                        </ol>
-                      </div>
-
-                      <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
-                        <h3 className="font-bold text-amber-900 mb-1 flex items-center gap-1.5">
-                          <AlertTriangle size={14} /> Fifth Document Status — No Assumed Invention:
-                        </h3>
-                        <p className="text-amber-800 text-[11px] leading-relaxed">
-                          In strict accordance with Phase 5 instructions (<em>"Do not invent the fifth document. Inspect available client reference materials... If it cannot be identified, document the gap and request clarification"</em>), the 5th document slot has been intentionally left open.
-                        </p>
-                        <div className="mt-2 text-amber-900 font-semibold text-[11px]">Candidate Options for Client Confirmation:</div>
-                        <ul className="list-disc list-inside space-y-1 text-amber-800 text-[11px] mt-1">
-                          <li><strong>Option A: Transporter / Courier Manifest</strong> (Multi-order batch handover sheet for courier pickup).</li>
-                          <li><strong>Option B: Warehouse Picking / Bin List</strong> (Order picking slip with inventory bin locations).</li>
-                          <li><strong>Option C: Customer Return & Exchange Form</strong> (Enclosed return instructions & policy slip).</li>
-                        </ul>
                       </div>
                     </div>
                   </div>

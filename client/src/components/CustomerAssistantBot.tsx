@@ -21,6 +21,7 @@ import {
   LifeBuoy,
   Bot,
 } from "lucide-react";
+import ChatBotIcon from "./ChatBotIcon";
 
 interface ProductCard {
   id: string;
@@ -69,6 +70,21 @@ export default function CustomerAssistantBot() {
   const [inputMessage, setInputMessage] = useState("");
   const [showScrollTop, setShowScrollTop] = useState(false);
   const [showScrollBottom, setShowScrollBottom] = useState(false);
+
+  // 5-second alternating visibility for the companion side note badge
+  const [showSideNote, setShowSideNote] = useState(true);
+  const [isSideNoteHovered, setIsSideNoteHovered] = useState(false);
+
+  useEffect(() => {
+    // Pause alternation while user is actively hovering over the side note
+    if (isSideNoteHovered) return;
+
+    const timer = setInterval(() => {
+      setShowSideNote((prev) => !prev);
+    }, 5000);
+
+    return () => clearInterval(timer);
+  }, [isSideNoteHovered]);
   
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const lastMessageRef = useRef<HTMLDivElement>(null);
@@ -187,8 +203,16 @@ export default function CustomerAssistantBot() {
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [isOpen]);
 
-  // Hide bot completely on all admin routes (placed after all React Hooks)
-  if (location.startsWith("/admin")) {
+  // Keep chatbot ONLY for client accessing area — exclude all admin, retail, and POS portals (placed after all React Hooks)
+  const normalizedPath = (location || "").toLowerCase();
+  const isStaffArea =
+    normalizedPath.startsWith("/admin") ||
+    normalizedPath.startsWith("/retail") ||
+    normalizedPath.startsWith("/pos") ||
+    normalizedPath.includes("adminlogin") ||
+    normalizedPath.includes("retaillogin");
+
+  if (isStaffArea) {
     return null;
   }
 
@@ -197,15 +221,20 @@ export default function CustomerAssistantBot() {
       {/* Floating Trigger Button (Prominent circular FAB with brand emblem & live assistant status) */}
       {!isOpen && (
         <div className="fixed bottom-6 right-6 z-[9999] flex items-center gap-3">
-          {/* Subtle floating companion badge on larger screens */}
+          {/* Floating companion badge with 5s visible / 5s hidden alternating cycle */}
           <button
             onClick={() => setIsOpen(true)}
-            className="hidden sm:flex items-center gap-2.5 rounded-full border border-[#d4a373]/30 bg-white/95 px-4 py-2.5 shadow-lg backdrop-blur hover:bg-white hover:shadow-xl transition-all duration-200 group cursor-pointer"
+            onMouseEnter={() => setIsSideNoteHovered(true)}
+            onMouseLeave={() => setIsSideNoteHovered(false)}
+            className={`hidden sm:flex items-center gap-2.5 rounded-full border border-[#d4a373]/30 bg-white/95 px-4 py-2.5 shadow-lg backdrop-blur hover:bg-white hover:shadow-xl transition-all duration-700 ease-in-out group cursor-pointer ${
+              showSideNote || isSideNoteHovered
+                ? "opacity-100 translate-x-0 scale-100 pointer-events-auto"
+                : "opacity-0 translate-x-6 scale-95 pointer-events-none"
+            }`}
           >
-            <span className="relative flex h-2.5 w-2.5">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-500 opacity-75"></span>
-              <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-emerald-600"></span>
-            </span>
+            <div className="flex h-7 w-7 items-center justify-center rounded-full bg-emerald-100/80 text-emerald-800 ring-1 ring-emerald-300/40">
+              <ChatBotIcon className="h-4.5 w-4.5 text-emerald-800" />
+            </div>
             <div className="flex flex-col text-left">
               <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-800">100% Verified Herbal AI</span>
               <span className="font-serif text-xs font-semibold text-[#1b4332] group-hover:text-emerald-700">Need Botanical or Order Help?</span>
@@ -226,23 +255,7 @@ export default function CustomerAssistantBot() {
             </span>
 
             {/* Symmetrically Centralized High-Visibility AI Support Bot Icon */}
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              className="h-7 w-7 text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.4)] transition-transform duration-300 group-hover:scale-110"
-            >
-              <rect x="2" y="11" width="2" height="5.5" rx="1" fill="currentColor" />
-              <rect x="20" y="11" width="2" height="5.5" rx="1" fill="currentColor" />
-              <path d="M4 12v-2a8 8 0 0 1 16 0v2" strokeWidth="2" />
-              <rect x="5" y="9.5" width="14" height="11" rx="4" fill="currentColor" fillOpacity="0.18" strokeWidth="1.8" />
-              <circle cx="9" cy="14" r="1.4" fill="currentColor" />
-              <circle cx="15" cy="14" r="1.4" fill="currentColor" />
-              <path d="M10.2 17c.9.6 1.8.8 2.7.8s1.8-.2 2.7-.8" strokeWidth="1.6" />
-            </svg>
+            <ChatBotIcon className="h-[34px] w-[34px] text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.4)] transition-transform duration-300 group-hover:scale-110" />
           </button>
         </div>
       )}
@@ -257,85 +270,152 @@ export default function CustomerAssistantBot() {
           }`}
         >
           {/* 1. Header (Always visible, sticky at top) */}
-          <div className="flex flex-shrink-0 items-center justify-between border-b border-emerald-900/20 bg-gradient-to-r from-[#143d2b] via-[#1b4332] to-[#245840] px-4 py-3 text-white shadow-md">
-            <div className="flex items-center gap-2.5">
-              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-white/20 p-1 ring-1 ring-white/30 text-white shadow-inner shrink-0">
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  className="h-5 w-5 text-white"
-                >
-                  <rect x="2" y="11" width="2" height="5.5" rx="1" fill="currentColor" />
-                  <rect x="20" y="11" width="2" height="5.5" rx="1" fill="currentColor" />
-                  <path d="M4 12v-2a8 8 0 0 1 16 0v2" strokeWidth="2" />
-                  <rect x="5" y="9.5" width="14" height="11" rx="4" fill="currentColor" fillOpacity="0.18" strokeWidth="1.8" />
-                  <circle cx="9" cy="14" r="1.4" fill="currentColor" />
-                  <circle cx="15" cy="14" r="1.4" fill="currentColor" />
-                  <path d="M10.2 17c.9.6 1.8.8 2.7.8s1.8-.2 2.7-.8" strokeWidth="1.6" />
-                </svg>
-              </div>
-              <div>
-                <div className="flex items-center gap-2">
-                  <h3 className="font-serif text-sm font-bold tracking-wide text-white">TRINAYAA Herbal Assistant</h3>
-                  <Badge variant="outline" className="border-emerald-300/40 bg-emerald-950/60 px-1.5 py-0 text-[10px] text-emerald-200">
-                    100% Verified
-                  </Badge>
+          <div className="flex flex-col flex-shrink-0 border-b border-emerald-900/20 bg-gradient-to-r from-[#143d2b] via-[#1b4332] to-[#245840] px-3.5 py-2.5 sm:px-4 sm:py-3 text-white shadow-md select-none">
+            {isExpanded ? (
+              /* Expanded / Large Reading View: Single spacious row */
+              <div className="flex items-center justify-between gap-3">
+                {/* Left: Avatar + Title & Subtitle */}
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-full bg-white/20 p-1 ring-1 ring-white/30 text-white shadow-inner shrink-0">
+                    <ChatBotIcon className="h-6 w-6 text-white" />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                      <h3 className="font-serif text-sm sm:text-base font-bold tracking-wide text-white truncate">
+                        TRINAYAA Herbal Assistant
+                      </h3>
+                      <Badge
+                        variant="outline"
+                        className="border-emerald-300/40 bg-emerald-950/60 px-2 py-0.5 text-[10px] text-emerald-200 shrink-0 font-medium"
+                      >
+                        100% Verified
+                      </Badge>
+                    </div>
+                    <p className="flex items-center gap-1.5 text-xs text-emerald-100/90 truncate">
+                      <ShieldCheck className="h-3.5 w-3.5 text-emerald-300 shrink-0" />
+                      <span className="truncate">Traditional Botanical &amp; Order Guidance</span>
+                    </p>
+                  </div>
                 </div>
-                <p className="flex items-center gap-1 text-[11px] text-emerald-100/90">
-                  <ShieldCheck className="h-3 w-3 text-emerald-300" />
-                  Traditional Botanical & Order Guidance
-                </p>
+
+                {/* Right: All 4 Controls - Helpdesk, Clear, Collapse, and Close */}
+                <div className="flex items-center gap-2 shrink-0">
+                  <button
+                    onClick={() => {
+                      setIsOpen(false);
+                      navigate("/account?tab=tickets");
+                    }}
+                    className="flex items-center gap-1.5 rounded-lg bg-emerald-700/80 border border-emerald-400/40 px-2.5 py-1.5 text-xs font-semibold text-white transition-all hover:bg-emerald-600 shadow-sm cursor-pointer"
+                    title="Open Support Helpdesk"
+                  >
+                    <LifeBuoy className="h-3.5 w-3.5 text-amber-300 shrink-0" />
+                    <span>Helpdesk</span>
+                  </button>
+
+                  <button
+                    onClick={clearChat}
+                    className="flex items-center gap-1.5 rounded-lg bg-white/10 border border-white/20 px-2.5 py-1.5 text-xs font-medium text-emerald-100 transition-all hover:bg-white/20 hover:text-white cursor-pointer"
+                    title="Clear chat history"
+                  >
+                    <RotateCcw className="h-3.5 w-3.5 shrink-0" />
+                    <span>Clear</span>
+                  </button>
+
+                  <button
+                    onClick={() => setIsExpanded(false)}
+                    className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/10 text-emerald-100 transition-colors hover:bg-white/20 hover:text-white shrink-0 cursor-pointer"
+                    title="Collapse to standard view"
+                    aria-label="Collapse view"
+                  >
+                    <Minimize2 className="h-4 w-4" />
+                  </button>
+
+                  <button
+                    onClick={() => setIsOpen(false)}
+                    className="flex h-8 w-8 items-center justify-center rounded-lg bg-red-600 hover:bg-red-700 text-white shadow-sm transition-all hover:scale-105 active:scale-95 shrink-0 border border-red-400/40 cursor-pointer"
+                    title="Close Assistant"
+                    aria-label="Close Assistant"
+                  >
+                    <X className="h-4 w-4 stroke-[2.5]" />
+                  </button>
+                </div>
               </div>
-            </div>
+            ) : (
+              /* Compact / Standard View: Two-tier layout ensuring Close Button is ALWAYS 100% visible */
+              <div className="flex flex-col gap-1.5">
+                {/* Row 1: Brand Title, Verified Badge & Top-Right Window Controls (Expand & Close) */}
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white/20 p-1 ring-1 ring-white/30 text-white shadow-inner shrink-0">
+                      <ChatBotIcon className="h-5 w-5 text-white" />
+                    </div>
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      <h3 className="font-serif text-xs sm:text-sm font-bold tracking-wide text-white truncate">
+                        TRINAYAA Herbal Assistant
+                      </h3>
+                      <Badge
+                        variant="outline"
+                        className="border-emerald-300/40 bg-emerald-950/60 px-1.5 py-0 text-[9px] text-emerald-200 shrink-0 font-medium whitespace-nowrap"
+                      >
+                        100% Verified
+                      </Badge>
+                    </div>
+                  </div>
 
-            {/* Header Control Buttons: Helpdesk, Clear Chat, Maximize / Expand, Close */}
-            <div className="flex items-center gap-1.5">
-              {/* Helpdesk shortcut */}
-              <button
-                onClick={() => {
-                  setIsOpen(false);
-                  navigate("/account?tab=tickets");
-                }}
-                className="flex items-center gap-1 rounded-lg bg-emerald-700/60 border border-emerald-400/30 px-2 py-1 text-[11px] font-semibold text-white transition-colors hover:bg-emerald-600"
-                title="Open Customer Support Helpdesk"
-              >
-                <LifeBuoy className="h-3.5 w-3.5 text-amber-300" />
-                <span className="hidden sm:inline">Helpdesk</span>
-              </button>
+                  {/* Window Controls: Expand & GUARANTEED VISIBLE Close Button */}
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <button
+                      onClick={() => setIsExpanded(true)}
+                      className="flex h-7 w-7 items-center justify-center rounded-lg bg-white/10 text-emerald-100 transition-colors hover:bg-white/20 hover:text-white shrink-0 cursor-pointer"
+                      title="Expand to large view"
+                      aria-label="Expand view"
+                    >
+                      <Maximize2 className="h-3.5 w-3.5" />
+                    </button>
 
-              {/* Clear Chat History */}
-              <button
-                onClick={clearChat}
-                className="flex items-center gap-1 rounded-lg bg-white/10 px-2 py-1 text-[11px] font-medium text-emerald-100 transition-colors hover:bg-white/20 hover:text-white"
-                title="Clear chat history and start fresh"
-              >
-                <RotateCcw className="h-3.5 w-3.5" />
-                <span className="hidden sm:inline">Clear</span>
-              </button>
+                    <button
+                      onClick={() => setIsOpen(false)}
+                      className="flex h-7 w-7 items-center justify-center rounded-lg bg-red-600 hover:bg-red-700 text-white shadow-sm transition-all hover:scale-105 active:scale-95 shrink-0 border border-red-400/40 cursor-pointer"
+                      title="Close Assistant"
+                      aria-label="Close Assistant"
+                    >
+                      <X className="h-4 w-4 stroke-[2.5]" />
+                    </button>
+                  </div>
+                </div>
 
-              {/* Fullscreen / Expand Toggle */}
-              <button
-                onClick={() => setIsExpanded(!isExpanded)}
-                className="rounded-lg bg-white/10 p-1.5 text-emerald-100 transition-colors hover:bg-white/20 hover:text-white"
-                title={isExpanded ? "Collapse to standard view" : "Expand to large reading view"}
-              >
-                {isExpanded ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
-              </button>
+                {/* Row 2: Subtitle & Action Pills (Helpdesk & Clear) */}
+                <div className="flex items-center justify-between gap-2 pt-1 border-t border-emerald-800/30">
+                  <p className="flex items-center gap-1 text-[10px] sm:text-[11px] text-emerald-100/90 truncate min-w-0">
+                    <ShieldCheck className="h-3 w-3 text-emerald-300 shrink-0" />
+                    <span className="truncate">Traditional Botanical &amp; Order Guidance</span>
+                  </p>
 
-              {/* High-visibility Close Button */}
-              <button
-                onClick={() => setIsOpen(false)}
-                className="flex h-8 w-8 items-center justify-center rounded-lg bg-red-600/30 text-white transition-colors hover:bg-red-600 hover:text-white"
-                title="Close assistant"
-                aria-label="Close"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <button
+                      onClick={() => {
+                        setIsOpen(false);
+                        navigate("/account?tab=tickets");
+                      }}
+                      className="flex items-center gap-1 rounded-md bg-emerald-700/80 border border-emerald-400/40 px-2 py-0.5 text-[10px] font-semibold text-white transition-colors hover:bg-emerald-600 shrink-0 cursor-pointer shadow-xs"
+                      title="Open Support Helpdesk"
+                    >
+                      <LifeBuoy className="h-3 w-3 text-amber-300 shrink-0" />
+                      <span>Helpdesk</span>
+                    </button>
+
+                    <button
+                      onClick={clearChat}
+                      className="flex items-center gap-1 rounded-md bg-white/10 border border-white/20 px-1.5 py-0.5 text-[10px] font-medium text-emerald-100 transition-colors hover:bg-white/20 hover:text-white shrink-0 cursor-pointer"
+                      title="Clear chat history"
+                    >
+                      <RotateCcw className="h-3 w-3 shrink-0" />
+                      <span>Clear</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* 2. Messages List with Native Draggable & Visible Scrollbar */}
