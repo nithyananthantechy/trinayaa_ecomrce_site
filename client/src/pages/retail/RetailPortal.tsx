@@ -278,6 +278,7 @@ export default function RetailPortal() {
   // ==========================================
   const [expenseCategoryFilter, setExpenseCategoryFilter] = useState("ALL");
   const [expenseSearch, setExpenseSearch] = useState("");
+  const [expensePeriodFilter, setExpensePeriodFilter] = useState<"today" | "week" | "month" | "all">("month");
   const [expenseAmount, setExpenseAmount] = useState<number | "">("");
   const [expenseCategory, setExpenseCategory] = useState("Tea & Refreshments");
   const [expenseDescription, setExpenseDescription] = useState("");
@@ -292,12 +293,28 @@ export default function RetailPortal() {
     enabled: activeTab === "finance",
   });
 
+  const {
+    data: expenseList = [],
+    isLoading: expenseListLoading,
+    refetch: refetchExpenseList,
+  } = trpc.retail.listExpenses.useQuery(
+    {
+      period: expensePeriodFilter,
+      category: expenseCategoryFilter === "ALL" ? undefined : expenseCategoryFilter,
+      search: expenseSearch.trim() || undefined,
+    },
+    {
+      enabled: activeTab === "finance",
+    }
+  );
+
   const addExpenseMutation = trpc.retail.addExpense.useMutation({
     onSuccess: () => {
       toast.success("Branch expense recorded successfully");
       setExpenseAmount("");
       setExpenseDescription("");
       refetchFinance();
+      refetchExpenseList();
     },
     onError: (err) => toast.error(err.message || "Failed to record expense"),
   });
@@ -306,6 +323,7 @@ export default function RetailPortal() {
     onSuccess: () => {
       toast.success("Expense record removed");
       refetchFinance();
+      refetchExpenseList();
     },
     onError: (err) => toast.error(err.message || "Failed to delete expense"),
   });
@@ -474,6 +492,7 @@ export default function RetailPortal() {
             onClick={() => {
               setActiveTab("finance");
               refetchFinance();
+              refetchExpenseList();
             }}
             className={`flex items-center gap-2 px-3.5 py-2 rounded-md text-xs font-bold transition-all shrink-0 cursor-pointer ${
               activeTab === "finance"
@@ -1442,25 +1461,70 @@ export default function RetailPortal() {
 
             <div className="p-5 sm:p-6 space-y-6 pt-0">
               {/* Financial Summary Stat Cards */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5">
                 {/* 1. Monthly Allowance */}
                 <div className="bg-white border border-[#E2E8F0] border-t-4 border-t-[#123D28] rounded-xl p-4 shadow-2xs">
                   <div className="flex items-center justify-between text-[#64748B] mb-2 text-xs font-semibold">
-                    <span>Monthly Allocated Allowance</span>
+                    <span>Monthly Allowance</span>
                     <div className="w-7 h-7 rounded-lg bg-[#123D28]/10 text-[#123D28] flex items-center justify-center">
                       <Coins size={15} />
                     </div>
                   </div>
                   <div className="text-2xl font-bold font-serif text-[#123D28]">
-                    ₹{(financeData?.monthlyAllowance || 25000).toLocaleString("en-IN")}
+                    ₹{(financeData?.monthlyAllowance || 0).toLocaleString("en-IN")}
                   </div>
-                  <div className="text-[11px] text-[#64748B] mt-1">Approved petty cash quota</div>
+                  <div
+                    className="text-[11px] text-[#64748B] mt-1 truncate"
+                    title={
+                      financeData?.allowanceDetails?.allocatedBy
+                        ? `Allocated by ${financeData.allowanceDetails.allocatedBy}${
+                            financeData.allowanceDetails.notes ? ` (${financeData.allowanceDetails.notes})` : ""
+                          }`
+                        : "Approved petty cash quota"
+                    }
+                  >
+                    {financeData?.allowanceDetails?.allocatedBy
+                      ? `By ${financeData.allowanceDetails.allocatedBy}`
+                      : "Approved monthly quota"}
+                  </div>
                 </div>
 
-                {/* 2. Total Expenses */}
+                {/* 2. Today's Expenses */}
+                <div className="bg-white border border-[#E2E8F0] border-t-4 border-t-[#AE6A2B] rounded-xl p-4 shadow-2xs">
+                  <div className="flex items-center justify-between text-[#64748B] mb-2 text-xs font-semibold">
+                    <span>Today's Expenses</span>
+                    <div className="w-7 h-7 rounded-lg bg-amber-50 text-[#AE6A2B] flex items-center justify-center">
+                      <Calendar size={15} />
+                    </div>
+                  </div>
+                  <div className="text-2xl font-bold font-serif text-[#AE6A2B]">
+                    ₹{(financeData?.todayExpenses || 0).toLocaleString("en-IN")}
+                  </div>
+                  <div className="text-[11px] text-[#64748B] mt-1">
+                    {financeData?.todayCount || 0} entries updated today
+                  </div>
+                </div>
+
+                {/* 3. This Week's Expenses */}
+                <div className="bg-white border border-[#E2E8F0] border-t-4 border-t-blue-600 rounded-xl p-4 shadow-2xs">
+                  <div className="flex items-center justify-between text-[#64748B] mb-2 text-xs font-semibold">
+                    <span>Weekly Expenses</span>
+                    <div className="w-7 h-7 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
+                      <Calendar size={15} />
+                    </div>
+                  </div>
+                  <div className="text-2xl font-bold font-serif text-blue-700">
+                    ₹{(financeData?.weekExpenses || 0).toLocaleString("en-IN")}
+                  </div>
+                  <div className="text-[11px] text-[#64748B] mt-1">
+                    {financeData?.weekCount || 0} entries this week (Mon-Sun)
+                  </div>
+                </div>
+
+                {/* 4. Total Monthly Spend */}
                 <div className="bg-white border border-[#E2E8F0] border-t-4 border-t-red-600 rounded-xl p-4 shadow-2xs">
                   <div className="flex items-center justify-between text-[#64748B] mb-2 text-xs font-semibold">
-                    <span>Total Monthly Expenses</span>
+                    <span>Monthly Expenses</span>
                     <div className="w-7 h-7 rounded-lg bg-red-50 text-red-600 flex items-center justify-center">
                       <Receipt size={15} />
                     </div>
@@ -1473,36 +1537,20 @@ export default function RetailPortal() {
                   </div>
                 </div>
 
-                {/* 3. Remaining Petty Cash */}
+                {/* 5. Remaining Petty Cash */}
                 <div className="bg-gradient-to-br from-[#123D28] to-[#1E5638] text-white rounded-xl p-4 shadow-sm border border-emerald-900 flex flex-col justify-between">
                   <div>
                     <div className="flex items-center justify-between text-emerald-200 mb-2 text-xs font-semibold">
-                      <span>Remaining Cash Balance</span>
+                      <span>Remaining Balance</span>
                       <div className="w-7 h-7 rounded-lg bg-white/10 text-emerald-300 flex items-center justify-center border border-white/20">
                         <Wallet size={15} />
                       </div>
                     </div>
                     <div className="text-2xl font-bold font-serif text-white">
-                      ₹{(financeData?.remainingAllowance ?? 25000).toLocaleString("en-IN")}
+                      ₹{(financeData?.remainingAllowance ?? 0).toLocaleString("en-IN")}
                     </div>
                   </div>
                   <div className="text-[11px] text-emerald-200/90 mt-1">Available petty cash in hand</div>
-                </div>
-
-                {/* 4. Today's Expenses */}
-                <div className="bg-white border border-[#E2E8F0] border-t-4 border-t-[#AE6A2B] rounded-xl p-4 shadow-2xs">
-                  <div className="flex items-center justify-between text-[#64748B] mb-2 text-xs font-semibold">
-                    <span>Today's Expenses Total</span>
-                    <div className="w-7 h-7 rounded-lg bg-amber-50 text-[#AE6A2B] flex items-center justify-center">
-                      <Calendar size={15} />
-                    </div>
-                  </div>
-                  <div className="text-2xl font-bold font-serif text-[#AE6A2B]">
-                    ₹{(financeData?.todayExpenses || 0).toLocaleString("en-IN")}
-                  </div>
-                  <div className="text-[11px] text-[#64748B] mt-1">
-                    {financeData?.todayCount || 0} entries updated today
-                  </div>
                 </div>
               </div>
 
@@ -1653,16 +1701,41 @@ export default function RetailPortal() {
 
                 {/* Right: Expense Ledger & History */}
                 <div className="lg:col-span-8 bg-white border border-[#E2E8F0] rounded-xl shadow-2xs overflow-hidden space-y-3">
-                  <div className="bg-[#FAF8F2] px-5 py-3 border-b border-[#E2E8F0] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="bg-[#FAF8F2] px-5 py-3 border-b border-[#E2E8F0] flex flex-col md:flex-row md:items-center justify-between gap-3">
                     <div className="flex items-center gap-2">
                       <Receipt size={16} className="text-[#123D28]" />
                       <span className="font-serif font-bold text-sm text-[#123D28]">
-                        Daily Expense Ledger ({financeData?.recentExpenses?.length || 0})
+                        Expense Ledger ({expenseList?.length || 0})
                       </span>
                     </div>
 
-                    {/* Filter and Search */}
-                    <div className="flex items-center gap-2">
+                    {/* Period Tabs, Category Filter and Search */}
+                    <div className="flex flex-wrap items-center gap-2">
+                      {/* Period Pills */}
+                      <div className="flex bg-[#F1F5F9] p-0.5 rounded-lg text-[11px] font-semibold text-[#64748B]">
+                        {(
+                          [
+                            { key: "today", label: "Today" },
+                            { key: "week", label: "This Week" },
+                            { key: "month", label: "This Month" },
+                            { key: "all", label: "All" },
+                          ] as const
+                        ).map((tab) => (
+                          <button
+                            key={tab.key}
+                            type="button"
+                            onClick={() => setExpensePeriodFilter(tab.key)}
+                            className={`px-2.5 py-1 rounded-md transition-all cursor-pointer ${
+                              expensePeriodFilter === tab.key
+                                ? "bg-white text-[#123D28] font-bold shadow-2xs"
+                                : "hover:text-[#0F172A]"
+                            }`}
+                          >
+                            {tab.label}
+                          </button>
+                        ))}
+                      </div>
+
                       <select
                         value={expenseCategoryFilter}
                         onChange={(e) => setExpenseCategoryFilter(e.target.value)}
@@ -1684,8 +1757,8 @@ export default function RetailPortal() {
                           type="text"
                           value={expenseSearch}
                           onChange={(e) => setExpenseSearch(e.target.value)}
-                          placeholder="Search expenses..."
-                          className="pl-7 pr-2.5 py-1.5 text-xs bg-white border border-[#CBD5E1] rounded-lg focus:outline-none focus:border-[#123D28] w-36 sm:w-44"
+                          placeholder="Search..."
+                          className="pl-7 pr-2.5 py-1.5 text-xs bg-white border border-[#CBD5E1] rounded-lg focus:outline-none focus:border-[#123D28] w-28 sm:w-36"
                         />
                       </div>
                     </div>
@@ -1705,34 +1778,20 @@ export default function RetailPortal() {
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-[#F1F5F9]">
-                        {financeLoading ? (
+                        {expenseListLoading || financeLoading ? (
                           <tr>
                             <td colSpan={7} className="py-8 text-center text-[#94A3B8]">
                               Loading cash flow records...
                             </td>
                           </tr>
-                        ) : (financeData?.recentExpenses || []).filter((item: any) => {
-                          const matchesCat = expenseCategoryFilter === "ALL" || item.category === expenseCategoryFilter;
-                          const matchesSearch = !expenseSearch.trim() ||
-                            item.description.toLowerCase().includes(expenseSearch.toLowerCase()) ||
-                            item.category.toLowerCase().includes(expenseSearch.toLowerCase()) ||
-                            item.recorded_by.toLowerCase().includes(expenseSearch.toLowerCase());
-                          return matchesCat && matchesSearch;
-                        }).length === 0 ? (
+                        ) : (expenseList || []).length === 0 ? (
                           <tr>
                             <td colSpan={7} className="py-8 text-center text-[#94A3B8]">
-                              No expenses recorded matching criteria.
+                              No expenses recorded for this period.
                             </td>
                           </tr>
                         ) : (
-                          (financeData?.recentExpenses || []).filter((item: any) => {
-                            const matchesCat = expenseCategoryFilter === "ALL" || item.category === expenseCategoryFilter;
-                            const matchesSearch = !expenseSearch.trim() ||
-                              item.description.toLowerCase().includes(expenseSearch.toLowerCase()) ||
-                              item.category.toLowerCase().includes(expenseSearch.toLowerCase()) ||
-                              item.recorded_by.toLowerCase().includes(expenseSearch.toLowerCase());
-                            return matchesCat && matchesSearch;
-                          }).map((exp: any) => (
+                          (expenseList || []).map((exp: any) => (
                             <tr key={exp.id} className="hover:bg-[#FAF8F2]/60 transition-colors">
                               <td className="py-3 px-4 font-mono text-[11px] text-[#0F172A] whitespace-nowrap">
                                 {exp.expense_date}

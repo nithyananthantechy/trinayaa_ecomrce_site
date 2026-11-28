@@ -675,8 +675,10 @@ function initTables(db: any) {
       branch_id TEXT NOT NULL,
       month_year TEXT NOT NULL,
       allocated_amount REAL NOT NULL DEFAULT 25000,
+      allocated_by TEXT DEFAULT 'Admin',
       notes TEXT,
       created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      updated_at TEXT,
       UNIQUE(branch_id, month_year),
       FOREIGN KEY (branch_id) REFERENCES retail_branches(id) ON DELETE CASCADE
     );
@@ -748,6 +750,8 @@ function initTables(db: any) {
   safeAlter("ALTER TABLE orders ADD COLUMN subscriptionCycleId TEXT;");
   safeAlter("ALTER TABLE orders ADD COLUMN isSubscriptionOrder INTEGER NOT NULL DEFAULT 0;");
   safeAlter("ALTER TABLE products ADD COLUMN isSubscriptionEligible INTEGER NOT NULL DEFAULT 1;");
+  safeAlter("ALTER TABLE retail_branch_allowances ADD COLUMN allocated_by TEXT DEFAULT 'Admin';");
+  safeAlter("ALTER TABLE retail_branch_allowances ADD COLUMN updated_at TEXT;");
 
   // Ensure default admin user exists if table is empty
   const adminCheck = db.prepare("SELECT COUNT(*) as count FROM users WHERE role IN ('ADMIN', 'SUPER_ADMIN')").get() as { count: number };
@@ -6757,6 +6761,22 @@ function getValidBranchId(branchId?: string): string {
   return branchId || "brn_1795591406325_849";
 }
 
+function getRetailWeekRange() {
+  const now = new Date();
+  const day = now.getDay(); // 0 is Sunday, 1 is Monday...
+  const diffToMonday = now.getDate() - day + (day === 0 ? -6 : 1);
+  const monday = new Date(now);
+  monday.setDate(diffToMonday);
+  monday.setHours(0, 0, 0, 0);
+  const sunday = new Date(monday);
+  sunday.setDate(monday.getDate() + 6);
+  sunday.setHours(23, 59, 59, 999);
+  return {
+    start: monday.toISOString().slice(0, 10),
+    end: sunday.toISOString().slice(0, 10),
+  };
+}
+
 export const retailExpensesRepo = {
   addExpense(data: {
     branchId: string;
@@ -6796,7 +6816,45 @@ export const retailExpensesRepo = {
     return db.prepare("SELECT * FROM retail_branch_expenses WHERE id = ?").get(id) as any;
   },
 
-  listExpenses(branchId: string, options: { monthYear?: string; category?: string; search?: string; limit?: number } = {}) {
+  setMonthlyAllowance(data: {
+    branchId: string;
+    monthYear: string;
+    allocatedAmount: number;
+    allocatedBy?: string;
+    notes?: string;
+  }) {
+    const db = getDatabase();
+    const validBranchId = getValidBranchId(data.branchId);
+    const existing = db.prepare("SELECT id FROM retail_branch_allowances WHERE branch_id = ? AND month_year = ?")
+      .get(validBranchId, data.monthYear) as any;
+    const now = new Date().toISOString();
+
+    if (existing) {
+      db.prepare(`
+        UPDATE retail_branch_allowances
+        SET allocated_amount = ?, allocated_by = ?, notes = ?, updated_at = ?
+        WHERE id = ?
+      `).run(data.allocatedAmount, data.allocatedBy || "Admin", data.notes || null, now, existing.id);
+      return db.prepare("SELECT * FROM retail_branch_allowances WHERE id = ?").get(existing.id) as any;
+    } else {
+      const id = "alw_" + Date.now() + "_" + Math.floor(Math.random() * 1000);
+      db.prepare(`
+        INSERT INTO retail_branch_allowances (id, branch_id, month_year, allocated_amount, allocated_by, notes, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      `).run(id, validBranchId, data.monthYear, data.allocatedAmount, data.allocatedBy || "Admin", data.notes || null, now, now);
+      return db.prepare("SELECT * FROM retail_branch_allowances WHERE id = ?").get(id) as any;
+    }
+  },
+
+  getMonthlyAllowance(branchId: string, monthYear?: string) {
+    const db = getDatabase();
+    const validBranchId = getValidBranchId(branchId);
+    const targetMonth = monthYear || new Date().toISOString().slice(0, 7);
+    return db.prepare("SELECT * FROM retail_branch_allowances WHERE branch_id = ? AND month_year = ?")
+      .get(validBranchId, targetMonth) as any;
+  },
+
+  listExpenses(branchId: string, options: { period?: "today" | "week" | "month" | "all"; monthYear?: string; category?: string; search?: string; limit?: number } = {}) {
     const db = getDatabase();
     const validBranchId = getValidBranchId(branchId);
     this.seedDefaultsIfEmpty(validBranchId);
@@ -6804,7 +6862,20 @@ export const retailExpensesRepo = {
     let sql = "SELECT * FROM retail_branch_expenses WHERE branch_id = ?";
     const params: any[] = [validBranchId];
 
-    if (options.monthYear) {
+    const today = new Date().toISOString().slice(0, 10);
+    const targetMonth = options.monthYear || new Date().toISOString().slice(0, 7);
+
+    if (options.period === "today") {
+      sql += " AND expense_date = ?";
+      params.push(today);
+    } else if (options.period === "week") {
+      const week = getRetailWeekRange();
+      sql += " AND expense_date >= ? AND expense_date <= ?";
+      params.push(week.start, week.end);
+    } else if (options.period === "month") {
+      sql += " AND expense_date LIKE ?";
+      params.push(`${targetMonth}%`);
+    } else if (options.monthYear) {
       sql += " AND expense_date LIKE ?";
       params.push(`${options.monthYear}%`);
     }
@@ -6839,6 +6910,7 @@ export const retailExpensesRepo = {
 
     const targetMonth = monthYear || new Date().toISOString().slice(0, 7);
     const today = new Date().toISOString().slice(0, 10);
+    const week = getRetailWeekRange();
 
     const allowanceRow = db.prepare("SELECT * FROM retail_branch_allowances WHERE branch_id = ? AND month_year = ?")
       .get(validBranchId, targetMonth) as any;
@@ -6856,8 +6928,15 @@ export const retailExpensesRepo = {
       WHERE branch_id = ? AND expense_date = ?
     `).get(validBranchId, today) as any;
 
+    const weekStats = db.prepare(`
+      SELECT COALESCE(SUM(amount), 0) as totalWeek, COUNT(*) as weekCount
+      FROM retail_branch_expenses
+      WHERE branch_id = ? AND expense_date >= ? AND expense_date <= ?
+    `).get(validBranchId, week.start, week.end) as any;
+
     const totalExpenses = monthStats?.totalMonthly || 0;
     const todayExpenses = todayStats?.totalToday || 0;
+    const weekExpenses = weekStats?.totalWeek || 0;
     const remainingAllowance = Math.max(0, monthlyAllowance - totalExpenses);
 
     const categoryBreakdown = db.prepare(`
@@ -6866,25 +6945,183 @@ export const retailExpensesRepo = {
       WHERE branch_id = ? AND expense_date LIKE ?
       GROUP BY category
       ORDER BY total DESC
-    `).all(branchId, `${targetMonth}%`) as any[];
+    `).all(validBranchId, `${targetMonth}%`) as any[];
 
     const recentExpenses = db.prepare(`
       SELECT * FROM retail_branch_expenses
       WHERE branch_id = ?
       ORDER BY expense_date DESC, created_at DESC
-      LIMIT 50
-    `).all(branchId) as any[];
+      LIMIT 100
+    `).all(validBranchId) as any[];
 
     return {
       monthYear: targetMonth,
       monthlyAllowance,
+      allowanceDetails: allowanceRow ? {
+        allocatedAmount: allowanceRow.allocated_amount,
+        allocatedBy: allowanceRow.allocated_by,
+        notes: allowanceRow.notes,
+        updatedAt: allowanceRow.updated_at,
+      } : null,
       totalExpenses,
       todayExpenses,
+      weekExpenses,
       remainingAllowance,
       monthlyCount: monthStats?.monthlyCount || 0,
       todayCount: todayStats?.todayCount || 0,
+      weekCount: weekStats?.weekCount || 0,
       categoryBreakdown,
       recentExpenses,
+    };
+  },
+
+  listAllBranchExpenses(options: {
+    branchId?: string;
+    period?: "today" | "week" | "month" | "all";
+    monthYear?: string;
+    category?: string;
+    search?: string;
+    limit?: number;
+  } = {}) {
+    const db = getDatabase();
+    let sql = `
+      SELECT e.*, b.name as branch_name, b.code as branch_code, b.city as branch_city
+      FROM retail_branch_expenses e
+      LEFT JOIN retail_branches b ON e.branch_id = b.id
+      WHERE 1=1
+    `;
+    const params: any[] = [];
+
+    if (options.branchId && options.branchId !== "ALL") {
+      sql += " AND e.branch_id = ?";
+      params.push(getValidBranchId(options.branchId));
+    }
+
+    const today = new Date().toISOString().slice(0, 10);
+    const targetMonth = options.monthYear || new Date().toISOString().slice(0, 7);
+
+    if (options.period === "today") {
+      sql += " AND e.expense_date = ?";
+      params.push(today);
+    } else if (options.period === "week") {
+      const week = getRetailWeekRange();
+      sql += " AND e.expense_date >= ? AND e.expense_date <= ?";
+      params.push(week.start, week.end);
+    } else if (options.period === "month") {
+      sql += " AND e.expense_date LIKE ?";
+      params.push(`${targetMonth}%`);
+    } else if (options.monthYear) {
+      sql += " AND e.expense_date LIKE ?";
+      params.push(`${options.monthYear}%`);
+    }
+
+    if (options.category && options.category !== "ALL") {
+      sql += " AND e.category = ?";
+      params.push(options.category);
+    }
+
+    if (options.search?.trim()) {
+      sql += " AND (e.description LIKE ? OR e.category LIKE ? OR e.recorded_by LIKE ? OR b.name LIKE ?)";
+      const term = `%${options.search.trim()}%`;
+      params.push(term, term, term, term);
+    }
+
+    sql += " ORDER BY e.expense_date DESC, e.created_at DESC LIMIT ?";
+    params.push(options.limit || 200);
+
+    return db.prepare(sql).all(...params) as any[];
+  },
+
+  getAdminFinanceOverview(options: { monthYear?: string } = {}) {
+    const db = getDatabase();
+    const targetMonth = options.monthYear || new Date().toISOString().slice(0, 7);
+    const today = new Date().toISOString().slice(0, 10);
+    const week = getRetailWeekRange();
+
+    const branches = db.prepare("SELECT * FROM retail_branches WHERE is_active = 1 ORDER BY name ASC").all() as any[];
+
+    const branchSummaries = branches.map((b) => {
+      this.seedDefaultsIfEmpty(b.id);
+      const allowanceRow = db.prepare("SELECT * FROM retail_branch_allowances WHERE branch_id = ? AND month_year = ?")
+        .get(b.id, targetMonth) as any;
+      const allocatedAmount = allowanceRow ? allowanceRow.allocated_amount : 25000;
+
+      const mStats = db.prepare(`
+        SELECT COALESCE(SUM(amount), 0) as total, COUNT(*) as count
+        FROM retail_branch_expenses
+        WHERE branch_id = ? AND expense_date LIKE ?
+      `).get(b.id, `${targetMonth}%`) as any;
+
+      const tStats = db.prepare(`
+        SELECT COALESCE(SUM(amount), 0) as total, COUNT(*) as count
+        FROM retail_branch_expenses
+        WHERE branch_id = ? AND expense_date = ?
+      `).get(b.id, today) as any;
+
+      const wStats = db.prepare(`
+        SELECT COALESCE(SUM(amount), 0) as total, COUNT(*) as count
+        FROM retail_branch_expenses
+        WHERE branch_id = ? AND expense_date >= ? AND expense_date <= ?
+      `).get(b.id, week.start, week.end) as any;
+
+      const monthlySpent = mStats?.total || 0;
+      const remainingQuota = Math.max(0, allocatedAmount - monthlySpent);
+
+      return {
+        branchId: b.id,
+        branchName: b.name,
+        branchCode: b.code,
+        branchCity: b.city,
+        monthYear: targetMonth,
+        allocatedAmount,
+        monthlySpent,
+        todaySpent: tStats?.total || 0,
+        weekSpent: wStats?.total || 0,
+        remainingQuota,
+        monthlyExpenseCount: mStats?.count || 0,
+        allowanceNotes: allowanceRow?.notes || null,
+        allocatedBy: allowanceRow?.allocated_by || "Admin",
+        lastUpdated: allowanceRow?.updated_at || b.created_at,
+      };
+    });
+
+    const totalAllocated = branchSummaries.reduce((acc, curr) => acc + curr.allocatedAmount, 0);
+    const totalSpent = branchSummaries.reduce((acc, curr) => acc + curr.monthlySpent, 0);
+    const totalToday = branchSummaries.reduce((acc, curr) => acc + curr.todaySpent, 0);
+    const totalWeek = branchSummaries.reduce((acc, curr) => acc + curr.weekSpent, 0);
+    const totalRemaining = Math.max(0, totalAllocated - totalSpent);
+
+    const categoryBreakdown = db.prepare(`
+      SELECT category, COALESCE(SUM(amount), 0) as total, COUNT(*) as count
+      FROM retail_branch_expenses
+      WHERE expense_date LIKE ?
+      GROUP BY category
+      ORDER BY total DESC
+    `).all(`${targetMonth}%`) as any[];
+
+    return {
+      monthYear: targetMonth,
+      totalAllocated,
+      totalAllocatedQuota: totalAllocated,
+      totalSpent,
+      totalSpend: totalSpent,
+      totalToday,
+      todaySpend: totalToday,
+      totalWeek,
+      weekSpend: totalWeek,
+      totalRemaining,
+      remainingQuota: totalRemaining,
+      branchesCount: branches.length,
+      branchSummaries: branchSummaries.map((bs) => ({
+        ...bs,
+        allocatedQuota: bs.allocatedAmount,
+        monthlySpend: bs.monthlySpent,
+        todaySpend: bs.todaySpent,
+        weekSpend: bs.weekSpent,
+        city: bs.branchCity,
+      })),
+      categoryBreakdown,
+      categoryDistribution: categoryBreakdown,
     };
   },
 

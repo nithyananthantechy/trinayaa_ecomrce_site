@@ -50,13 +50,15 @@ import {
   Building2,
   LifeBuoy,
   Star,
-  Store
+  Store,
+  Wallet
 } from "lucide-react";
 import EnquiriesTab from "./EnquiriesTab";
 import RewardsTab from "./RewardsTab";
 import PolicyCmsTab from "./PolicyCmsTab";
 import AdminUsersTab from "./AdminUsersTab";
 import RetailOpsTab from "./RetailOpsTab";
+import RetailFinanceTab from "./RetailFinanceTab";
 import SubscriptionsAdminTab from "./SubscriptionsAdminTab";
 import { Award, Repeat } from "lucide-react";
 
@@ -79,6 +81,7 @@ type AdminTab =
   | "settings"
   | "admins"
   | "retail_ops"
+  | "retail_finance"
   | "telegram"
   | "ai_image";
 
@@ -104,6 +107,7 @@ export default function AdminDashboard() {
     if (location.startsWith("/admin/content")) return "content";
     if (location.startsWith("/admin/settings")) return "settings";
     if (location.startsWith("/admin/admins") || location.startsWith("/admin/users")) return "admins";
+    if (location.startsWith("/admin/retail-finance") || location.startsWith("/admin/finance") || location.startsWith("/admin/retail_finance")) return "retail_finance";
     if (location.startsWith("/admin/retail") || location.startsWith("/admin/branches")) return "retail_ops";
     if (location.startsWith("/admin/telegram")) return "telegram";
     if (location.startsWith("/admin/ai_image") || location.startsWith("/admin/generate-image") || location.startsWith("/admin/ai-image")) return "ai_image";
@@ -115,6 +119,8 @@ export default function AdminDashboard() {
       setLocation("/admin/dashboard");
     } else if (tab === "retail_ops") {
       setLocation("/admin/retail");
+    } else if (tab === "retail_finance") {
+      setLocation("/admin/retail-finance");
     } else {
       setLocation(`/admin/${tab}`);
     }
@@ -666,6 +672,7 @@ export default function AdminDashboard() {
         { id: "inventory" as AdminTab, label: "Inventory & Stock", icon: Layers },
         { id: "orders" as AdminTab, label: "Orders", icon: ShoppingBag },
         { id: "subscriptions" as AdminTab, label: "Subscriptions", icon: Repeat },
+        { id: "retail_finance" as AdminTab, label: "Branch Finance & Quotas", icon: Wallet, badge: "₹" },
         { id: "offers" as AdminTab, label: "Festival Offers", icon: Tag },
         { id: "import" as AdminTab, label: "Bulk Import / Export", icon: FileSpreadsheet },
       ],
@@ -711,6 +718,10 @@ export default function AdminDashboard() {
         return { group: "Store Management", title: "Inventory & Low-Stock Controls" };
       case "orders":
         return { group: "Store Management", title: "Customer Orders & Dispatch" };
+      case "subscriptions":
+        return { group: "Store Management", title: "Recurring Botanical Subscriptions" };
+      case "retail_finance":
+        return { group: "Store Management", title: "Branch Finance, Quotas & Cash Flow" };
       case "offers":
         return { group: "Store Management", title: "Festival Offers & Banners" };
       case "import":
@@ -2573,6 +2584,7 @@ export default function AdminDashboard() {
           {activeTab === "policies" && <PolicyCmsTab />}
           {activeTab === "admins" && <AdminUsersTab />}
           {activeTab === "retail_ops" && <RetailOpsTab />}
+          {activeTab === "retail_finance" && <RetailFinanceTab />}
           {activeTab === "subscriptions" && <SubscriptionsAdminTab />}
 
           {/* ========================================== */}

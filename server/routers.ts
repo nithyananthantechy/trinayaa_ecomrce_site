@@ -3426,6 +3426,62 @@ addresses: router({
         .query(async ({ input }) => {
           return db.retailStockRepo.getBranchStock(input.branchId, input);
         }),
+
+      // ==========================================
+      // ADMIN RETAIL FINANCE & CASH FLOW
+      // ==========================================
+      financeOverview: adminProcedure
+        .input(
+          z.object({
+            monthYear: z.string().optional(),
+          }).optional()
+        )
+        .query(async ({ input }) => {
+          return db.retailExpensesRepo.getAdminFinanceOverview({ monthYear: input?.monthYear });
+        }),
+
+      branchExpenses: adminProcedure
+        .input(
+          z.object({
+            branchId: z.string().optional(),
+            period: z.enum(["today", "week", "month", "all"]).optional(),
+            category: z.string().optional(),
+            search: z.string().optional(),
+            monthYear: z.string().optional(),
+            limit: z.number().optional().default(100),
+          }).optional()
+        )
+        .query(async ({ input }) => {
+          return db.retailExpensesRepo.listAllBranchExpenses(input || {});
+        }),
+
+      setBranchAllowance: adminProcedure
+        .input(
+          z.object({
+            branchId: z.string().min(1, "Branch is required"),
+            monthYear: z.string().min(7, "Month-Year is required (YYYY-MM)"),
+            amount: z.number().positive("Allowance amount must be greater than zero"),
+            notes: z.string().optional(),
+          })
+        )
+        .mutation(async ({ input, ctx }) => {
+          const allowance = db.retailExpensesRepo.setMonthlyAllowance({
+            branchId: input.branchId,
+            monthYear: input.monthYear,
+            allocatedAmount: input.amount,
+            allocatedBy: ctx.user.name || "Admin",
+            notes: input.notes,
+          });
+
+          const branch = db.retailBranchesRepo.getById(input.branchId);
+          db.auditLogsRepo.log(
+            ctx.user.name || "Admin",
+            "RETAIL_ALLOWANCE_SET",
+            `Allocated ₹${input.amount} monthly allowance for ${branch?.name || input.branchId} (${input.monthYear})${input.notes ? ` - Notes: ${input.notes}` : ""}`
+          );
+
+          return allowance;
+        }),
     }),
   }),
 
@@ -4250,6 +4306,23 @@ addresses: router({
         const branchId = resolveRetailBranchId(user);
         db.retailExpensesRepo.deleteExpense(input.id, branchId);
         return { success: true };
+      }),
+
+    listExpenses: retailProcedure
+      .input(
+        z.object({
+          period: z.enum(["today", "week", "month", "all"]).optional(),
+          category: z.string().optional(),
+          search: z.string().optional(),
+          monthYear: z.string().optional(),
+          limit: z.number().optional().default(100),
+          branchId: z.string().optional(),
+        }).optional()
+      )
+      .query(async ({ input, ctx }) => {
+        const user = db.usersRepo.getById(String(ctx.user.id));
+        const effectiveBranchId = resolveRetailBranchId(user, input?.branchId);
+        return db.retailExpensesRepo.listExpenses(effectiveBranchId, input || {});
       }),
 
     // ==========================================
